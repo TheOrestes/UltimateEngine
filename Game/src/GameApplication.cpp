@@ -10,9 +10,13 @@ public:
 
 int main(int argc, char** argv)
 {
+	LOG_ERROR("Game App Start...");
+
 	GameApplication* game = new GameApplication();
 	game->Run();
 
+	LOG_ERROR("Game App End...");
+
 	delete game;
 	return 0;
-}
+} 

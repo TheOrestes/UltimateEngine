@@ -13,5 +13,5 @@ EngineApplication::~EngineApplication()
 //---------------------------------------------------------------------------------------------------------------------
 void EngineApplication::Run()
 {
-	while (true);
+	//while (true);
 }

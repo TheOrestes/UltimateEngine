@@ -54,6 +54,7 @@
       <PreprocessorDefinitions>UT_PLATFORM_WINDOWS;UT_BUILD_DLL;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -68,6 +69,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -79,10 +81,12 @@
   <ItemGroup>
     <ClInclude Include="src\Core\EngineApplication.h" />
     <ClInclude Include="src\Core\Core.h" />
+    <ClInclude Include="src\Core\Logger.h" />
     <ClInclude Include="src\EngineHeader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\EngineApplication.cpp" />
+    <ClCompile Include="src\Core\Logger.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
