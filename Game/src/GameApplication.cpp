@@ -6,17 +6,21 @@ class GameApplication : public EngineApplication
 public:
 	GameApplication() {}
 	~GameApplication() {}
+
+private:
+
 };
 
 int main(int argc, char** argv)
 {
-	LOG_ERROR("Game App Start...");
+	LOG_INFO("Game App Start...");
 
-	GameApplication* game = new GameApplication();
-	game->Run();
+	GameApplication Game;
+	Game.Initialize();
+	Game.Run();
+	Game.Destroy();
 
-	LOG_ERROR("Game App End...");
+	LOG_INFO("Game App End...");
 
-	delete game;
-	return 0;
+	return EXIT_SUCCESS;
 } 

@@ -11,6 +11,10 @@
 #define LOG_DEBUG(...)		Logger::getInstance().GetLogger()->debug(__VA_ARGS__);
 
 //---------------------------------------------------------------------------------------------------------------------
+#define UT_ASSERT(x,...){if(!(x)){LOG_ERROR("Assertion Failed:{0}",__VA_ARGS__);__debugbreak();}}
+#define UT_ASSERT_VK(x,...){if(!(x)){LOG_CRITICAL("VK Assertion Failed:{0}",__VA_ARGS__);__debugbreak();}}
+
+//---------------------------------------------------------------------------------------------------------------------
 const uint16_t gWindowWidht = 1920;
 const uint16_t gWindowHeight = 1080;
 
