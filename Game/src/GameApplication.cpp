@@ -18,7 +18,6 @@ int main(int argc, char** argv)
 	GameApplication Game;
 	Game.Initialize();
 	Game.Run();
-	Game.Destroy();
 
 	LOG_INFO("Game App End...");
 
