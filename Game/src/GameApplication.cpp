@@ -1,4 +1,5 @@
 
+#include "UltimateEnginePCH.h"
 #include "EngineHeader.h"
 
 class GameApplication : public EngineApplication
@@ -16,7 +17,7 @@ int main(int argc, char** argv)
 	LOG_INFO("Game App Start...");
 
 	GameApplication Game;
-	Game.Initialize();
+	Game.Initialize("The Ultimate Game Engine");
 	Game.Run();
 
 	LOG_INFO("Game App End...");

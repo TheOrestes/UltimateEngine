@@ -9,8 +9,9 @@ public:
 	EngineApplication();
 	virtual ~EngineApplication();
 
-	virtual void Initialize();
-	virtual void Run();
+	void Initialize(const std::string& name);
+	void Run();
+	virtual void Cleanup();
 
 	//-- EVENTS
 	static void				WindowClosedCallback(GLFWwindow* pWindow);

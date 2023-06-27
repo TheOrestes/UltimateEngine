@@ -30,6 +30,12 @@
     <ClInclude Include="src\UltimateEnginePCH.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\VulkanRenderer\VulkanContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\VulkanRenderer\VulkanApplication.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\EngineApplication.cpp">
@@ -39,6 +45,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\UltimateEnginePCH.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\VulkanRenderer\VulkanContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\VulkanRenderer\VulkanApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

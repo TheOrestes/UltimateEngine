@@ -17,12 +17,12 @@ EngineApplication::~EngineApplication()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void EngineApplication::Initialize()
+void EngineApplication::Initialize(const std::string& name)
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-	m_pGLFWWindow = glfwCreateWindow(gWindowWidht, gWindowHeight, "The Ultimate Engine", nullptr, nullptr);
+	m_pGLFWWindow = glfwCreateWindow(gWindowWidht, gWindowHeight, name.c_str(), nullptr, nullptr);
 	UT_ASSERT(m_pGLFWWindow, "Creating Window!");
 
 	// Register Events!
@@ -41,6 +41,11 @@ void EngineApplication::Run()
 	{
 		glfwPollEvents();
 	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void EngineApplication::Cleanup()
+{
 }
 
 //---------------------------------------------------------------------------------------------------------------------
