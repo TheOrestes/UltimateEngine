@@ -6,7 +6,7 @@ class GameApplication : public EngineApplication
 {
 public:
 	GameApplication() {}
-	~GameApplication() {}
+	virtual ~GameApplication() {}
 
 private:
 

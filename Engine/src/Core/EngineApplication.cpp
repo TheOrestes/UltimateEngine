@@ -1,17 +1,20 @@
 #include "UltimateEnginePCH.h"
 #include "EngineApplication.h"
-
+#include "../VulkanRenderer/VulkanApplication.h"
 #include "..\EngineHeader.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 EngineApplication::EngineApplication()
 {
 	m_pGLFWWindow = nullptr;
+	m_pVulkanApp = nullptr;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 EngineApplication::~EngineApplication()
 {
+	SAFE_DELETE(m_pVulkanApp);
+
 	glfwDestroyWindow(m_pGLFWWindow);
 	glfwTerminate();
 }
@@ -32,6 +35,9 @@ void EngineApplication::Initialize(const std::string& name)
 	glfwSetCursorPosCallback(m_pGLFWWindow, MousePositionCallback);
 	glfwSetMouseButtonCallback(m_pGLFWWindow, MouseButtonCallback);
 	glfwSetScrollCallback(m_pGLFWWindow, MouseScrollCallback);
+
+	m_pVulkanApp = new VulkanApplication();
+	m_pVulkanApp->Initialize(reinterpret_cast<void*>(m_pGLFWWindow));
 }
 
 //---------------------------------------------------------------------------------------------------------------------

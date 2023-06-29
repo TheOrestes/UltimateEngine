@@ -3,6 +3,8 @@
 #include "GLFW/glfw3.h"
 #include "Core.h"
 
+class VulkanApplication;
+
 class UT_API EngineApplication
 {
 public:
@@ -22,6 +24,7 @@ public:
 	static void				MouseScrollCallback(GLFWwindow* pWindow, double xOffset, double yOffset);
 
 private:
-	GLFWwindow* m_pGLFWWindow;
+	GLFWwindow*				m_pGLFWWindow;
+	VulkanApplication*		m_pVulkanApp;
 };
 

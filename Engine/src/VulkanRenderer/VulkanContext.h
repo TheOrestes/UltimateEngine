@@ -10,6 +10,6 @@ public:
 	VulkanContext();
 	~VulkanContext();
 
-private:
+public:
 	GLFWwindow*		pWindow;
 };
