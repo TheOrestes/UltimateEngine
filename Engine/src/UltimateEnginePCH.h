@@ -4,13 +4,18 @@
 #include <utility>
 #include <algorithm>
 #include <functional>
-#include <sstream>
+#include <optional>
 
+#include <filesystem>
+#include <sstream>
+#include <fstream>
 #include <string>
 #include <vector>
 #include <map>
-#include <unordered_map>
-#include <unordered_set>
+#include <set>
+#include <tuple>
+#include <array>
+#include <list>
 
 #ifdef UT_PLATFORM_WINDOWS
 	#include <Windows.h>

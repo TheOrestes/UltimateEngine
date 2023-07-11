@@ -26,7 +26,7 @@ void EngineApplication::Initialize(const std::string& name)
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
 	m_pGLFWWindow = glfwCreateWindow(gWindowWidht, gWindowHeight, name.c_str(), nullptr, nullptr);
-	UT_ASSERT(m_pGLFWWindow, "Creating Window!");
+	UT_ASSERT_NULL(m_pGLFWWindow, "Creating Window!");
 
 	// Register Events!
 	glfwSetWindowCloseCallback(m_pGLFWWindow, WindowClosedCallback);
