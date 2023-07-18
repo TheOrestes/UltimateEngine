@@ -1,8 +1,8 @@
 #pragma once
 
-#include "GLFW/glfw3.h"
 #include "Core.h"
 
+struct GLFWwindow;
 class VulkanApplication;
 
 class UT_API EngineApplication

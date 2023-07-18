@@ -1,7 +1,8 @@
 #include "UltimateEnginePCH.h"
 #include "EngineApplication.h"
 #include "../VulkanRenderer/VulkanApplication.h"
-#include "..\EngineHeader.h"
+#include "../EngineHeader.h"
+#include "GLFW/glfw3.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 EngineApplication::EngineApplication()

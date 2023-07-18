@@ -1,11 +1,10 @@
 #pragma once
 
 #include "../Core/Core.h"
-#include "../Core/EngineApplication.h"
 #include "../EngineHeader.h"
-
 #include "Volk/volk.h"
 
+class EngineApplication;
 class VulkanContext;
 
 class UT_API VulkanApplication : public EngineApplication

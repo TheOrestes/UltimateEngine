@@ -58,14 +58,14 @@
       <PreprocessorDefinitions>UT_PLATFORM_WINDOWS;UT_BUILD_DLL;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(VULKAN_SDK)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>UltimateEnginePCH.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Debug;$(VULKAN_SDK)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
@@ -105,7 +105,9 @@
     <ClInclude Include="src\UltimateEnginePCH.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanContext.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanApplication.h" />
+    <ClInclude Include="src\VulkanRenderer\VulkanGlobals.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanRenderer.h" />
+    <ClInclude Include="src\VulkanRenderer\VulkanDevice.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\EngineApplication.cpp" />
@@ -117,6 +119,7 @@
     <ClCompile Include="src\VulkanRenderer\VulkanContext.cpp" />
     <ClCompile Include="src\VulkanRenderer\VulkanApplication.cpp" />
     <ClCompile Include="src\VulkanRenderer\VulkanRenderer.cpp" />
+    <ClCompile Include="src\VulkanRenderer\VulkanDevice.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

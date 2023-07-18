@@ -14,13 +14,13 @@ private:
 
 int main(int argc, char** argv)
 {
-	LOG_INFO("Game App Start...");
+	LOG_DEBUG("Game App Start...");
 
 	GameApplication Game;
 	Game.Initialize("The Ultimate Game Engine");
 	Game.Run();
 
-	LOG_INFO("Game App End...");
+	LOG_DEBUG("Game App End...");
 
 	return EXIT_SUCCESS;
 } 

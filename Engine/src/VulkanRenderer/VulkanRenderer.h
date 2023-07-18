@@ -1,8 +1,10 @@
 #pragma once
 
+#include "../Core/Core.h"
+
 class VulkanContext;
 
-class VulkanRenderer
+class UT_API VulkanRenderer
 {
 public:
 	VulkanRenderer();

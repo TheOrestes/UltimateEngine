@@ -1,9 +1,13 @@
 #include "UltimateEnginePCH.h"
+
+#define VOLK_IMPLEMENTATION
+#include "../Core/EngineApplication.h"
 #include "VulkanApplication.h"
 #include "VulkanContext.h"
 
-#define VOLK_IMPLEMENTATION
-#include "Volk/volk.h"
+#define VK_NO_PROTOTYPES 
+#define GLFW_INCLUDE_VULKAN
+#include "GLFW/glfw3.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 VulkanApplication::VulkanApplication()
@@ -47,6 +51,9 @@ void VulkanApplication::Initialize(void* pWindow)
 	CreateInstance();
 
 	volkLoadInstance(m_pVKContext->vkInst);
+
+	// Create surface!
+	glfwCreateWindowSurface(m_pVKContext->vkInst, m_pVKContext->pWindow, nullptr, &(m_pVKContext->vkSurface));// , "Vulkan Surface creation failed!");
 
 	SetupDebugMessenger();
 	//RunShaderCompiler("Assets/Shaders");
@@ -126,7 +133,7 @@ void VulkanApplication::CreateInstance()
 
 	UT_ASSERT_VK(vkCreateInstance(&instCreateInfo, nullptr, &(m_pVKContext->vkInst)), "Failed to create Vulkan Instance!");
 
-	LOG_DEBUG("Vulkan Instance created!");
+	LOG_INFO("Vulkan Instance created!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -142,12 +149,11 @@ void VulkanApplication::CheckInstanceExtensionSupport(const std::vector<const ch
 	// Enumerate all the extensions supported by the vulkan instance.
 	// Ideally, this list should contain extensions requested by GLFW and
 	// few additional ones!
-	LOG_DEBUG("--------- Available Vulkan Extensions ---------");
 	for (uint32_t i = 0; i < extensionCount; ++i)
 	{
-		LOG_INFO(vecExtensions[i].extensionName);
+		LOG_DEBUG(vecExtensions[i].extensionName, " extension available!");
 	}
-	LOG_DEBUG("-----------------------------------------------");
+	
 #endif
 
 	// Check if given extensions are in the list of available extensions
@@ -194,7 +200,7 @@ void VulkanApplication::RunShaderCompiler(const std::string& directoryPath)
 				(entry.path().extension().string() == ".vert" || entry.path().extension().string() == ".frag"))
 			{
 				std::string cmd = compilerPath.string() + " --target-env=vulkan1.3" + " -c" + " " + entry.path().string() + " -o " + entry.path().string() + ".spv";
-				LOG_DEBUG("Compiling shader " + entry.path().filename().string());
+				LOG_INFO("Compiling shader " + entry.path().filename().string());
 				std::system(cmd.c_str());
 			}
 		}
