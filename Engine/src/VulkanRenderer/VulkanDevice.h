@@ -1,8 +1,7 @@
 #pragma once
 #include "../Core/Core.h"
 #include "VulkanGlobals.h"
-
-#include "Volk/volk.h"
+#include "vulkan/vulkan.hpp"
 
 struct VulkanContext;
 
@@ -21,21 +20,25 @@ public:
 
 private:
 	void								CreateSwapchain(VulkanContext* pRC);
-	void								FetchSwapchainInfo(VkPhysicalDevice device, VkSurfaceKHR surface);
+	vk::SurfaceFormatKHR				ChooseBestSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& formats);
+	vk::PresentModeKHR					ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
+	vk::Extent2D						ChooseSwapExtent(const VulkanContext* pContext);
+	void								FetchSwapchainInfo(vk::PhysicalDevice device, vk::SurfaceKHR surface);
+
 	void								AcquirePhysicalDevice(VulkanContext* pRC);
 	void								CreateLogicalDevice(VulkanContext* pRC);
-	void								FetchQueueFamilies(VkPhysicalDevice physicalDevice, const VulkanContext* pRC);
-	bool								CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice);
+
+	void								FetchQueueFamilies(vk::PhysicalDevice physicalDevice, const VulkanContext* pRC);
+	bool								CheckDeviceExtensionSupport(vk::PhysicalDevice physicalDevice);
 
 private:
-	VkPhysicalDeviceProperties			m_vkDeviceProps;
-	VkPhysicalDeviceFeatures			m_vkDeviceFeaturesAvailable;
-	VkPhysicalDeviceFeatures			m_vkDeviceFeaturesEnabled;
-	VkPhysicalDeviceMemoryProperties	m_vkDeviceMemoryProps;
-	std::vector<VkExtensionProperties>	m_vecSupportedExtensions;
+	vk::PhysicalDeviceProperties		m_vkDeviceProps;
+	vk::PhysicalDeviceFeatures			m_vkDeviceFeaturesAvailable;
+	vk::PhysicalDeviceFeatures			m_vkDeviceFeaturesEnabled;
+	std::vector<vk::ExtensionProperties>m_vecSupportedExtensions;
 
 public:
-	UT::VK::QueueFamilyIndices			m_QueueFamilyIndices;
-	UT::VK::SwapchainInfo				m_SwapchainInfo;
+	UT::VULKAN::QueueFamilyIndices		m_QueueFamilyIndices;
+	UT::VULKAN::SwapchainInfo			m_SwapchainInfo;
 };
 

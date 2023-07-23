@@ -2,10 +2,16 @@
 
 #include "../Core/Core.h"
 #include "../EngineHeader.h"
-#include "Volk/volk.h"
+
+//#define VOLK_IMPLEMENTATION
+//#include "Volk/volk.h"
+
+#include "vulkan/vulkan.hpp"
+#include "GLFW/glfw3.h"
 
 class EngineApplication;
 class VulkanContext;
+class VulkanRenderer;
 
 class UT_API VulkanApplication : public EngineApplication
 {
@@ -31,6 +37,7 @@ private:
 
 private:
 	VulkanContext*				m_pVKContext;
+	VulkanRenderer*				m_pVulkanRenderer;
 	VkDebugUtilsMessengerEXT	m_vkDebugMessenger;
 
 	bool						m_bEnableValidation;
@@ -42,6 +49,7 @@ private:
 		void* pUserData)
 	{
 		LOG_ERROR("----------------------------------------------------------------------------------------------------");
+	
 		if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
 		{
 			LOG_DEBUG("Validation Layer: {0}", pCallbackData->pMessage);
@@ -63,13 +71,16 @@ private:
 	}
 
 	//---------------------------------------------------------------------------------------------------------------------
-	static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
+	static VkResult VKAPI_ATTR CreateDebugUtilsMessengerEXT(VkInstance instance,
 		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
 		const VkAllocationCallbacks* pAllocator,
 		VkDebugUtilsMessengerEXT* pDebugMessenger)
 	{
-		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-
+		//return PFN_vkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pDebugMessenger);
+		
+		vk::DynamicLoader dl;
+		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkCreateDebugUtilsMessengerEXT");
+		
 		if (func != nullptr)
 		{
 			return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
@@ -81,11 +92,13 @@ private:
 	}
 
 	//---------------------------------------------------------------------------------------------------------------------
-	static void DestroyDebugUtilsMessengerEXT(VkInstance instance,
+	static void VKAPI_ATTR DestroyDebugUtilsMessengerEXT(VkInstance instance,
 		VkDebugUtilsMessengerEXT debugMessenger,
 		const VkAllocationCallbacks* pAllocator)
 	{
-		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+		vk::DynamicLoader dl;
+
+		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkDestroyDebugUtilsMessengerEXT");
 
 		if (func != nullptr)
 		{

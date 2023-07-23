@@ -3,12 +3,19 @@
 #include "../Core/Core.h"
 #include "../UltimateEnginePCH.h"
 
-#include "Volk/volk.h"
+#include "vulkan/vulkan.hpp"
 
 namespace UT
 {
-	namespace VK
+	namespace VULKAN
 	{
+		//--- list of device extensions
+		const std::vector<const char*> DeviceExtensions =
+		{
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		};
+
+
 		//---------------------------------------------------------------------------------------------------------------------
 		struct QueueFamilyIndices
 		{
@@ -27,9 +34,9 @@ namespace UT
 		//---------------------------------------------------------------------------------------------------------------------
 		struct SwapchainInfo
 		{
-			VkSurfaceCapabilitiesKHR		surfaceCapabilities;
-			std::vector<VkSurfaceFormatKHR> surfaceFormats;
-			std::vector<VkPresentModeKHR>	surfacePresentModes;
+			vk::SurfaceCapabilitiesKHR		surfaceCapabilities;
+			std::vector<vk::SurfaceFormatKHR> surfaceFormats;
+			std::vector<vk::PresentModeKHR>	surfacePresentModes;
 
 			bool isValid() const { return !surfaceFormats.empty() && !surfacePresentModes.empty(); }
 		};

@@ -1,11 +1,12 @@
 #include "UltimateEnginePCH.h"
 
-#define VOLK_IMPLEMENTATION
+//#define VOLK_IMPLEMENTATION
 #include "../Core/EngineApplication.h"
 #include "VulkanApplication.h"
 #include "VulkanContext.h"
+#include "VulkanRenderer.h"
 
-#define VK_NO_PROTOTYPES 
+//#define VK_NO_PROTOTYPES 
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
@@ -21,26 +22,26 @@ VulkanApplication::VulkanApplication()
 #endif
 
 	m_vkDebugMessenger = VK_NULL_HANDLE;
+	m_pVulkanRenderer = nullptr;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 VulkanApplication::~VulkanApplication()
 {
+	SAFE_DELETE(m_pVulkanRenderer);
 	SAFE_DELETE(m_pVKContext);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanApplication::Cleanup()
 {
+	m_pVulkanRenderer->Cleanup(m_pVKContext);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanApplication::Initialize(void* pWindow)
 {
 	UT_ASSERT_NULL(pWindow, "Window pointer cannot be null!");
-
-	UT_ASSERT_VK(volkInitialize(), "Failed to initialize Volk!");
-	LOG_INFO("Volk Initialized...");
 
 	m_pVKContext = new VulkanContext();
 	LOG_INFO("Vulkan Context Initialized...");
@@ -50,31 +51,36 @@ void VulkanApplication::Initialize(void* pWindow)
 
 	CreateInstance();
 
-	volkLoadInstance(m_pVKContext->vkInst);
-
 	// Create surface!
-	glfwCreateWindowSurface(m_pVKContext->vkInst, m_pVKContext->pWindow, nullptr, &(m_pVKContext->vkSurface));// , "Vulkan Surface creation failed!");
+	VkSurfaceKHR rawSurface;
+	vk::Result result = static_cast<vk::Result>(glfwCreateWindowSurface(m_pVKContext->vkInst, m_pVKContext->pWindow, nullptr, &(rawSurface)));
+	m_pVKContext->vkSurface = vk::createResultValueType(result, rawSurface);
 
 	SetupDebugMessenger();
 	//RunShaderCompiler("Assets/Shaders");
+
+	m_pVulkanRenderer = new VulkanRenderer();
+	m_pVulkanRenderer->Initialize(m_pVKContext);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanApplication::Update(float dt)
 {
+	m_pVulkanRenderer->Update(dt);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanApplication::Render()
 {
+	m_pVulkanRenderer->Render();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanApplication::CreateInstance()
 {
 	// Create basic application information!
-	VkApplicationInfo appInfo = {};
-	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	vk::ApplicationInfo appInfo = {};
+	appInfo.sType = vk::StructureType::eApplicationInfo;
 	appInfo.apiVersion = VK_API_VERSION_1_3;
 	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -99,11 +105,11 @@ void VulkanApplication::CreateInstance()
 	CheckInstanceExtensionSupport(vecExtensions);
 
 	// Debug Validation layer!
-	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
+	vk::DebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
 
 	// Supported! Create Vulkan Instance!
-	VkInstanceCreateInfo instCreateInfo = {};
-	instCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	vk::InstanceCreateInfo instCreateInfo = {};
+	instCreateInfo.sType = vk::StructureType::eInstanceCreateInfo;
 	instCreateInfo.pApplicationInfo = &appInfo;
 	instCreateInfo.enabledExtensionCount = static_cast<uint32_t>(vecExtensions.size());
 	instCreateInfo.ppEnabledExtensionNames = vecExtensions.data();
@@ -115,14 +121,14 @@ void VulkanApplication::CreateInstance()
 		"VK_LAYER_KHRONOS_validation"
 	};
 
-	VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
+	vk::DebugUtilsMessengerCreateInfoEXT createInfo = {};
 	if (m_bEnableValidation)
 	{
 		instCreateInfo.enabledLayerCount = static_cast<uint32_t>(strValidationLayers.size());
 		instCreateInfo.ppEnabledLayerNames = strValidationLayers.data();
 
 		PopulateDebugMessengerCreateInfo(createInfo);
-		instCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&createInfo;
+		instCreateInfo.pNext = (vk::DebugUtilsMessengerCreateInfoEXT*)&createInfo;
 	}
 	else
 	{
@@ -131,7 +137,7 @@ void VulkanApplication::CreateInstance()
 		instCreateInfo.pNext = nullptr;
 	}
 
-	UT_ASSERT_VK(vkCreateInstance(&instCreateInfo, nullptr, &(m_pVKContext->vkInst)), "Failed to create Vulkan Instance!");
+	UT_ASSERT_VK(vk::createInstance(&instCreateInfo, nullptr, &(m_pVKContext->vkInst)), "Failed to create Vulkan Instance!");
 
 	LOG_INFO("Vulkan Instance created!");
 }
@@ -139,25 +145,23 @@ void VulkanApplication::CreateInstance()
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanApplication::CheckInstanceExtensionSupport(const std::vector<const char*>& instanceExtensions)
 {
-	uint32_t extensionCount = 0;
-	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-
-	std::vector<VkExtensionProperties> vecExtensions(extensionCount);
-	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, vecExtensions.data());
+	std::vector<vk::ExtensionProperties> vecExtensions = vk::enumerateInstanceExtensionProperties();
 
 #if defined _DEBUG
 	// Enumerate all the extensions supported by the vulkan instance.
 	// Ideally, this list should contain extensions requested by GLFW and
 	// few additional ones!
-	for (uint32_t i = 0; i < extensionCount; ++i)
+	
+	for (uint32_t i = 0; i < vecExtensions.size(); ++i)
 	{
-		LOG_DEBUG(vecExtensions[i].extensionName, " extension available!");
+		std::string str(std::begin(vecExtensions[i].extensionName), std::end(vecExtensions[i].extensionName));
+		LOG_DEBUG(vecExtensions[i].extensionName.data(), " extension available!");
 	}
 	
 #endif
 
 	// Check if given extensions are in the list of available extensions
-	for (uint32_t i = 0; i < extensionCount; i++)
+	for (uint32_t i = 0; i < vecExtensions.size(); i++)
 	{
 		bool hasExtension = false;
 
@@ -182,7 +186,7 @@ void VulkanApplication::SetupDebugMessenger()
 		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
 		PopulateDebugMessengerCreateInfo(createInfo);
 
-		UT_ASSERT_VK(CreateDebugUtilsMessengerEXT(m_pVKContext->vkInst, &createInfo, nullptr, &m_vkDebugMessenger), "Debug Util Messenger Creation Failed!");
+		CreateDebugUtilsMessengerEXT(m_pVKContext->vkInst, &createInfo, nullptr, &m_vkDebugMessenger);
 	}
 }
 
