@@ -17,7 +17,7 @@ int main(int argc, char** argv)
 	LOG_DEBUG("Game App Start...");
 
 	GameApplication Game;
-	Game.Initialize("The Ultimate Game Engine");
+	Game.Initialize("The Ultimate Game Engine", 960, 540);
 	Game.Run();
 
 	LOG_DEBUG("Game App End...");

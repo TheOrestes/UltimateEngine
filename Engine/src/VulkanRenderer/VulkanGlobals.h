@@ -9,6 +9,9 @@ namespace UT
 {
 	namespace VULKAN
 	{
+		const uint16_t gMaxFramesDraws = 2;
+		const uint64_t gFenceTimeout = 100000000;
+
 		//--- list of device extensions
 		const std::vector<const char*> DeviceExtensions =
 		{
@@ -39,6 +42,26 @@ namespace UT
 			std::vector<vk::PresentModeKHR>	surfacePresentModes;
 
 			bool isValid() const { return !surfaceFormats.empty() && !surfacePresentModes.empty(); }
+		};
+
+		//---------------------------------------------------------------------------------------------------------------------
+		struct VulkanImage
+		{
+			vk::Image			image;
+			vk::ImageView		imageView;
+			vk::DeviceMemory	deviceMemory;
+
+			void	DestroyAll(vk::Device device)
+			{
+				device.destroyImageView(imageView);
+				device.destroyImage(image);
+				device.freeMemory(deviceMemory);
+			}
+
+			void	DestroyImageView(vk::Device device)
+			{
+				device.destroyImageView(imageView);
+			}
 		};
 	}
 }

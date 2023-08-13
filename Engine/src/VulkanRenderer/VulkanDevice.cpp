@@ -26,26 +26,55 @@ void VulkanDevice::SetupDevice(VulkanContext* pRC)
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanDevice::CreateCommandPool(VulkanContext* pRC)
 {
+	vk::CommandPoolCreateInfo poolInfo = {};
+	poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
+	poolInfo.queueFamilyIndex = m_QueueFamilyIndices.graphicsFamily.value();
+
+	pRC->vkGraphicsCommandPool = pRC->vkDevice.createCommandPool(poolInfo);
+
+	LOG_INFO("Graphics command pool created");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanDevice::CreateCommandBuffers(VulkanContext* pRC)
 {
+	if (pRC->vkListFramebuffers.empty())
+		LOG_ERROR("Framebuffers needs to be created before creating command buffers!");
+
+	// Make sure we have command buffer for each framebuffer!
+	pRC->vkListGraphicsCommandBuffers.resize(pRC->vkListFramebuffers.size());
+
+	// Allocate buffer from the Graphics command pool
+	vk::CommandBufferAllocateInfo cbAllocInfo = {};
+	cbAllocInfo.commandPool = pRC->vkGraphicsCommandPool;
+	cbAllocInfo.level = vk::CommandBufferLevel::ePrimary;
+	cbAllocInfo.commandBufferCount = static_cast<uint32_t>(pRC->vkListGraphicsCommandBuffers.size());
+
+	pRC->vkListGraphicsCommandBuffers = pRC->vkDevice.allocateCommandBuffers(cbAllocInfo);
+
+	LOG_INFO("Graphics command buffer created");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanDevice::HandleWindowsResize(VulkanContext* pRC)
 {
+	CleanupOnWindowsResize(pRC);
+
+	// re-create swapchain
+	CreateSwapchain(pRC);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanDevice::Cleanup(VulkanContext* pRC)
 {
+	pRC->vkDevice.destroySwapchainKHR(pRC->vkSwapchain);
+	pRC->vkDevice.destroy();	
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanDevice::CleanupOnWindowsResize(VulkanContext* pRC)
 {
+	pRC->vkDevice.destroySwapchainKHR(pRC->vkSwapchain);
 }
 
 //---------------------------------------------------------------------------------------------------------------------

@@ -7,7 +7,6 @@
 //#include "Volk/volk.h"
 
 #include "vulkan/vulkan.hpp"
-#include "GLFW/glfw3.h"
 
 class EngineApplication;
 class VulkanContext;
@@ -24,6 +23,9 @@ public:
 	virtual void				Initialize(void* pWindow);
 	virtual void				Update(float dt);
 	virtual void				Render();
+
+	void						CleanupOnWindowResize();
+	void						HandleWindowResizedCallback();
 
 private:
 	VulkanApplication(const VulkanApplication&);

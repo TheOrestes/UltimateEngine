@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <functional>
 #include <optional>
+#include <limits>
 
 #include <filesystem>
 #include <sstream>

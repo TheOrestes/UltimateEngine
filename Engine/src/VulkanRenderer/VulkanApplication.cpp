@@ -28,6 +28,8 @@ VulkanApplication::VulkanApplication()
 //---------------------------------------------------------------------------------------------------------------------
 VulkanApplication::~VulkanApplication()
 {
+	Cleanup();
+
 	SAFE_DELETE(m_pVulkanRenderer);
 	SAFE_DELETE(m_pVKContext);
 }
@@ -48,6 +50,13 @@ void VulkanApplication::Initialize(void* pWindow)
 
 	// start book-keeping for all variables here!
 	m_pVKContext->pWindow = reinterpret_cast<GLFWwindow*>(pWindow);
+
+	int width, height;
+	glfwGetWindowSize(m_pVKContext->pWindow, &width, &height);
+
+	// store window width & height in Render context!
+	m_pVKContext->m_uiWindowWidth = width;
+	m_pVKContext->m_uiWindowHeight = height;
 
 	CreateInstance();
 
@@ -72,7 +81,19 @@ void VulkanApplication::Update(float dt)
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanApplication::Render()
 {
-	m_pVulkanRenderer->Render();
+	m_pVulkanRenderer->Render(m_pVKContext);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void VulkanApplication::CleanupOnWindowResize()
+{
+	m_pVulkanRenderer->CleanupOnWindowsResize(m_pVKContext);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void VulkanApplication::HandleWindowResizedCallback()
+{
+	CleanupOnWindowResize();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -137,7 +158,7 @@ void VulkanApplication::CreateInstance()
 		instCreateInfo.pNext = nullptr;
 	}
 
-	UT_ASSERT_VK(vk::createInstance(&instCreateInfo, nullptr, &(m_pVKContext->vkInst)), "Failed to create Vulkan Instance!");
+	vk::createInstance(&instCreateInfo, nullptr, &(m_pVKContext->vkInst));
 
 	LOG_INFO("Vulkan Instance created!");
 }

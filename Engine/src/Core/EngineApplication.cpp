@@ -4,6 +4,8 @@
 #include "../EngineHeader.h"
 #include "GLFW/glfw3.h"
 
+#define VOLK_IMPLEMENTATION
+
 //---------------------------------------------------------------------------------------------------------------------
 EngineApplication::EngineApplication()
 {
@@ -21,12 +23,12 @@ EngineApplication::~EngineApplication()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void EngineApplication::Initialize(const std::string& name)
+void EngineApplication::Initialize(const std::string& name, uint16_t width, uint16_t height)
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-	m_pGLFWWindow = glfwCreateWindow(gWindowWidht, gWindowHeight, name.c_str(), nullptr, nullptr);
+	m_pGLFWWindow = glfwCreateWindow(width, height, name.c_str(), nullptr, nullptr);
 	UT_ASSERT_NULL(m_pGLFWWindow, "Creating Window!");
 
 	// Register Events!
@@ -39,6 +41,8 @@ void EngineApplication::Initialize(const std::string& name)
 
 	m_pVulkanApp = new VulkanApplication();
 	m_pVulkanApp->Initialize(reinterpret_cast<void*>(m_pGLFWWindow));
+
+	glfwSetWindowUserPointer(m_pGLFWWindow, m_pVulkanApp);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -47,12 +51,17 @@ void EngineApplication::Run()
 	while (!glfwWindowShouldClose(m_pGLFWWindow))
 	{
 		glfwPollEvents();
+
+		float dt = 0.016f;
+		m_pVulkanApp->Update(dt);
+		m_pVulkanApp->Render();
 	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void EngineApplication::Cleanup()
 {
+	m_pVulkanApp->Cleanup();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -65,8 +74,8 @@ void EngineApplication::WindowClosedCallback(GLFWwindow* pWindow)
 //---------------------------------------------------------------------------------------------------------------------
 void EngineApplication::WindowResizedCallback(GLFWwindow* pWindow, int width, int height)
 {
-	//VulkanApplication* pApp = static_cast<VulkanApplication*>(glfwGetWindowUserPointer(pWindow));
-	//pApp->HandleWindowResizedCallback(pWindow);
+	VulkanApplication* pApp = static_cast<VulkanApplication*>(glfwGetWindowUserPointer(pWindow));
+	pApp->HandleWindowResizedCallback();
 
 	//m_pVulkanApp->HandleWindowResizedCallback(pWindow, width, height);
 	LOG_DEBUG("Window Resized to [{0}, {1}]", width, height);

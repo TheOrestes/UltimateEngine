@@ -11,7 +11,7 @@ public:
 	EngineApplication();
 	virtual ~EngineApplication();
 
-	void Initialize(const std::string& name);
+	void Initialize(const std::string& name, uint16_t width, uint16_t height);
 	void Run();
 	virtual void Cleanup();
 
