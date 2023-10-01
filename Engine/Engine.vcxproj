@@ -104,12 +104,14 @@
     <ClInclude Include="src\Core\Logger.h" />
     <ClInclude Include="src\EngineHeader.h" />
     <ClInclude Include="src\UltimateEnginePCH.h" />
-    <ClInclude Include="src\VulkanRenderer\VulkanContext.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanApplication.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanGlobals.h" />
+    <ClInclude Include="src\VulkanRenderer\VulkanHeaders.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanRenderer.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanDevice.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanFramebuffer.h" />
+    <ClInclude Include="src\VulkanRenderer\VulkanUtility.h" />
+    <ClInclude Include="src\VulkanRenderer\VulkanSwapchain.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\EngineApplication.cpp" />
@@ -118,11 +120,11 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\VulkanRenderer\VulkanContext.cpp" />
     <ClCompile Include="src\VulkanRenderer\VulkanApplication.cpp" />
     <ClCompile Include="src\VulkanRenderer\VulkanRenderer.cpp" />
     <ClCompile Include="src\VulkanRenderer\VulkanDevice.cpp" />
     <ClCompile Include="src\VulkanRenderer\VulkanFramebuffer.cpp" />
+    <ClCompile Include="src\VulkanRenderer\VulkanSwapchain.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

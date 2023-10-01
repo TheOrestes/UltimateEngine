@@ -2,7 +2,6 @@
 
 #include "Core/EngineApplication.h"
 #include "Core/Logger.h"
-
 #include <typeinfo>
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -11,7 +10,7 @@
 #define LOG_WARNING(...)	Logger::getInstance().GetLogger()->warn(__VA_ARGS__);
 #define LOG_INFO(...)		Logger::getInstance().GetLogger()->info(__VA_ARGS__);
 #define LOG_DEBUG(...)		Logger::getInstance().GetLogger()->debug(__VA_ARGS__); 			
-	
+
 //---------------------------------------------------------------------------------------------------------------------
 #define UT_ASSERT_NULL(x,...){if((!x)){LOG_ERROR("Assertion Failed:{0}",__VA_ARGS__);__debugbreak();}}
 //---------------------------------------------------------------------------------------------------------------------

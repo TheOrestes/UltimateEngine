@@ -2,9 +2,6 @@
 #include "EngineApplication.h"
 #include "../VulkanRenderer/VulkanApplication.h"
 #include "../EngineHeader.h"
-#include "GLFW/glfw3.h"
-
-#define VOLK_IMPLEMENTATION
 
 //---------------------------------------------------------------------------------------------------------------------
 EngineApplication::EngineApplication()
@@ -40,7 +37,7 @@ void EngineApplication::Initialize(const std::string& name, uint16_t width, uint
 	glfwSetScrollCallback(m_pGLFWWindow, MouseScrollCallback);
 
 	m_pVulkanApp = new VulkanApplication();
-	m_pVulkanApp->Initialize(reinterpret_cast<void*>(m_pGLFWWindow));
+	m_pVulkanApp->Initialize(m_pGLFWWindow);
 
 	glfwSetWindowUserPointer(m_pGLFWWindow, m_pVulkanApp);
 }
@@ -75,7 +72,7 @@ void EngineApplication::WindowClosedCallback(GLFWwindow* pWindow)
 void EngineApplication::WindowResizedCallback(GLFWwindow* pWindow, int width, int height)
 {
 	VulkanApplication* pApp = static_cast<VulkanApplication*>(glfwGetWindowUserPointer(pWindow));
-	pApp->HandleWindowResizedCallback();
+	pApp->HandleWindowResizedCallback(const_cast<GLFWwindow*>(pWindow));
 
 	//m_pVulkanApp->HandleWindowResizedCallback(pWindow, width, height);
 	LOG_DEBUG("Window Resized to [{0}, {1}]", width, height);

@@ -1,44 +1,64 @@
 #pragma once
-#include "../Core/Core.h"
+
 #include "VulkanGlobals.h"
-#include "vulkan/vulkan.hpp"
 
-struct VulkanContext;
+class VulkanRenderer;
+class VulkanFramebuffer;
+class VulkanSwapchain;
 
+//---------------------------------------------------------------------------------------------------------------------
+struct QueueFamilyIndices
+{
+	QueueFamilyIndices()
+	{
+		graphicsFamily.reset();
+		presentFamily.reset();
+	}
+
+	std::optional<uint32_t> graphicsFamily;
+	std::optional<uint32_t> presentFamily;
+
+	bool UT_API isComplete() { return graphicsFamily.has_value() && presentFamily.has_value(); }
+};
+
+//---------------------------------------------------------------------------------------------------------------------
 class UT_API VulkanDevice
 {
 public:
-	VulkanDevice(const VulkanContext* pRC);
+	VulkanDevice();
 	~VulkanDevice();
 
-	void								SetupDevice(VulkanContext* pRC);
-	void								CreateCommandPool(VulkanContext* pRC);
-	void								CreateCommandBuffers(VulkanContext* pRC);
-	void								HandleWindowsResize(VulkanContext* pRC);
-	void								Cleanup(VulkanContext* pRC);
-	void								CleanupOnWindowsResize(VulkanContext* pRC);
+	void									SetupDevice(vk::Instance vkInst, vk::SurfaceKHR vkSurface);
+	void									RecreateOnWindowResize();
+	void									Cleanup();
+	void									CleanupOnWindowsResize();
+	void									CreateCommandBuffers(const VulkanFramebuffer* pFrameBuffer);
+
+	VkCommandBuffer							BeginCommandBuffer();
+	void									EndAndSubmitCommandBuffer(vk::CommandBuffer commandBuffer);
+	void									CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize bufferSize);
 
 private:
-	void								CreateSwapchain(VulkanContext* pRC);
-	vk::SurfaceFormatKHR				ChooseBestSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& formats);
-	vk::PresentModeKHR					ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
-	vk::Extent2D						ChooseSwapExtent(const VulkanContext* pContext);
-	void								FetchSwapchainInfo(vk::PhysicalDevice device, vk::SurfaceKHR surface);
-
-	void								AcquirePhysicalDevice(VulkanContext* pRC);
-	void								CreateLogicalDevice(VulkanContext* pRC);
-
-	void								FetchQueueFamilies(vk::PhysicalDevice physicalDevice, const VulkanContext* pRC);
-	bool								CheckDeviceExtensionSupport(vk::PhysicalDevice physicalDevice);
-
-private:
-	vk::PhysicalDeviceProperties		m_vkDeviceProps;
-	vk::PhysicalDeviceFeatures			m_vkDeviceFeaturesAvailable;
-	vk::PhysicalDeviceFeatures			m_vkDeviceFeaturesEnabled;
-	std::vector<vk::ExtensionProperties>m_vecSupportedExtensions;
+	void									AcquirePhysicalDevice(vk::Instance vkInst, vk::SurfaceKHR vkSurface);
+	void									CreateLogicalDevice();
 
 public:
-	UT::VULKAN::QueueFamilyIndices		m_QueueFamilyIndices;
-	UT::VULKAN::SwapchainInfo			m_SwapchainInfo;
+	inline bool								IsQueueSharing() const							{ return (m_QueueFamilyIndices.graphicsFamily == m_QueueFamilyIndices.presentFamily); }
+	inline uint32_t							GetGraphicsQueueFamilyIndex() const				{ return m_QueueFamilyIndices.graphicsFamily.value(); }
+	inline uint32_t							GetPresentQueueFamilyIndex()  const				{ return m_QueueFamilyIndices.presentFamily.value();  }
+	inline vk::CommandBuffer			    GetGraphicsCommandBuffer(uint32_t index) const	{ return m_vkListGraphicsCommandBuffers[index]; }
+	inline vk::Queue						GetGraphicsQueue() const						{ return m_vkQueueGraphics; }
+	inline vk::Queue						GetPresentQueue() const							{ return m_vkQueuePresent; }
+	inline vk::Device						GetDevice()	const								{ return m_vkDevice; }
+	inline vk::PhysicalDevice				GetPhysicalDevice() const						{ return m_vkPhysicalDevice;  }
+
+private:
+	vk::Device								m_vkDevice;
+	vk::PhysicalDevice						m_vkPhysicalDevice;
+	vk::Queue								m_vkQueueGraphics;
+	vk::Queue								m_vkQueuePresent;
+	vk::CommandPool							m_vkGraphicsCommandPool;
+	std::vector<vk::CommandBuffer>			m_vkListGraphicsCommandBuffers;
+	QueueFamilyIndices						m_QueueFamilyIndices;
 };
 

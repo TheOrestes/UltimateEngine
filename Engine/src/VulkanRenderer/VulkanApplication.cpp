@@ -1,19 +1,16 @@
 #include "UltimateEnginePCH.h"
 
-//#define VOLK_IMPLEMENTATION
-#include "../Core/EngineApplication.h"
-#include "VulkanApplication.h"
-#include "VulkanContext.h"
-#include "VulkanRenderer.h"
-
-//#define VK_NO_PROTOTYPES 
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
+
+#include "../Core/EngineApplication.h"
+#include "VulkanApplication.h"
+#include "VulkanRenderer.h"
+#include "VulkanUtility.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 VulkanApplication::VulkanApplication()
 {
-	m_pVKContext = nullptr;
 
 #ifdef _DEBUG
 	m_bEnableValidation = true;
@@ -24,52 +21,33 @@ VulkanApplication::VulkanApplication()
 	m_vkDebugMessenger = VK_NULL_HANDLE;
 	m_pVulkanRenderer = nullptr;
 }
-
 //---------------------------------------------------------------------------------------------------------------------
 VulkanApplication::~VulkanApplication()
 {
 	Cleanup();
 
 	SAFE_DELETE(m_pVulkanRenderer);
-	SAFE_DELETE(m_pVKContext);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanApplication::Cleanup()
 {
-	m_pVulkanRenderer->Cleanup(m_pVKContext);
+	m_pVulkanRenderer->Cleanup();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanApplication::Initialize(void* pWindow)
+void VulkanApplication::Initialize(const GLFWwindow* pWindow)
 {
 	UT_ASSERT_NULL(pWindow, "Window pointer cannot be null!");
 
-	m_pVKContext = new VulkanContext();
-	LOG_INFO("Vulkan Context Initialized...");
-
-	// start book-keeping for all variables here!
-	m_pVKContext->pWindow = reinterpret_cast<GLFWwindow*>(pWindow);
-
-	int width, height;
-	glfwGetWindowSize(m_pVKContext->pWindow, &width, &height);
-
-	// store window width & height in Render context!
-	m_pVKContext->m_uiWindowWidth = width;
-	m_pVKContext->m_uiWindowHeight = height;
-
 	CreateInstance();
-
-	// Create surface!
-	VkSurfaceKHR rawSurface;
-	vk::Result result = static_cast<vk::Result>(glfwCreateWindowSurface(m_pVKContext->vkInst, m_pVKContext->pWindow, nullptr, &(rawSurface)));
-	m_pVKContext->vkSurface = vk::createResultValueType(result, rawSurface);
+	CreateSurface(pWindow);
 
 	SetupDebugMessenger();
 	//RunShaderCompiler("Assets/Shaders");
 
 	m_pVulkanRenderer = new VulkanRenderer();
-	m_pVulkanRenderer->Initialize(m_pVKContext);
+	m_pVulkanRenderer->Initialize(pWindow, m_vkInstance, m_vkSurface);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -81,19 +59,26 @@ void VulkanApplication::Update(float dt)
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanApplication::Render()
 {
-	m_pVulkanRenderer->Render(m_pVKContext);
+	m_pVulkanRenderer->Render();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanApplication::CleanupOnWindowResize()
 {
-	m_pVulkanRenderer->CleanupOnWindowsResize(m_pVKContext);
+	m_pVulkanRenderer->CleanupOnWindowsResize();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanApplication::HandleWindowResizedCallback()
+void VulkanApplication::RecreateOnWindowResize(const GLFWwindow* pWindow)
+{
+	m_pVulkanRenderer->RecreateOnWindowsResize(pWindow, m_vkSurface);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void VulkanApplication::HandleWindowResizedCallback(const GLFWwindow* pWindow)
 {
 	CleanupOnWindowResize();
+	RecreateOnWindowResize(pWindow);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -123,80 +108,65 @@ void VulkanApplication::CreateInstance()
 	}
 
 	// Check if extensions required by GLFW are supported by our Vulkan instance!
-	CheckInstanceExtensionSupport(vecExtensions);
-
-	// Debug Validation layer!
-	vk::DebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
-
-	// Supported! Create Vulkan Instance!
-	vk::InstanceCreateInfo instCreateInfo = {};
-	instCreateInfo.sType = vk::StructureType::eInstanceCreateInfo;
-	instCreateInfo.pApplicationInfo = &appInfo;
-	instCreateInfo.enabledExtensionCount = static_cast<uint32_t>(vecExtensions.size());
-	instCreateInfo.ppEnabledExtensionNames = vecExtensions.data();
-	instCreateInfo.pNext = nullptr;
-
-	//--- list of validation layers...
-	const std::vector<const char*> strValidationLayers =
+	if (UT::VkUtility::CheckInstanceExtensionSupport(vecExtensions))
 	{
-		"VK_LAYER_KHRONOS_validation"
-	};
+		// Debug Validation layer!
+		vk::DebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
 
-	vk::DebugUtilsMessengerCreateInfoEXT createInfo = {};
-	if (m_bEnableValidation)
-	{
-		instCreateInfo.enabledLayerCount = static_cast<uint32_t>(strValidationLayers.size());
-		instCreateInfo.ppEnabledLayerNames = strValidationLayers.data();
+		// Supported! Create Vulkan Instance!
+		vk::InstanceCreateInfo* instCreateInfo = new vk::InstanceCreateInfo();
+		instCreateInfo->sType = vk::StructureType::eInstanceCreateInfo;
+		instCreateInfo->pApplicationInfo = &appInfo;
+		instCreateInfo->enabledExtensionCount = static_cast<uint32_t>(vecExtensions.size());
+		instCreateInfo->ppEnabledExtensionNames = vecExtensions.data();
+		instCreateInfo->pNext = nullptr;
 
-		PopulateDebugMessengerCreateInfo(createInfo);
-		instCreateInfo.pNext = (vk::DebugUtilsMessengerCreateInfoEXT*)&createInfo;
+		//--- list of validation layers...
+		const std::vector<const char*> strValidationLayers =
+		{
+			"VK_LAYER_KHRONOS_validation"
+		};
+
+		vk::DebugUtilsMessengerCreateInfoEXT createInfo = {};
+		if (m_bEnableValidation)
+		{
+			instCreateInfo->enabledLayerCount = static_cast<uint32_t>(strValidationLayers.size());
+			instCreateInfo->ppEnabledLayerNames = strValidationLayers.data();
+
+			PopulateDebugMessengerCreateInfo(createInfo);
+			instCreateInfo->pNext = (vk::DebugUtilsMessengerCreateInfoEXT*)&createInfo;
+		}
+		else
+		{
+			instCreateInfo->enabledLayerCount = 0;
+			instCreateInfo->ppEnabledLayerNames = nullptr;
+			instCreateInfo->pNext = nullptr;
+		}
+
+		UT_ASSERT_VK(vk::createInstance(instCreateInfo, nullptr, &m_vkInstance), "Vulkan Instance creation failed!");
+
+		LOG_INFO("Vulkan Instance created!");
 	}
 	else
 	{
-		instCreateInfo.enabledLayerCount = 0;
-		instCreateInfo.ppEnabledLayerNames = nullptr;
-		instCreateInfo.pNext = nullptr;
+		LOG_WARNING("GLFW Extensions are not supported by Vulkan this Instance!");
 	}
-
-	vk::createInstance(&instCreateInfo, nullptr, &(m_pVKContext->vkInst));
-
-	LOG_INFO("Vulkan Instance created!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanApplication::CheckInstanceExtensionSupport(const std::vector<const char*>& instanceExtensions)
+void VulkanApplication::CreateSurface(const GLFWwindow* pWindow)
 {
-	std::vector<vk::ExtensionProperties> vecExtensions = vk::enumerateInstanceExtensionProperties();
+	// Create surface!
+	VkSurfaceKHR rawSurface;
+	vk::Result result = static_cast<vk::Result>(glfwCreateWindowSurface(m_vkInstance, const_cast<GLFWwindow*>(pWindow), nullptr, &(rawSurface)));
+	m_vkSurface = vk::createResultValueType(result, rawSurface);
 
-#if defined _DEBUG
-	// Enumerate all the extensions supported by the vulkan instance.
-	// Ideally, this list should contain extensions requested by GLFW and
-	// few additional ones!
-	
-	for (uint32_t i = 0; i < vecExtensions.size(); ++i)
-	{
-		std::string str(std::begin(vecExtensions[i].extensionName), std::end(vecExtensions[i].extensionName));
-		LOG_DEBUG(vecExtensions[i].extensionName.data(), " extension available!");
-	}
-	
-#endif
+	int width, height = 0;
+	glfwGetWindowSize(const_cast<GLFWwindow*>(pWindow), &width, &height);
 
-	// Check if given extensions are in the list of available extensions
-	for (uint32_t i = 0; i < vecExtensions.size(); i++)
-	{
-		bool hasExtension = false;
-
-		for (uint32_t j = 0; j < instanceExtensions.size(); j++)
-		{
-			if (!strcmp(vecExtensions[i].extensionName, instanceExtensions[j]))
-			{
-				hasExtension = true;
-				break;
-			}
-		}
-
-		//UT_ASSERT_BOOL(hasExtension, "VkInstance doesn't support required extension!");
-	}
+	// Store windows width & height for future usage!
+	m_uiAppWidth = static_cast<uint16_t>(width);
+	m_uiAppHeight = static_cast<uint16_t>(height);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -207,7 +177,7 @@ void VulkanApplication::SetupDebugMessenger()
 		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
 		PopulateDebugMessengerCreateInfo(createInfo);
 
-		CreateDebugUtilsMessengerEXT(m_pVKContext->vkInst, &createInfo, nullptr, &m_vkDebugMessenger);
+		CreateDebugUtilsMessengerEXT(m_vkInstance, &createInfo, nullptr, &m_vkDebugMessenger);
 	}
 }
 
@@ -222,7 +192,8 @@ void VulkanApplication::RunShaderCompiler(const std::string& directoryPath)
 		for (const auto& entry : std::filesystem::directory_iterator(directoryPath))
 		{
 			if (entry.is_regular_file() &&
-				(entry.path().extension().string() == ".vert" || entry.path().extension().string() == ".frag"))
+			   (entry.path().extension().string() == ".vert" || entry.path().extension().string() == ".frag") || 
+			    entry.path().extension().string() == ".rchit" || entry.path().extension().string() == ".rmiss" || entry.path().extension().string() == ".rgen")
 			{
 				std::string cmd = compilerPath.string() + " --target-env=vulkan1.3" + " -c" + " " + entry.path().string() + " -o " + entry.path().string() + ".spv";
 				LOG_INFO("Compiling shader " + entry.path().filename().string());

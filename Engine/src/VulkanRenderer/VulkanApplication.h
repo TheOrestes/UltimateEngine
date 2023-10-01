@@ -3,13 +3,9 @@
 #include "../Core/Core.h"
 #include "../EngineHeader.h"
 
-//#define VOLK_IMPLEMENTATION
-//#include "Volk/volk.h"
-
 #include "vulkan/vulkan.hpp"
 
 class EngineApplication;
-class VulkanContext;
 class VulkanRenderer;
 
 class UT_API VulkanApplication : public EngineApplication
@@ -20,29 +16,36 @@ public:
 
 	virtual void				Cleanup() override;
 
-	virtual void				Initialize(void* pWindow);
+	virtual void				Initialize(const GLFWwindow* pWindow);
 	virtual void				Update(float dt);
 	virtual void				Render();
 
-	void						CleanupOnWindowResize();
-	void						HandleWindowResizedCallback();
+	void						HandleWindowResizedCallback(const GLFWwindow* pWindow);
 
 private:
 	VulkanApplication(const VulkanApplication&);
 	VulkanApplication& operator=(const VulkanApplication&);
 
 	void						CreateInstance();
+	void						CreateSurface(const GLFWwindow* pWindow);
 	void						CheckInstanceExtensionSupport(const std::vector<const char*>& instanceExtensions);
 	void						SetupDebugMessenger();
 	void						RunShaderCompiler(const std::string& directoryPath);
 	void						PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
+	void						CleanupOnWindowResize();
+	void						RecreateOnWindowResize(const GLFWwindow* pWindow);
+
 private:
-	VulkanContext*				m_pVKContext;
+	vk::Instance				m_vkInstance;
+	vk::SurfaceKHR				m_vkSurface;
+
 	VulkanRenderer*				m_pVulkanRenderer;
 	VkDebugUtilsMessengerEXT	m_vkDebugMessenger;
 
 	bool						m_bEnableValidation;
+	uint16_t					m_uiAppWidth;
+	uint16_t					m_uiAppHeight;
 
 	//-----------------------------------------------------------------------------------------------------------------
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity,
