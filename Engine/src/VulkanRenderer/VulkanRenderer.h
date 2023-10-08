@@ -7,6 +7,7 @@ struct GLFWwindow;
 class VulkanDevice;
 class VulkanSwapchain;
 class VulkanFramebuffer;
+class UIManager;
 
 class UT_API VulkanRenderer
 {
@@ -51,5 +52,7 @@ private:
 
 	GLFWwindow*							m_pWindow;
 	vk::SurfaceKHR						m_vkSurface;
+
+	UIManager*							m_pGUI;
 };
 

@@ -87,7 +87,7 @@ void VulkanDevice::CreateCommandBuffers(const VulkanFramebuffer* pFrameBuffer)
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-VkCommandBuffer VulkanDevice::BeginCommandBuffer()
+VkCommandBuffer VulkanDevice::BeginCommandBuffer() const
 {
 	// Command buffer to hold transfer command
 	vk::CommandBuffer commandBuffer;
@@ -112,7 +112,7 @@ VkCommandBuffer VulkanDevice::BeginCommandBuffer()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanDevice::EndAndSubmitCommandBuffer(vk::CommandBuffer commandBuffer)
+void VulkanDevice::EndAndSubmitCommandBuffer(vk::CommandBuffer commandBuffer) const
 {
 	// End Commands!
 	commandBuffer.end();
@@ -131,7 +131,7 @@ void VulkanDevice::EndAndSubmitCommandBuffer(vk::CommandBuffer commandBuffer)
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanDevice::CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize bufferSize)
+void VulkanDevice::CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize bufferSize) const
 {
 	vk::CommandBuffer cmdBuffer = BeginCommandBuffer();
 

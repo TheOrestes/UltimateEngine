@@ -4,3 +4,9 @@
 [submodule "Engine/ThirdParty/GLFW"]
 	path = Engine/ThirdParty/GLFW
 	url = https://github.com/glfw/glfw.git
+[submodule "Engine/ThirdParty/ImGui_Vulkan_Hpp"]
+	path = Engine/ThirdParty/ImGui_Vulkan_Hpp
+	url = https://github.com/yknishidate/imgui-vulkan-hpp-backend.git
+[submodule "Engine/ThirdParty/ImGui"]
+	path = Engine/ThirdParty/ImGui
+	url = https://github.com/ocornut/imgui.git

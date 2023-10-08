@@ -34,9 +34,9 @@ public:
 	void									CleanupOnWindowsResize();
 	void									CreateCommandBuffers(const VulkanFramebuffer* pFrameBuffer);
 
-	VkCommandBuffer							BeginCommandBuffer();
-	void									EndAndSubmitCommandBuffer(vk::CommandBuffer commandBuffer);
-	void									CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize bufferSize);
+	VkCommandBuffer							BeginCommandBuffer() const;
+	void									EndAndSubmitCommandBuffer(vk::CommandBuffer commandBuffer) const;
+	void									CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize bufferSize) const;
 
 private:
 	void									AcquirePhysicalDevice(vk::Instance vkInst, vk::SurfaceKHR vkSurface);
@@ -51,6 +51,7 @@ public:
 	inline vk::Queue						GetPresentQueue() const							{ return m_vkQueuePresent; }
 	inline vk::Device						GetDevice()	const								{ return m_vkDevice; }
 	inline vk::PhysicalDevice				GetPhysicalDevice() const						{ return m_vkPhysicalDevice;  }
+	inline uint32_t							GetSwapchainImageCount() const					{ return static_cast<uint32_t>(m_vkListGraphicsCommandBuffers.size()); }
 
 private:
 	vk::Device								m_vkDevice;

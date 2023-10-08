@@ -103,6 +103,15 @@
     <ClInclude Include="src\Core\Core.h" />
     <ClInclude Include="src\Core\Logger.h" />
     <ClInclude Include="src\EngineHeader.h" />
+    <ClInclude Include="src\UI\imconfig.h" />
+    <ClInclude Include="src\UI\imgui.h" />
+    <ClInclude Include="src\UI\imgui_impl_glfw.h" />
+    <ClInclude Include="src\UI\imgui_impl_vulkan_hpp.h" />
+    <ClInclude Include="src\UI\imgui_internal.h" />
+    <ClInclude Include="src\UI\imstb_rectpack.h" />
+    <ClInclude Include="src\UI\imstb_textedit.h" />
+    <ClInclude Include="src\UI\imstb_truetype.h" />
+    <ClInclude Include="src\UI\UIManager.h" />
     <ClInclude Include="src\UltimateEnginePCH.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanApplication.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanGlobals.h" />
@@ -116,6 +125,14 @@
   <ItemGroup>
     <ClCompile Include="src\Core\EngineApplication.cpp" />
     <ClCompile Include="src\Core\Logger.cpp" />
+    <ClCompile Include="src\UI\imgui.cpp" />
+    <ClCompile Include="src\UI\imgui_demo.cpp" />
+    <ClCompile Include="src\UI\imgui_draw.cpp" />
+    <ClCompile Include="src\UI\imgui_impl_glfw.cpp" />
+    <ClCompile Include="src\UI\imgui_impl_vulkan_hpp.cpp" />
+    <ClCompile Include="src\UI\imgui_tables.cpp" />
+    <ClCompile Include="src\UI\imgui_widgets.cpp" />
+    <ClCompile Include="src\UI\UIManager.cpp" />
     <ClCompile Include="src\UltimateEnginePCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>

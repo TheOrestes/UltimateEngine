@@ -5,6 +5,7 @@
 #include "VulkanSwapchain.h"
 #include "VulkanFramebuffer.h"
 #include "VulkanGlobals.h"
+#include "../UI/UIManager.h"
 #include "../EngineHeader.h"
 
 #include "GLFW/glfw3.h"
@@ -17,11 +18,14 @@ VulkanRenderer::VulkanRenderer()
 	m_pVulkanDevice = nullptr;
 	m_pSwapchain = nullptr;
 	m_pFramebuffer = nullptr;
+
+	m_pGUI = nullptr;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 VulkanRenderer::~VulkanRenderer()
 {
+	SAFE_DELETE(m_pGUI);
 	SAFE_DELETE(m_pFramebuffer);
 	SAFE_DELETE(m_pSwapchain);
 	SAFE_DELETE(m_pVulkanDevice);
@@ -40,6 +44,9 @@ void VulkanRenderer::Initialize(const GLFWwindow* pWindow, vk::Instance vkInst, 
 
 	m_pWindow = const_cast<GLFWwindow*>(pWindow);
 	m_vkSurface = vkSurface;
+
+	m_pGUI = new UIManager();
+	m_pGUI->Initialize(pWindow, vkInst, m_vkForwardRenderingRenderPass, m_pVulkanDevice);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -318,6 +325,10 @@ void VulkanRenderer::RecordCommands(uint32_t currentImage)
 
 	// Begin RenderPass
 	m_pVulkanDevice->GetGraphicsCommandBuffer(currentImage).beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+
+	m_pGUI->BeginRender();
+	m_pGUI->Render();
+	m_pGUI->EndRender(m_pVulkanDevice, currentImage);
 
 	// End RenderPass
 	m_pVulkanDevice->GetGraphicsCommandBuffer(currentImage).endRenderPass();
