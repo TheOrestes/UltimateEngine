@@ -59,6 +59,7 @@ bool UIManager::Initialize(const GLFWwindow* pWindow, vk::Instance vkInstance, v
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	//io.Fonts->AddFontFromFileTTF("D:/Development/UltimateEngine/Game/Assets/Fonts/SFMONO.ttf", 14.0f);
 
 	// setup ImGui style
@@ -114,5 +115,18 @@ void UIManager::EndRender(const VulkanDevice* pDevice, uint32_t imageIndex)
 //---------------------------------------------------------------------------------------------------------------------
 void UIManager::Render()
 {
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
+
+	ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | 
+									ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+	
+	ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), dockspace_flags);
+
+	bool open_flag = false;
+	ImGui::Begin("DockSpace Demo", &open_flag, window_flags);
+ 
+	ImGui::ShowAboutWindow(&open_flag);
+ 
+	ImGui::End();
 }
