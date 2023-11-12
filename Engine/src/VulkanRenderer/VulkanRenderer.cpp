@@ -151,7 +151,7 @@ void VulkanRenderer::RecreateOnWindowsResize(const GLFWwindow* pWindow, vk::Surf
 {
 	m_pSwapchain->CreateSwapChain(pWindow, vkSurface, m_pVulkanDevice);
 	m_pFramebuffer->CreateFramebuffersAttachments(m_pVulkanDevice, m_pSwapchain);
-	m_pFramebuffer->CreateFramebuffers(m_pVulkanDevice->GetDevice(), m_vkForwardRenderingRenderPass);
+	m_pFramebuffer->CreateFramebuffers(m_pVulkanDevice, m_vkForwardRenderingRenderPass);
 	m_pVulkanDevice->CreateCommandBuffers(m_pFramebuffer);
 }
 
@@ -287,7 +287,7 @@ void VulkanRenderer::CreateFramebuffers()
 	UT_ASSERT_NULL(m_pFramebuffer, "CreateFrameBuffers()-->VulkanFramebuffer class object not valid?!");
 	UT_ASSERT_NULL(m_vkForwardRenderingRenderPass, "CreateFrameBuffers()-->vk::RenderPass not valid?!");
 
-	m_pFramebuffer->CreateFramebuffers(m_pVulkanDevice->GetDevice(), m_vkForwardRenderingRenderPass);
+	m_pFramebuffer->CreateFramebuffers(m_pVulkanDevice, m_vkForwardRenderingRenderPass);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -321,18 +321,18 @@ void VulkanRenderer::RecordCommands(uint32_t currentImage)
 	renderPassBeginInfo.framebuffer = m_pFramebuffer->GetFramebuffer(m_uiCurrentFrame);
 
 	// start recording...
-	m_pVulkanDevice->GetGraphicsCommandBuffer(currentImage).begin(cmdBufferBeginInfo);
+	m_pVulkanDevice->BeginGraphicsCommandBuffer(currentImage, cmdBufferBeginInfo);
 
 	// Begin RenderPass
-	m_pVulkanDevice->GetGraphicsCommandBuffer(currentImage).beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
-
+	m_pVulkanDevice->BeginRenderPass(currentImage, renderPassBeginInfo);
+	
 	m_pGUI->BeginRender();
 	m_pGUI->Render();
 	m_pGUI->EndRender(m_pVulkanDevice, currentImage);
 
 	// End RenderPass
-	m_pVulkanDevice->GetGraphicsCommandBuffer(currentImage).endRenderPass();
-
+	m_pVulkanDevice->EndRenderPass(currentImage);
+	
 	// end recording...
-	m_pVulkanDevice->GetGraphicsCommandBuffer(currentImage).end();
+	m_pVulkanDevice->EndGraphicsCommandBuffer(currentImage);
 }

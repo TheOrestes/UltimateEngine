@@ -82,9 +82,9 @@ bool UIManager::Initialize(const GLFWwindow* pWindow, vk::Instance vkInstance, v
 	ImGui_ImplVulkan_Init(&initInfo, renderPass);
 
 	// execute GPU commands to upload imgui fonts to textures
-	VkCommandBuffer cmdBuffer = pDevice->BeginCommandBuffer();
+	VkCommandBuffer cmdBuffer = pDevice->BeginTransferCommandBuffer();
 	ImGui_ImplVulkan_CreateFontsTexture(cmdBuffer);
-	pDevice->EndAndSubmitCommandBuffer(cmdBuffer);
+	pDevice->EndAndSubmitTransferCommandBuffer(cmdBuffer);
 
 	// clear fonts from the cpu memory!
 	ImGui_ImplVulkan_DestroyFontUploadObjects();

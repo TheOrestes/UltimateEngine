@@ -6,7 +6,7 @@
 #include "../Core/EngineApplication.h"
 #include "VulkanApplication.h"
 #include "VulkanRenderer.h"
-#include "VulkanUtility.h"
+#include "VulkanGlobals.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 VulkanApplication::VulkanApplication()

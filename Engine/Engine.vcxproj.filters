@@ -45,13 +45,7 @@
     <ClInclude Include="src\VulkanRenderer\VulkanFramebuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\VulkanRenderer\VulkanUtility.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\VulkanRenderer\VulkanSwapchain.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\VulkanRenderer\VulkanHeaders.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\UI\imgui_impl_vulkan_hpp.h">
@@ -79,6 +73,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\UI\imgui_impl_glfw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\RenderObjects\VulkanMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -129,6 +126,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\UI\imgui_impl_glfw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RenderObjects\VulkanMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

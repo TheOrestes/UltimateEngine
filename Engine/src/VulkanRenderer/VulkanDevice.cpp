@@ -1,10 +1,8 @@
 #include "UltimateEnginePCH.h"
 #include "../EngineHeader.h"
 #include "VulkanDevice.h"
-#include "VulkanUtility.h"
 #include "VulkanGlobals.h"
 #include "VulkanFramebuffer.h"
-#include "VulkanHeaders.h"
 #include "GLFW/glfw3.h"
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -87,7 +85,7 @@ void VulkanDevice::CreateCommandBuffers(const VulkanFramebuffer* pFrameBuffer)
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-VkCommandBuffer VulkanDevice::BeginCommandBuffer() const
+VkCommandBuffer VulkanDevice::BeginTransferCommandBuffer() const
 {
 	// Command buffer to hold transfer command
 	vk::CommandBuffer commandBuffer;
@@ -112,7 +110,7 @@ VkCommandBuffer VulkanDevice::BeginCommandBuffer() const
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanDevice::EndAndSubmitCommandBuffer(vk::CommandBuffer commandBuffer) const
+void VulkanDevice::EndAndSubmitTransferCommandBuffer(vk::CommandBuffer commandBuffer) const
 {
 	// End Commands!
 	commandBuffer.end();
@@ -133,7 +131,7 @@ void VulkanDevice::EndAndSubmitCommandBuffer(vk::CommandBuffer commandBuffer) co
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanDevice::CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize bufferSize) const
 {
-	vk::CommandBuffer cmdBuffer = BeginCommandBuffer();
+	vk::CommandBuffer cmdBuffer = BeginTransferCommandBuffer();
 
 	vk::BufferCopy bufferCopyRegion;
 	bufferCopyRegion.srcOffset = 0;
@@ -142,7 +140,7 @@ void VulkanDevice::CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::De
 
 	cmdBuffer.copyBuffer(srcBuffer, dstBuffer, 1, &bufferCopyRegion);
 
-	EndAndSubmitCommandBuffer(cmdBuffer);
+	EndAndSubmitTransferCommandBuffer(cmdBuffer);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -179,12 +177,12 @@ void VulkanDevice::AcquirePhysicalDevice(vk::Instance vkInst, vk::SurfaceKHR vkS
 	UT_ASSERT_NULL(m_vkPhysicalDevice, "Failed to find suitable GPU!!!");
 
 	// Check if Discrete GPU we found has all the needed extension support!
-	bool bExtensionsSupported = UT::VkUtility::CheckDeviceExtensionSupport(m_vkPhysicalDevice);
+	bool bExtensionsSupported = CheckDeviceExtensionSupport();
 
 	if (bExtensionsSupported)
 	{
 		// Fetch Queue families supported!
-		UT::VkUtility::FetchQueueFamilies(m_vkPhysicalDevice, vkSurface, m_QueueFamilyIndices);
+		FetchQueueFamilies(vkSurface);
 
 		if (m_QueueFamilyIndices.isComplete())
 		{
@@ -250,6 +248,314 @@ void VulkanDevice::CreateLogicalDevice()
 	// Queues are created at the same time as device creation, store their handle!
 	m_vkQueueGraphics = m_vkDevice.getQueue(m_QueueFamilyIndices.graphicsFamily.value(), 0);
 	m_vkQueuePresent = m_vkDevice.getQueue(m_QueueFamilyIndices.presentFamily.value(), 0);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void VulkanDevice::FetchQueueFamilies(vk::SurfaceKHR vkSurface)
+{
+	// Get all queue families & their properties supported by physical device!
+	std::vector<vk::QueueFamilyProperties> queueFamilyProps = m_vkPhysicalDevice.getQueueFamilyProperties();
+
+	// Go through queue families and check if it supports graphics & present family queue!
+	uint32_t i = 0;
+	std::vector<vk::QueueFamilyProperties>::iterator iter = queueFamilyProps.begin();
+	for (; iter != queueFamilyProps.end(); ++iter)
+	{
+		if ((*iter).queueFlags & vk::QueueFlagBits::eGraphics)
+		{
+			m_QueueFamilyIndices.graphicsFamily = i;
+		}
+
+		// check if this queue family has capability of presenting to our window surface!
+		VkBool32 bPresentSupport = m_vkPhysicalDevice.getSurfaceSupportKHR(i, vkSurface);
+
+		// if yes, store presentation family queue index!
+		if (bPresentSupport)
+		{
+			m_QueueFamilyIndices.presentFamily = i;
+		}
+
+		if (m_QueueFamilyIndices.isComplete())
+			break;
+
+		++i;
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+bool VulkanDevice::CheckDeviceExtensionSupport()
+{
+	// Get count of total number of extensions
+	std::vector<vk::ExtensionProperties> vecSupportedExtensions;
+	vecSupportedExtensions = m_vkPhysicalDevice.enumerateDeviceExtensionProperties();
+
+	// Compare Required extensions with supported extensions...
+	for (int i = 0; i < UT::VkGlobals::GListDeviceExtensions.size(); ++i)
+	{
+		bool bExtensionFound = false;
+
+		for (int j = 0; j < vecSupportedExtensions.size(); ++j)
+		{
+			// If device supported extensions matches the one we want, good news ... Enumarate them!
+			if (strcmp(UT::VkGlobals::GListDeviceExtensions[i], vecSupportedExtensions[j].extensionName) == 0)
+			{
+				bExtensionFound = true;
+
+				std::string msg = std::string(UT::VkGlobals::GListDeviceExtensions[i]) + " device extension found!";
+				LOG_DEBUG(msg.c_str());
+
+				break;
+			}
+		}
+
+		// No matching extension found ... bail out!
+		if (!bExtensionFound)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+vk::ShaderModule VulkanDevice::CreateShaderModule(const std::string& fileName)
+{
+	// start reading at the end & in binary mode.
+	// Advantage of reading file from the end is we can use read position to determine
+	// size of the file & allocate buffer accordingly!
+	std::ifstream file(fileName, std::ios::ate | std::ios::binary);
+
+	if (!file.is_open())
+		LOG_ERROR("Failed to open Shader file!");
+
+	// get the file size & allocate buffer memory!
+	size_t fileSize = (size_t)file.tellg();
+	std::vector<char> buffer(fileSize);
+
+	// now seek back to the beginning of the file & read all bytes at once!
+	file.seekg(0);
+	file.read(buffer.data(), fileSize);
+
+	// close the file!
+	file.close();
+
+	// Create Shader Module
+	vk::ShaderModuleCreateInfo shaderModuleInfo;
+	shaderModuleInfo.codeSize = buffer.size();
+	shaderModuleInfo.pCode = reinterpret_cast<const uint32_t*>(buffer.data());
+
+	vk::ShaderModule shaderModule;
+	std::string shaderModuleName = fileName;
+
+	shaderModule = m_vkDevice.createShaderModule(shaderModuleInfo);
+
+	return shaderModule;
+}
+
+//-----------------------------------------------------------------------------------------------------------------------
+uint32_t VulkanDevice::FindMemoryTypeIndex(uint32_t allowedTypeIndex, vk::MemoryPropertyFlags props) const
+{
+	for (uint32_t i = 0; i < m_vkPhysicalDevice.getMemoryProperties().memoryTypeCount; i++)
+	{
+		if ((allowedTypeIndex & (1 << i))																		// Index of memory type must match corresponding bit in allowed types!
+			&& (m_vkPhysicalDevice.getMemoryProperties().memoryTypes[i].propertyFlags & props) == props)		// Desired property bit flags are part of the memory type's property flags!
+		{
+			// This memory type is valid, so return index!
+			return i;
+		}
+	}
+
+	return 0;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+vk::Format VulkanDevice::ChooseSupportedFormat(const std::vector<vk::Format>& formats, vk::ImageTiling tiling, vk::FormatFeatureFlags featureFlags) const
+{
+	for (vk::Format format : formats)
+	{
+		// Get properties for given formats on this device
+		vk::FormatProperties props;
+		m_vkPhysicalDevice.getFormatProperties(format, &props);
+
+		// depending on tiling choice, need to check for different bit flag
+		if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & featureFlags) == featureFlags)
+		{
+			return format;
+		}
+		else if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & featureFlags) == featureFlags)
+		{
+			return format;
+		}
+		else
+			return vk::Format::eUndefined;
+	}
+
+	LOG_ERROR("Failed to find matching format!");
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void VulkanDevice::CopyBufferToImage(vk::Buffer srcBuffer, uint32_t width, uint32_t height, vk::Image* image) const
+{
+	// Create buffer
+	//VkCommandBuffer transferCommandBuffer = BeginCommandBuffer();
+	//
+	//VkBufferImageCopy imgRegion = {};
+	//imgRegion.bufferOffset = 0;
+	//imgRegion.bufferRowLength = 0;
+	//imgRegion.bufferImageHeight = 0;
+	//imgRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	//imgRegion.imageSubresource.mipLevel = 0;
+	//imgRegion.imageSubresource.baseArrayLayer = 0;
+	//imgRegion.imageSubresource.layerCount = 1;
+	//imgRegion.imageOffset = { 0,0,0 };
+	//imgRegion.imageExtent = { width, height, 1 };
+	//
+	//// copy buffer to given image!
+	//vkCmdCopyBufferToImage(transferCommandBuffer, srcBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgRegion);
+	//
+	//EndAndSubmitCommandBuffer(transferCommandBuffer);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void VulkanDevice::CreateImage2D(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
+								vk::ImageUsageFlags usageFlags, vk::MemoryPropertyFlags memoryPropertyFlags,
+								vk::ImageAspectFlags aspectFlags, UT::VkStructs::VulkanImage* pOutImage2D) const 
+
+{
+	// Image creation info!
+	vk::ImageCreateInfo imageInfo;
+	imageInfo.imageType = vk::ImageType::e2D;
+	imageInfo.extent.width = width;
+	imageInfo.extent.height = height;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = 1;
+	imageInfo.arrayLayers = 1;
+	imageInfo.format = format;
+	imageInfo.tiling = tiling;
+	imageInfo.usage = usageFlags;
+	imageInfo.initialLayout = vk::ImageLayout::eUndefined;
+	imageInfo.samples = vk::SampleCountFlagBits::e1;
+	imageInfo.sharingMode = vk::SharingMode::eExclusive;
+
+	// Create Image!
+	vk::Image image = m_vkDevice.createImage(imageInfo);
+
+	// Get memory requirements for the image...
+	vk::MemoryRequirements imgMemReqs = m_vkDevice.getImageMemoryRequirements(image);
+
+	// Allocate memory using requirements & user defined properties...	
+	vk::MemoryAllocateInfo memAllocInfo;
+	memAllocInfo.allocationSize = imgMemReqs.size;
+	memAllocInfo.memoryTypeIndex = FindMemoryTypeIndex(imgMemReqs.memoryTypeBits, memoryPropertyFlags);
+
+	vk::DeviceMemory deviceMemory = m_vkDevice.allocateMemory(memAllocInfo);
+	m_vkDevice.bindImageMemory(image, deviceMemory, 0);
+
+	// Image View Creation
+	vk::ImageViewCreateInfo createInfo;
+
+	createInfo.format = format;
+	createInfo.image = image;
+	createInfo.viewType = vk::ImageViewType::e2D;
+	createInfo.components.r = vk::ComponentSwizzle::eIdentity;
+	createInfo.components.g = vk::ComponentSwizzle::eIdentity;
+	createInfo.components.b = vk::ComponentSwizzle::eIdentity;
+	createInfo.components.a = vk::ComponentSwizzle::eIdentity;
+
+	createInfo.subresourceRange.aspectMask = aspectFlags;
+	createInfo.subresourceRange.baseMipLevel = 0;
+	createInfo.subresourceRange.levelCount = 1;
+	createInfo.subresourceRange.baseArrayLayer = 0;
+	createInfo.subresourceRange.layerCount = 1;
+
+	vk::ImageView imgView = m_vkDevice.createImageView(createInfo);
+
+	// Fill out output image params!
+	pOutImage2D->image = image;
+	pOutImage2D->deviceMemory = deviceMemory;
+	pOutImage2D->extent.width = width;
+	pOutImage2D->extent.height = height;
+	pOutImage2D->format = format;
+	pOutImage2D->imageView = imgView;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void VulkanDevice::CreateBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags usageFlags, vk::MemoryPropertyFlags memFlags,
+								UT::VkStructs::VulkanBuffer* pOutBuffer) const
+{
+	// Buffer creation info!
+	vk::BufferCreateInfo vbInfo;
+	vbInfo.size = bufferSize;
+	vbInfo.usage = usageFlags;
+	vbInfo.sharingMode = vk::SharingMode::eExclusive;
+
+	vk::Buffer outBuffer = m_vkDevice.createBuffer(vbInfo);
+
+	// Buffer's memory requirements!
+	vk::MemoryRequirements memReq = m_vkDevice.getBufferMemoryRequirements(outBuffer);
+
+	// Allocate memory to buffer!
+	vk::MemoryAllocateInfo memAllocInfo;
+	memAllocInfo.allocationSize = memReq.size;
+	memAllocInfo.memoryTypeIndex = FindMemoryTypeIndex(memReq.memoryTypeBits, memFlags);
+
+	vk::DeviceMemory outMemory = m_vkDevice.allocateMemory(memAllocInfo);
+
+	// Bind memory to given Vertex buffer
+	m_vkDevice.bindBufferMemory(outBuffer, outMemory, 0);
+
+	// Output buffer!
+	pOutBuffer->buffer = outBuffer;
+	pOutBuffer->deviceMemory = outMemory;
+}
+
+//-----------------------------------------------------------------------------------------------------------------------
+void VulkanDevice::BeginGraphicsCommandBuffer(uint32_t imageIndex, vk::CommandBufferBeginInfo cmdBufferBeginInfo) const
+{
+	if (imageIndex > m_vkListGraphicsCommandBuffers.size())
+	{
+		LOG_CRITICAL("Command buffer image index out of bound!");
+		return;
+	}
+		
+	m_vkListGraphicsCommandBuffers.at(imageIndex).begin(cmdBufferBeginInfo);
+}
+
+//-----------------------------------------------------------------------------------------------------------------------
+void VulkanDevice::EndGraphicsCommandBuffer(uint32_t imageIndex) const
+{
+	if (imageIndex > m_vkListGraphicsCommandBuffers.size())
+	{
+		LOG_CRITICAL("Command buffer image index out of bound!");
+		return;
+	}
+
+	m_vkListGraphicsCommandBuffers.at(imageIndex).end();
+}
+
+//-----------------------------------------------------------------------------------------------------------------------
+void VulkanDevice::BeginRenderPass(uint32_t imageIndex, vk::RenderPassBeginInfo renderPassInfo) const
+{
+	if (imageIndex > m_vkListGraphicsCommandBuffers.size())
+	{
+		LOG_CRITICAL("Command buffer image index out of bound!");
+		return;
+	}
+
+	m_vkListGraphicsCommandBuffers.at(imageIndex).beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+}
+
+//-----------------------------------------------------------------------------------------------------------------------
+void VulkanDevice::EndRenderPass(uint32_t imageIndex) const
+{
+	if (imageIndex > m_vkListGraphicsCommandBuffers.size())
+	{
+		LOG_CRITICAL("Command buffer image index out of bound!");
+		return;
+	}
+
+	m_vkListGraphicsCommandBuffers.at(imageIndex).endRenderPass();
 }
 
 

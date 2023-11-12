@@ -1,8 +1,8 @@
 #include "UltimateEnginePCH.h"
 #include "VulkanSwapchain.h"
-#include "VulkanUtility.h"
 #include "VulkanDevice.h"
 #include "VulkanGlobals.h"
+#include "../EngineHeader.h"
 #include "GLFW/glfw3.h"
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -136,7 +136,24 @@ void VulkanSwapchain::CreateSwapChainImageViews(vk::Device vkDevice)
 
 	for (uint32_t i = 0; i < m_vecSwapchainImageViews.size(); ++i)
 	{
-		m_vecSwapchainImageViews[i] = UT::VkUtility::CreateImageView2D(vkDevice, m_vecSwapchainImages[i], m_vkSwapchainImageFormat, vk::ImageAspectFlagBits::eColor);
+		// Image View Creation
+		vk::ImageViewCreateInfo createInfo;
+
+		createInfo.format = m_vkSwapchainImageFormat;
+		createInfo.image = m_vecSwapchainImages[i];
+		createInfo.viewType = vk::ImageViewType::e2D;
+		createInfo.components.r = vk::ComponentSwizzle::eIdentity;
+		createInfo.components.g = vk::ComponentSwizzle::eIdentity;
+		createInfo.components.b = vk::ComponentSwizzle::eIdentity;
+		createInfo.components.a = vk::ComponentSwizzle::eIdentity;
+
+		createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.layerCount = 1;
+
+		m_vecSwapchainImageViews[i] = vkDevice.createImageView(createInfo);
 	}
 }
 

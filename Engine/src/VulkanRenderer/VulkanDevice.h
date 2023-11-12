@@ -34,13 +34,14 @@ public:
 	void									CleanupOnWindowsResize();
 	void									CreateCommandBuffers(const VulkanFramebuffer* pFrameBuffer);
 
-	VkCommandBuffer							BeginCommandBuffer() const;
-	void									EndAndSubmitCommandBuffer(vk::CommandBuffer commandBuffer) const;
-	void									CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize bufferSize) const;
-
 private:
 	void									AcquirePhysicalDevice(vk::Instance vkInst, vk::SurfaceKHR vkSurface);
 	void									CreateLogicalDevice();
+
+	bool									CheckInstanceExtensionSupport(const std::vector<const char*>& instanceExtensions);
+	bool									CheckDeviceExtensionSupport();
+	void									FetchQueueFamilies(vk::SurfaceKHR vkSurface);
+	uint32_t								FindMemoryTypeIndex(uint32_t allowedTypeIndex, vk::MemoryPropertyFlags props) const;
 
 public:
 	inline bool								IsQueueSharing() const							{ return (m_QueueFamilyIndices.graphicsFamily == m_QueueFamilyIndices.presentFamily); }
@@ -53,6 +54,20 @@ public:
 	inline vk::PhysicalDevice				GetPhysicalDevice() const						{ return m_vkPhysicalDevice;  }
 	inline uint32_t							GetSwapchainImageCount() const					{ return static_cast<uint32_t>(m_vkListGraphicsCommandBuffers.size()); }
 
+public:
+	vk::ShaderModule						CreateShaderModule(const std::string& fileName);
+	vk::Format								ChooseSupportedFormat(const std::vector<vk::Format>& formats, vk::ImageTiling tiling, vk::FormatFeatureFlags featureFlags) const;
+	void									CopyBufferToImage(vk::Buffer srcBuffer, uint32_t width, uint32_t height, vk::Image* image) const;
+	void									CreateImage2D(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usageFlags, vk::MemoryPropertyFlags memoryPropertyFlags, vk::ImageAspectFlags aspectFlags, UT::VkStructs::VulkanImage* pOutImage2D) const;
+	void									CreateBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags usageFlags, vk::MemoryPropertyFlags memFlags, UT::VkStructs::VulkanBuffer* pOutBuffer) const;
+	void									CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize bufferSize) const;
+	void									BeginGraphicsCommandBuffer(uint32_t imageIndex, vk::CommandBufferBeginInfo cmdBufferBeginInfo) const;
+	void									EndGraphicsCommandBuffer(uint32_t imageIndex) const;
+	void									BeginRenderPass(uint32_t imageIndex, vk::RenderPassBeginInfo renderPassInfo) const;
+	void									EndRenderPass(uint32_t imageIndex) const;
+	VkCommandBuffer							BeginTransferCommandBuffer() const;
+	void									EndAndSubmitTransferCommandBuffer(vk::CommandBuffer commandBuffer) const;
+	
 private:
 	vk::Device								m_vkDevice;
 	vk::PhysicalDevice						m_vkPhysicalDevice;
@@ -60,6 +75,6 @@ private:
 	vk::Queue								m_vkQueuePresent;
 	vk::CommandPool							m_vkGraphicsCommandPool;
 	std::vector<vk::CommandBuffer>			m_vkListGraphicsCommandBuffers;
-	QueueFamilyIndices						m_QueueFamilyIndices;
+	QueueFamilyIndices						m_QueueFamilyIndices;	
 };
 

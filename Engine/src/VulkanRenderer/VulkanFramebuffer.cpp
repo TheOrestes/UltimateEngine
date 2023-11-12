@@ -1,6 +1,6 @@
 #include "UltimateEnginePCH.h"
 #include "VulkanFramebuffer.h"
-#include "VulkanUtility.h"
+#include "VulkanGlobals.h"
 #include "VulkanSwapchain.h"
 #include "VulkanDevice.h"
 #include "../EngineHeader.h"
@@ -32,10 +32,9 @@ void VulkanFramebuffer::CreateFramebuffersAttachments(const VulkanDevice* pDevic
 
 	for (uint32_t i = 0 ; i < pSwapchain->GetSwapchainImageCount() ; ++i)
 	{
-		UT::VkGlobals::VulkanImage colorBufferImage = {};
+		UT::VkStructs::VulkanImage colorBufferImage;
 		colorBufferImage.extent = imgExtent;
 		colorBufferImage.format = imgFormat;
-		
 		colorBufferImage.image = pSwapchain->GetSwapchainImageAt(i);
 		colorBufferImage.imageView = pSwapchain->GetSwapchainImageViewAt(i);
 		
@@ -43,13 +42,13 @@ void VulkanFramebuffer::CreateFramebuffersAttachments(const VulkanDevice* pDevic
 	}
 
 	// Create Depth buffer attachment!
-	CreateDepthBufferAttachment(vkDevice, vkPhysicalDevice, imgExtent.width, imgExtent.height);
+	CreateDepthBufferAttachment(pDevice, imgExtent.width, imgExtent.height, m_DepthAttachment);
 
 	LOG_INFO("Framebuffer attachments created");
 }
 
 //-----------------------------------------------------------------------------------------------------------------------
-void VulkanFramebuffer::CreateFramebuffers(vk::Device vkDevice, vk::RenderPass renderPass)
+void VulkanFramebuffer::CreateFramebuffers(const VulkanDevice* pDevice, vk::RenderPass renderPass)
 {
 	// Check if RenderPass exists!
 	if (!renderPass)
@@ -60,8 +59,6 @@ void VulkanFramebuffer::CreateFramebuffers(vk::Device vkDevice, vk::RenderPass r
 	// create framebuffer for each swapchain image
 	for (uint32_t i = 0; i < m_ListColorAttachments.size(); i++)
 	{
-		vk::Framebuffer framebuffer;
-
 		std::array<vk::ImageView, 2> attachments =
 		{
 			m_ListColorAttachments[i].imageView,
@@ -76,7 +73,7 @@ void VulkanFramebuffer::CreateFramebuffers(vk::Device vkDevice, vk::RenderPass r
 		fbCreateInfo.height = m_ListColorAttachments[i].extent.height;
 		fbCreateInfo.layers = 1;
 
-		framebuffer = vkDevice.createFramebuffer(fbCreateInfo);
+		vk::Framebuffer framebuffer = pDevice->GetDevice().createFramebuffer(fbCreateInfo);
 		m_vkListFramebuffers.push_back(framebuffer);
 	}
 
@@ -84,29 +81,21 @@ void VulkanFramebuffer::CreateFramebuffers(vk::Device vkDevice, vk::RenderPass r
 }
 
 //-----------------------------------------------------------------------------------------------------------------------
-void VulkanFramebuffer::CreateDepthBufferAttachment(vk::Device vkDevice, vk::PhysicalDevice physicalDevice, uint32_t width, uint32_t height)
+void VulkanFramebuffer::CreateDepthBufferAttachment(const VulkanDevice* pDevice, uint32_t width, uint32_t height, UT::VkStructs::VulkanImage& depthImage)
 {
 	// List of depth formats we need
 	std::vector<vk::Format> depthFormats = { vk::Format::eD32SfloatS8Uint, vk::Format::eD32Sfloat, vk::Format::eD24UnormS8Uint };
 
 	// Choose the supported format
-	vk::Format chosenFormat = UT::VkUtility::ChooseSupportedFormat(physicalDevice, depthFormats, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+	vk::Format chosenFormat = pDevice->ChooseSupportedFormat(depthFormats, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 
 	// Create depth image
-	std::tuple<vk::Image, vk::DeviceMemory> depthImageData;
-	depthImageData = UT::VkUtility::CreateImage2D(	vkDevice, physicalDevice, width, height,
-													chosenFormat, vk::ImageTiling::eOptimal,
-													vk::ImageUsageFlagBits::eDepthStencilAttachment,
-													vk::MemoryPropertyFlagBits::eDeviceLocal);
-
-	m_DepthAttachment.image = std::get<vk::Image>(depthImageData);
-	m_DepthAttachment.deviceMemory = std::get<vk::DeviceMemory>(depthImageData);
-
-	m_DepthAttachment.format = chosenFormat;
-	m_DepthAttachment.extent = vk::Extent2D(width, height);
-
-	// Create depth imageview
-	m_DepthAttachment.imageView = UT::VkUtility::CreateImageView2D(vkDevice, m_DepthAttachment.image, chosenFormat, vk::ImageAspectFlagBits::eDepth);
+	pDevice->CreateImage2D(	width, height,
+							chosenFormat, vk::ImageTiling::eOptimal,
+							vk::ImageUsageFlagBits::eDepthStencilAttachment,
+							vk::MemoryPropertyFlagBits::eDeviceLocal,
+							vk::ImageAspectFlagBits::eDepth,
+							&depthImage);
 }
 
 //-----------------------------------------------------------------------------------------------------------------------

@@ -16,7 +16,7 @@ public:
 	void									CleanupOnWindowsResize(vk::Device vkDevice);
 	void									RecreateOnWindowResize(const VulkanDevice* pDevice, const VulkanSwapchain* pSwapchain);
 	void									CreateFramebuffersAttachments(const VulkanDevice* pDevice, const VulkanSwapchain* pSwapchain);
-	void									CreateFramebuffers(vk::Device vkDevice, vk::RenderPass renderPass);
+	void									CreateFramebuffers(const VulkanDevice* pDevice, vk::RenderPass renderPass);
 
 	inline vk::Format						GetColorBufferFormat()			const { return m_ListColorAttachments[0].format; }
 	inline vk::Format						GetDepthBufferFormat()			const { return m_DepthAttachment.format; }
@@ -24,11 +24,11 @@ public:
 	inline vk::Framebuffer					GetFramebuffer(uint32_t index)	const { return m_vkListFramebuffers.at(index); }
 
 private:
-	void									CreateDepthBufferAttachment(vk::Device vkDevice, vk::PhysicalDevice physicalDevice, uint32_t width, uint32_t height);
+	void									CreateDepthBufferAttachment(const VulkanDevice* pDevice, uint32_t width, uint32_t height, UT::VkStructs::VulkanImage& depthImage);
 
 private:
 	std::vector<vk::Framebuffer>			m_vkListFramebuffers;
-	std::vector<UT::VkGlobals::VulkanImage> m_ListColorAttachments;
-	UT::VkGlobals::VulkanImage				m_DepthAttachment;
+	std::vector<UT::VkStructs::VulkanImage> m_ListColorAttachments;
+	UT::VkStructs::VulkanImage				m_DepthAttachment;
 };
 

@@ -58,7 +58,7 @@
       <PreprocessorDefinitions>UT_PLATFORM_WINDOWS;UT_BUILD_DLL;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(VULKAN_SDK)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(VULKAN_SDK)\Include;$(SolutionDir)Engine\ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>UltimateEnginePCH.h</PrecompiledHeaderFile>
       <DisableSpecificWarnings>4251;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -81,7 +81,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>UT_PLATFORM_WINDOWS;UT_BUILD_DLL;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(SolutionDir)Engine\ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>UltimateEnginePCH.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -103,6 +103,7 @@
     <ClInclude Include="src\Core\Core.h" />
     <ClInclude Include="src\Core\Logger.h" />
     <ClInclude Include="src\EngineHeader.h" />
+    <ClInclude Include="src\RenderObjects\VulkanMesh.h" />
     <ClInclude Include="src\UI\imconfig.h" />
     <ClInclude Include="src\UI\imgui.h" />
     <ClInclude Include="src\UI\imgui_impl_glfw.h" />
@@ -115,16 +116,15 @@
     <ClInclude Include="src\UltimateEnginePCH.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanApplication.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanGlobals.h" />
-    <ClInclude Include="src\VulkanRenderer\VulkanHeaders.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanRenderer.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanDevice.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanFramebuffer.h" />
-    <ClInclude Include="src\VulkanRenderer\VulkanUtility.h" />
     <ClInclude Include="src\VulkanRenderer\VulkanSwapchain.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\EngineApplication.cpp" />
     <ClCompile Include="src\Core\Logger.cpp" />
+    <ClCompile Include="src\RenderObjects\VulkanMesh.cpp" />
     <ClCompile Include="src\UI\imgui.cpp" />
     <ClCompile Include="src\UI\imgui_demo.cpp" />
     <ClCompile Include="src\UI\imgui_draw.cpp" />
