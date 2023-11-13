@@ -58,7 +58,7 @@
       <PreprocessorDefinitions>UT_PLATFORM_WINDOWS;UT_BUILD_DLL;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(VULKAN_SDK)\Include;$(SolutionDir)Engine\ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(VULKAN_SDK)\Include;$(SolutionDir)Engine\ThirdParty\glm;$(SolutionDir)Engine\ThirdParty\AssimpLib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>UltimateEnginePCH.h</PrecompiledHeaderFile>
       <DisableSpecificWarnings>4251;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -66,8 +66,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Debug;$(VULKAN_SDK)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Debug;$(VULKAN_SDK)\Lib;$(SolutionDir)Engine\ThirdParty\AssimpLib\Build\lib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;vulkan-1.lib;assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)bin\$(Configuration)-$(Platform)\Engine\*.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\Game /e /y /i /r</Command>
@@ -81,7 +81,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>UT_PLATFORM_WINDOWS;UT_BUILD_DLL;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(SolutionDir)Engine\ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(SolutionDir)Engine\ThirdParty\glm;$(SolutionDir)Engine\ThirdParty\AssimpLib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>UltimateEnginePCH.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -91,8 +91,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Release;$(VULKAN_SDK)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Release;$(VULKAN_SDK)\Lib;$(SolutionDir)Engine\ThirdParty\AssimpLib\Build\lib\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)bin\$(Configuration)-$(Platform)\Engine\*.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\Game /e /y /i /r</Command>
