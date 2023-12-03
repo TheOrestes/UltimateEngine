@@ -1,17 +1,19 @@
 #pragma once
 
-#include "../UltimateEnginePCH.h"
 #include "../Core/Core.h"
 #include "vulkan/vulkan.hpp"
 #include "../EngineHeader.h"
 #include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 namespace UT
 {
 	namespace VkGlobals
 	{
-		const uint16_t		GMaxFramesDraws = 3;
-		const uint64_t		GFenceTimeout = 100000000;
+		constexpr uint16_t		GMaxFramesDraws = 3;
+		constexpr uint64_t		GFenceTimeout = 100000000;
+		
+		inline glm::vec2		GCurrentResolution = glm::vec2(0, 0);
 
 		//--- list of device extensions
 		const std::vector<const char*> GListDeviceExtensions =
@@ -70,49 +72,12 @@ namespace UT
 				device.freeMemory(deviceMemory);
 			}
 		};
-
-		//-----------------------------------------------------------------------------------------------------------------------
-		// VERTEX STRUCTURES
-		struct VertexPC
-		{
-			VertexPC() : Position(glm::vec3(0)), Color(glm::vec3(1)) {}
-			VertexPC(const glm::vec3& pos, const glm::vec3& col) : Position(pos), Color(col) {}
-
-			glm::vec3 Position;
-			glm::vec3 Color;
-		};
-
-		struct VertexPT
-		{
-			VertexPT() : Position(glm::vec3(0)), UV(glm::vec2(0)) {}
-			VertexPT(const glm::vec3& _pos, const glm::vec2& _uv) : Position(_pos), UV(_uv) {}
-
-			glm::vec3 Position;
-			glm::vec2 UV;
-		};
-
-		struct VertexPNTBT
-		{
-			VertexPNTBT() { Position = glm::vec3(0); Normal = glm::vec3(0); Tangent = glm::vec3(0); BiNormal = glm::vec3(0); UV = glm::vec2(0); }
-			VertexPNTBT(const glm::vec3 _pos, const glm::vec3 _normal, const glm::vec3 _tangent, const glm::vec3& _binormal, const glm::vec2& _uv) :
-				Position(_pos),
-				Normal(_normal),
-				Tangent(_tangent),
-				BiNormal(_binormal),
-				UV(_uv) {}
-
-			glm::vec3 Position;
-			glm::vec3 Normal;
-			glm::vec3 Tangent;
-			glm::vec3 BiNormal;
-			glm::vec2 UV;
-		};
 	}
 
 	namespace VkUtility
 	{
 		//---------------------------------------------------------------------------------------------------------------------
-		inline bool CheckInstanceExtensionSupport(const std::vector<const char*>& instanceExtensions)
+		inline UT_API bool CheckInstanceExtensionSupport(const std::vector<const char*>& instanceExtensions)
 		{
 			bool hasExtension = false;
 			std::vector<vk::ExtensionProperties> vecExtensions = vk::enumerateInstanceExtensionProperties();

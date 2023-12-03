@@ -3,7 +3,6 @@
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
-#include "../Core/EngineApplication.h"
 #include "VulkanApplication.h"
 #include "VulkanRenderer.h"
 #include "VulkanGlobals.h"
@@ -11,7 +10,6 @@
 //---------------------------------------------------------------------------------------------------------------------
 VulkanApplication::VulkanApplication()
 {
-
 #ifdef _DEBUG
 	m_bEnableValidation = true;
 #else
@@ -20,11 +18,14 @@ VulkanApplication::VulkanApplication()
 
 	m_vkDebugMessenger = VK_NULL_HANDLE;
 	m_pVulkanRenderer = nullptr;
+	m_uiAppWidth = 0;
+	m_uiAppHeight = 0;
 }
+
 //---------------------------------------------------------------------------------------------------------------------
 VulkanApplication::~VulkanApplication()
 {
-	Cleanup();
+	VulkanApplication::Cleanup();
 
 	SAFE_DELETE(m_pVulkanRenderer);
 }
@@ -36,18 +37,20 @@ void VulkanApplication::Cleanup()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanApplication::Initialize(const GLFWwindow* pWindow)
+bool VulkanApplication::Initialize(const GLFWwindow* pWindow)
 {
 	UT_ASSERT_NULL(pWindow, "Window pointer cannot be null!");
 
-	CreateInstance();
-	CreateSurface(pWindow);
+	CHECK(CreateInstance());
+	CHECK(CreateSurface(pWindow));
 
-	SetupDebugMessenger();
-	//RunShaderCompiler("Assets/Shaders");
+	CHECK(SetupDebugMessenger());
+	CHECK(RunShaderCompiler("Assets/Shaders"));
 
 	m_pVulkanRenderer = new VulkanRenderer();
-	m_pVulkanRenderer->Initialize(pWindow, m_vkInstance, m_vkSurface);
+	CHECK(m_pVulkanRenderer->Initialize(pWindow, m_vkInstance, m_vkSurface));
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -82,7 +85,7 @@ void VulkanApplication::HandleWindowResizedCallback(const GLFWwindow* pWindow)
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanApplication::CreateInstance()
+bool VulkanApplication::CreateInstance()
 {
 	// Create basic application information!
 	vk::ApplicationInfo appInfo = {};
@@ -96,9 +99,8 @@ void VulkanApplication::CreateInstance()
 
 	// Get list of extensions required by GLFW
 	uint32_t instanceExtnCount = 0;
-	const char** glfwExtensions;
+	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&instanceExtnCount);
 
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&instanceExtnCount);
 	std::vector<const char*> vecExtensions(glfwExtensions, glfwExtensions + instanceExtnCount);
 
 	if (m_bEnableValidation)
@@ -146,20 +148,33 @@ void VulkanApplication::CreateInstance()
 		UT_ASSERT_VK(vk::createInstance(instCreateInfo, nullptr, &m_vkInstance), "Vulkan Instance creation failed!");
 
 		LOG_INFO("Vulkan Instance created!");
+		return true;
 	}
 	else
 	{
 		LOG_WARNING("GLFW Extensions are not supported by Vulkan this Instance!");
+		return false;
 	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanApplication::CreateSurface(const GLFWwindow* pWindow)
+bool VulkanApplication::CreateSurface(const GLFWwindow* pWindow)
 {
 	// Create surface!
 	VkSurfaceKHR rawSurface;
-	vk::Result result = static_cast<vk::Result>(glfwCreateWindowSurface(m_vkInstance, const_cast<GLFWwindow*>(pWindow), nullptr, &(rawSurface)));
-	m_vkSurface = vk::createResultValueType(result, rawSurface);
+	const vk::Result result = static_cast<vk::Result>(glfwCreateWindowSurface(m_vkInstance, const_cast<GLFWwindow*>(pWindow), nullptr, &(rawSurface)));
+
+	switch (result)
+	{
+		case vk::Result::eSuccess:
+		{
+			m_vkSurface = vk::createResultValueType(result, rawSurface);
+			break;
+		}
+
+		// should ideally never happen!
+		default: assert(false);
+	}
 
 	int width, height = 0;
 	glfwGetWindowSize(const_cast<GLFWwindow*>(pWindow), &width, &height);
@@ -167,25 +182,34 @@ void VulkanApplication::CreateSurface(const GLFWwindow* pWindow)
 	// Store windows width & height for future usage!
 	m_uiAppWidth = static_cast<uint16_t>(width);
 	m_uiAppHeight = static_cast<uint16_t>(height);
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanApplication::SetupDebugMessenger()
+bool VulkanApplication::SetupDebugMessenger()
 {
 	if (m_bEnableValidation)
 	{
 		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
 		PopulateDebugMessengerCreateInfo(createInfo);
 
-		CreateDebugUtilsMessengerEXT(m_vkInstance, &createInfo, nullptr, &m_vkDebugMessenger);
+		const auto pfnVkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(m_vkInstance.getProcAddr("vkCreateDebugUtilsMessengerEXT"));
+		if (!pfnVkCreateDebugUtilsMessengerEXT)
+		{
+			LOG_ERROR("GetInstanceProcAddr: Unable to find pfnVkCreateDebugUtilsMessengerEXT function.");
+			return false;
+		}
 	}
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanApplication::RunShaderCompiler(const std::string& directoryPath)
+bool VulkanApplication::RunShaderCompiler(const std::string& directoryPath)
 {
 	// First check if shader compiler exists at the path mentioned?
-	std::filesystem::path compilerPath("C:/VulkanSDK/1.3.250.1/Bin/glslc.exe");
+	const std::filesystem::path compilerPath("C:/VulkanSDK/1.3.268.0/Bin/glslc.exe");
 
 	if (std::filesystem::exists(compilerPath))
 	{
@@ -200,10 +224,13 @@ void VulkanApplication::RunShaderCompiler(const std::string& directoryPath)
 				std::system(cmd.c_str());
 			}
 		}
+
+		return true;
 	}
 	else
 	{
-		UT_ASSERT_BOOL(false, "Shader Compiler Not Found!");
+		LOG_ERROR("Vulkan Shader compiler not found! Are you sure VulkanSDK is installed on your system?");
+		return false;
 	}
 }
 

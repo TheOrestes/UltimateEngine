@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -99,11 +99,16 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\World\Scene.h" />
     <ClInclude Include="src\Core\EngineApplication.h" />
     <ClInclude Include="src\Core\Core.h" />
     <ClInclude Include="src\Core\Logger.h" />
     <ClInclude Include="src\EngineHeader.h" />
+    <ClInclude Include="src\RenderObjects\GameObject.h" />
+    <ClInclude Include="src\RenderObjects\IObject.h" />
+    <ClInclude Include="src\RenderObjects\VulkanCube.h" />
     <ClInclude Include="src\RenderObjects\VulkanMesh.h" />
+    <ClInclude Include="src\RenderObjects\VulkanMeshData.h" />
     <ClInclude Include="src\UI\imconfig.h" />
     <ClInclude Include="src\UI\imgui.h" />
     <ClInclude Include="src\UI\imgui_impl_glfw.h" />
@@ -122,8 +127,11 @@
     <ClInclude Include="src\VulkanRenderer\VulkanSwapchain.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\World\Scene.cpp" />
     <ClCompile Include="src\Core\EngineApplication.cpp" />
     <ClCompile Include="src\Core\Logger.cpp" />
+    <ClCompile Include="src\RenderObjects\GameObject.cpp" />
+    <ClCompile Include="src\RenderObjects\VulkanCube.cpp" />
     <ClCompile Include="src\RenderObjects\VulkanMesh.cpp" />
     <ClCompile Include="src\UI\imgui.cpp" />
     <ClCompile Include="src\UI\imgui_demo.cpp" />

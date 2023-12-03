@@ -22,19 +22,22 @@ VulkanSwapchain::~VulkanSwapchain()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanSwapchain::CreateSwapChain(const GLFWwindow* pWindow, vk::SurfaceKHR surface, const VulkanDevice* pDevice)
+bool VulkanSwapchain::CreateSwapChain(const GLFWwindow* pWindow, vk::SurfaceKHR surface, const VulkanDevice* pDevice)
 {
 	// Get swap chain details so we can pick the best setting!
-	SwapchainSupportDetails* pSwapchainSupportDetails = QuerySwapChainSupport(pDevice->GetPhysicalDevice(), surface);
+	const SwapchainSupportDetails* pSwapchainSupportDetails = QuerySwapChainSupport(pDevice->GetPhysicalDevice(), surface);
 
 	// 1. Choose best surface format
-	vk::SurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat(pSwapchainSupportDetails->surfaceFormats);
+	const vk::SurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat(pSwapchainSupportDetails->surfaceFormats);
 
 	// 2. Choose best presentation format
-	vk::PresentModeKHR presentMode = ChooseSwapPresentMode(pSwapchainSupportDetails->surfacePresentModes);
+	const vk::PresentModeKHR presentMode = ChooseSwapPresentMode(pSwapchainSupportDetails->surfacePresentModes);
 
 	// 3. Choose Swapchain image resolution
-	vk::Extent2D extent = ChooseSwapExtent(pWindow, pDevice->GetPhysicalDevice(), surface);
+	const vk::Extent2D extent = ChooseSwapExtent(pWindow, pDevice->GetPhysicalDevice(), surface);
+
+	// Keep track of current resolution!
+	UT::VkGlobals::GCurrentResolution = glm::vec2(extent.width, extent.height);
 
 	// decide how many images to have in the swap chain, it's good practice to have an extra count.
 	// Also make sure it does not exceed maximum number of images
@@ -64,7 +67,7 @@ void VulkanSwapchain::CreateSwapChain(const GLFWwindow* pWindow, vk::SurfaceKHR 
 	// in our application if the graphics queue family is different from the presentation queue. We'll be drawing on 
 	// the images in the swap chain from the graphics queue and then submitting them on the presentation queue. 
 	// There are two ways to handle images that are accessed from multiple queues. 
-	std::array<uint32_t, 2> queueFamilyIndices = { pDevice->GetGraphicsQueueFamilyIndex(), pDevice->GetPresentQueueFamilyIndex() };
+	const std::array<uint32_t, 2> queueFamilyIndices = { pDevice->GetGraphicsQueueFamilyIndex(), pDevice->GetPresentQueueFamilyIndex() };
 
 	if (!pDevice->IsQueueSharing())
 	{
@@ -82,7 +85,7 @@ void VulkanSwapchain::CreateSwapChain(const GLFWwindow* pWindow, vk::SurfaceKHR 
 	swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
 	m_vkSwapchain = pDevice->GetDevice().createSwapchainKHR(swapchainCreateInfo);
-
+	
 	// Retrieve handle to swapchain images...
 	m_vecSwapchainImages = pDevice->GetDevice().getSwapchainImagesKHR(m_vkSwapchain);
 
@@ -91,9 +94,11 @@ void VulkanSwapchain::CreateSwapChain(const GLFWwindow* pWindow, vk::SurfaceKHR 
 	m_vkSwapchainExtent = extent;
 
 	// Create swapchain image views!
-	CreateSwapChainImageViews(pDevice->GetDevice());
+	CHECK(CreateSwapChainImageViews(pDevice->GetDevice()));
 
 	LOG_INFO("Vulkan Swapchain Created!");
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -130,7 +135,7 @@ void VulkanSwapchain::RecreateOnWindowResize()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanSwapchain::CreateSwapChainImageViews(vk::Device vkDevice)
+bool VulkanSwapchain::CreateSwapChainImageViews(vk::Device vkDevice)
 {
 	m_vecSwapchainImageViews.resize(m_vecSwapchainImages.size());
 
@@ -155,6 +160,8 @@ void VulkanSwapchain::CreateSwapChainImageViews(vk::Device vkDevice)
 
 		m_vecSwapchainImageViews[i] = vkDevice.createImageView(createInfo);
 	}
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -216,7 +223,7 @@ vk::PresentModeKHR VulkanSwapchain::ChooseSwapPresentMode(const std::vector<vk::
 vk::Extent2D VulkanSwapchain::ChooseSwapExtent(const GLFWwindow* pWindow, vk::PhysicalDevice vkPhysicalDevice, vk::SurfaceKHR vkSurface)
 {
 	// Get the surface capabilities for a given device
-	vk::SurfaceCapabilitiesKHR surfaceCapabilities = vkPhysicalDevice.getSurfaceCapabilitiesKHR(vkSurface);
+	const vk::SurfaceCapabilitiesKHR surfaceCapabilities = vkPhysicalDevice.getSurfaceCapabilitiesKHR(vkSurface);
 
 	// The swap extent is the resolution of the swap chain images and it's almost always exactly equal to the 
 	// resolution of the window that we're drawing to.The range of the possible resolutions is defined in the 

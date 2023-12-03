@@ -23,12 +23,8 @@ VulkanFramebuffer::~VulkanFramebuffer()
 // Note: think about sending VulkanSwapchain* instead of Vulkan handles!
 void VulkanFramebuffer::CreateFramebuffersAttachments(const VulkanDevice* pDevice, const VulkanSwapchain* pSwapchain)
 {
-	vk::Device vkDevice = pDevice->GetDevice();
-	vk::PhysicalDevice vkPhysicalDevice = pDevice->GetPhysicalDevice();
-	vk::SwapchainKHR vkSwapchain = pSwapchain->GetSwapchainHandle();	
-
-	vk::Format imgFormat = pSwapchain->GetSwapchainImageFormat();
-	vk::Extent2D imgExtent = pSwapchain->GetSwapchainExtent();
+	const vk::Format imgFormat = pSwapchain->GetSwapchainImageFormat();
+	const vk::Extent2D imgExtent = pSwapchain->GetSwapchainExtent();
 
 	for (uint32_t i = 0 ; i < pSwapchain->GetSwapchainImageCount() ; ++i)
 	{
@@ -84,10 +80,10 @@ void VulkanFramebuffer::CreateFramebuffers(const VulkanDevice* pDevice, vk::Rend
 void VulkanFramebuffer::CreateDepthBufferAttachment(const VulkanDevice* pDevice, uint32_t width, uint32_t height, UT::VkStructs::VulkanImage& depthImage)
 {
 	// List of depth formats we need
-	std::vector<vk::Format> depthFormats = { vk::Format::eD32SfloatS8Uint, vk::Format::eD32Sfloat, vk::Format::eD24UnormS8Uint };
+	const std::vector<vk::Format> depthFormats = { vk::Format::eD32SfloatS8Uint, vk::Format::eD32Sfloat, vk::Format::eD24UnormS8Uint };
 
 	// Choose the supported format
-	vk::Format chosenFormat = pDevice->ChooseSupportedFormat(depthFormats, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+	const vk::Format chosenFormat = pDevice->ChooseSupportedFormat(depthFormats, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 
 	// Create depth image
 	pDevice->CreateImage2D(	width, height,

@@ -4,6 +4,7 @@
 #include "../EngineHeader.h"
 
 #include "vulkan/vulkan.hpp"
+#include "vulkan/vulkan_to_string.hpp"
 
 class EngineApplication;
 class VulkanRenderer;
@@ -12,11 +13,11 @@ class UT_API VulkanApplication : public EngineApplication
 {
 public:
 	VulkanApplication();
-	virtual ~VulkanApplication();
+	virtual ~VulkanApplication() override;
 
 	virtual void				Cleanup() override;
 
-	virtual void				Initialize(const GLFWwindow* pWindow);
+	virtual bool				Initialize(const GLFWwindow* pWindow);
 	virtual void				Update(float dt);
 	virtual void				Render();
 
@@ -26,11 +27,11 @@ private:
 	VulkanApplication(const VulkanApplication&);
 	VulkanApplication& operator=(const VulkanApplication&);
 
-	void						CreateInstance();
-	void						CreateSurface(const GLFWwindow* pWindow);
+	bool						CreateInstance();
+	bool						CreateSurface(const GLFWwindow* pWindow);
 	void						CheckInstanceExtensionSupport(const std::vector<const char*>& instanceExtensions);
-	void						SetupDebugMessenger();
-	void						RunShaderCompiler(const std::string& directoryPath);
+	bool						SetupDebugMessenger();
+	bool						RunShaderCompiler(const std::string& directoryPath);
 	void						PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
 	void						CleanupOnWindowResize();
@@ -73,42 +74,6 @@ private:
 		}
 
 		return VK_FALSE;
-	}
-
-	//---------------------------------------------------------------------------------------------------------------------
-	static VkResult VKAPI_ATTR CreateDebugUtilsMessengerEXT(VkInstance instance,
-		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-		const VkAllocationCallbacks* pAllocator,
-		VkDebugUtilsMessengerEXT* pDebugMessenger)
-	{
-		//return PFN_vkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pDebugMessenger);
-		
-		vk::DynamicLoader dl;
-		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkCreateDebugUtilsMessengerEXT");
-		
-		if (func != nullptr)
-		{
-			return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-		}
-		else
-		{
-			return VK_ERROR_EXTENSION_NOT_PRESENT;
-		}
-	}
-
-	//---------------------------------------------------------------------------------------------------------------------
-	static void VKAPI_ATTR DestroyDebugUtilsMessengerEXT(VkInstance instance,
-		VkDebugUtilsMessengerEXT debugMessenger,
-		const VkAllocationCallbacks* pAllocator)
-	{
-		vk::DynamicLoader dl;
-
-		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkDestroyDebugUtilsMessengerEXT");
-
-		if (func != nullptr)
-		{
-			func(instance, debugMessenger, pAllocator);
-		}
 	}
 };
 

@@ -8,6 +8,8 @@ EngineApplication::EngineApplication()
 {
 	m_pGLFWWindow = nullptr;
 	m_pVulkanApp = nullptr;
+
+	m_bAppInitialized = false;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -20,7 +22,7 @@ EngineApplication::~EngineApplication()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void EngineApplication::Initialize(const std::string& name, uint16_t width, uint16_t height)
+bool EngineApplication::Initialize(const std::string& name, uint16_t width, uint16_t height)
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -37,15 +39,17 @@ void EngineApplication::Initialize(const std::string& name, uint16_t width, uint
 	glfwSetScrollCallback(m_pGLFWWindow, MouseScrollCallback);
 
 	m_pVulkanApp = new VulkanApplication();
-	m_pVulkanApp->Initialize(m_pGLFWWindow);
+	m_bAppInitialized = m_pVulkanApp->Initialize(m_pGLFWWindow);
 
 	glfwSetWindowUserPointer(m_pGLFWWindow, m_pVulkanApp);
+
+	return m_bAppInitialized;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void EngineApplication::Run()
 {
-	while (!glfwWindowShouldClose(m_pGLFWWindow))
+	while (!glfwWindowShouldClose(m_pGLFWWindow) && m_bAppInitialized)
 	{
 		glfwPollEvents();
 

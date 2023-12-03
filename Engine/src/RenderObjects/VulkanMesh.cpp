@@ -10,7 +10,7 @@ VulkanMesh::~VulkanMesh()
 }
 
 //-----------------------------------------------------------------------------------------------------------------------
-VulkanMesh::VulkanMesh(const VulkanDevice* pVulkanDevice, const std::vector<UT::VkStructs::VertexPNTBT>& vertices, const std::vector<uint32_t>& indices)
+VulkanMesh::VulkanMesh(const VulkanDevice* pVulkanDevice, const std::vector<VertexPNTBT>& vertices, const std::vector<uint32_t>& indices)
 {
 	m_uiVertexCount = vertices.size();
 	m_uiIndexCount = indices.size();
@@ -27,10 +27,10 @@ void VulkanMesh::Cleanup(vk::Device vkDevice)
 }
 
 //-----------------------------------------------------------------------------------------------------------------------
-void VulkanMesh::CreateVertexBuffer(const VulkanDevice* pVulkanDevice, const std::vector<UT::VkStructs::VertexPNTBT>& vertices)
+void VulkanMesh::CreateVertexBuffer(const VulkanDevice* pVulkanDevice, const std::vector<VertexPNTBT>& vertices)
 {
 	// Get the size of buffer needed for vertices
-	VkDeviceSize bufferSize = m_uiVertexCount * sizeof(UT::VkStructs::VertexPNTBT);
+	VkDeviceSize bufferSize = m_uiVertexCount * sizeof(VertexPNTBT);
 	
 	// Create buffer & allocate memory to it!
 	UT::VkStructs::VulkanBuffer srcBuffer;

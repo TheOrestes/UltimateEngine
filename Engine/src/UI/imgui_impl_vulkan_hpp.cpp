@@ -102,7 +102,7 @@ struct ImGui_ImplVulkan_ViewportData
     ImGui_ImplVulkanH_WindowRenderBuffers   RenderBuffers;      // Used by all viewports
 
     ImGui_ImplVulkan_ViewportData() { WindowOwned = false; memset(&RenderBuffers, 0, sizeof(RenderBuffers)); }
-    ~ImGui_ImplVulkan_ViewportData() {}
+    ~ImGui_ImplVulkan_ViewportData() = default;
 };
 
 // Vulkan data
@@ -356,7 +356,7 @@ static uint32_t __glsl_shader_frag_spv[] =
 // FIXME: multi-context support is not tested and probably dysfunctional in this backend.
 static ImGui_ImplVulkan_Data* ImGui_ImplVulkan_GetBackendData()
 {
-    return ImGui::GetCurrentContext() ? (ImGui_ImplVulkan_Data*)ImGui::GetIO().BackendRendererUserData : NULL;
+    return ImGui::GetCurrentContext() ? (ImGui_ImplVulkan_Data*)ImGui::GetIO().BackendRendererUserData : nullptr;
 }
 
 static uint32_t ImGui_ImplVulkan_MemoryType(vk::MemoryPropertyFlags properties, uint32_t type_bits)

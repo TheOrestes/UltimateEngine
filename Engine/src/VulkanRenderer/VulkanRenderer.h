@@ -8,6 +8,7 @@ class VulkanDevice;
 class VulkanSwapchain;
 class VulkanFramebuffer;
 class UIManager;
+class Scene;
 
 class UT_API VulkanRenderer
 {
@@ -15,32 +16,32 @@ public:
 	VulkanRenderer();
 	~VulkanRenderer();
 
-	void								Initialize(const GLFWwindow* pWindow, vk::Instance vkInst, vk::SurfaceKHR vkSurface);
-	void								Update(float dt);
+	bool								Initialize(const GLFWwindow* pWindow, vk::Instance vkInst, vk::SurfaceKHR vkSurface);
+	void								Update(float dt) const;
 	void								BeginFrame();
 	void								Render();
 	void								SubmitAndPresentFrame();
-	void								Cleanup();
-	void								CleanupOnWindowsResize();
-	void								RecreateOnWindowsResize(const GLFWwindow* pWindow, vk::SurfaceKHR vkSurface);
-	void								CreateFencesAndSemaphores();
+	void								Cleanup() const;
+	void								CleanupOnWindowsResize() const;
+	void								RecreateOnWindowsResize(const GLFWwindow* pWindow, vk::SurfaceKHR vkSurface) const;
+	bool								CreateFencesAndSemaphores();
+	bool								CreateGraphicsPipeline();
 
 private:
-	void								CreateVulkanDevice(vk::Instance vkInst, vk::SurfaceKHR vkSurface);
-	void								CreateSwapchain(const GLFWwindow* pWindow, vk::SurfaceKHR vkSurface);
-	void								CreateFramebufferAttachments();
-	void								CreateRenderPass();
-	void								CreateFramebuffers();
-	void								CreateCommandbuffers();
-	void								RecordCommands(uint32_t imageIndex);
+	bool								CreateVulkanDevice(vk::Instance vkInst, vk::SurfaceKHR vkSurface);
+	bool								CreateSwapchain(const GLFWwindow* pWindow, vk::SurfaceKHR vkSurface);
+	bool								CreateFramebufferAttachments();
+	bool								CreateRenderPass();
+	bool								CreateFramebuffers() const;
+	bool								CreateCommandbuffers() const;
+	void								RecordCommands(uint32_t currentImage) const;
 
 private:
 	VulkanDevice*						m_pVulkanDevice;
 	VulkanSwapchain*					m_pSwapchain;
 	VulkanFramebuffer*					m_pFramebuffer;
 
-	//vk::Pipeline						m_vkForwardRenderingPipeline;
-	//vk::PipelineLayout				m_vkForwardRenderingPipelineLayout;
+	vk::Pipeline						m_vkForwardRenderingPipeline;
 	vk::RenderPass						m_vkForwardRenderingRenderPass;
 
 	// -- Synchronization!
@@ -53,6 +54,7 @@ private:
 	GLFWwindow*							m_pWindow;
 	vk::SurfaceKHR						m_vkSurface;
 
+	Scene*								m_pScene;
 	UIManager*							m_pGUI;
 };
 

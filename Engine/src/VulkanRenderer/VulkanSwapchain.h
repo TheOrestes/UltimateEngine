@@ -20,13 +20,13 @@ public:
 	VulkanSwapchain();
 	~VulkanSwapchain();
 
-	void									CreateSwapChain(const GLFWwindow* pWindow, vk::SurfaceKHR surface, const VulkanDevice* pDevice);
+	bool									CreateSwapChain(const GLFWwindow* pWindow, vk::SurfaceKHR surface, const VulkanDevice* pDevice);
 	void									Cleanup(vk::Device vkDevice);
 	void									CleanupOnWindowResize(vk::Device vkDevice);
 	void									RecreateOnWindowResize();
 
 private:
-	void									CreateSwapChainImageViews(vk::Device vkDevice);
+	bool									CreateSwapChainImageViews(vk::Device vkDevice);
 	SwapchainSupportDetails*				QuerySwapChainSupport(vk::PhysicalDevice vkPhysicalDevice, vk::SurfaceKHR surface);
 	vk::SurfaceFormatKHR					ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
 	vk::PresentModeKHR						ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);

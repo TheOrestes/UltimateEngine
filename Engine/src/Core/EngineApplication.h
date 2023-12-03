@@ -11,7 +11,7 @@ public:
 	EngineApplication();
 	virtual ~EngineApplication();
 
-	void Initialize(const std::string& name, uint16_t width, uint16_t height);
+	bool Initialize(const std::string& name, uint16_t width, uint16_t height);
 	void Run();
 	virtual void Cleanup();
 
@@ -26,5 +26,7 @@ public:
 private:
 	GLFWwindow*				m_pGLFWWindow;
 	VulkanApplication*		m_pVulkanApp;
+
+	bool					m_bAppInitialized;
 };
 

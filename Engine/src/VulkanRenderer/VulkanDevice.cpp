@@ -16,10 +16,12 @@ VulkanDevice::~VulkanDevice()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanDevice::SetupDevice(vk::Instance vkInst, vk::SurfaceKHR vkSurface)
+bool VulkanDevice::SetupDevice(vk::Instance vkInst, vk::SurfaceKHR vkSurface)
 {
-	AcquirePhysicalDevice(vkInst, vkSurface);
-	CreateLogicalDevice();
+	CHECK(AcquirePhysicalDevice(vkInst, vkSurface));
+	CHECK(CreateLogicalDevice());
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -129,6 +131,12 @@ void VulkanDevice::EndAndSubmitTransferCommandBuffer(vk::CommandBuffer commandBu
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+void VulkanDevice::BindPipeline(uint32_t imageIndex, vk::PipelineBindPoint bindPoint, vk::Pipeline pipeline) const
+{
+	m_vkListGraphicsCommandBuffers[imageIndex].bindPipeline(bindPoint, pipeline);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 void VulkanDevice::CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize bufferSize) const
 {
 	vk::CommandBuffer cmdBuffer = BeginTransferCommandBuffer();
@@ -147,13 +155,13 @@ void VulkanDevice::CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::De
 // List out all the available physical devices. Choose the one which supports required Queue families & extensions. 
 // Give preference to Discrete GPU over Integrated GPU!
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanDevice::AcquirePhysicalDevice(vk::Instance vkInst, vk::SurfaceKHR vkSurface)
+bool VulkanDevice::AcquirePhysicalDevice(vk::Instance vkInst, vk::SurfaceKHR vkSurface)
 {
 	uint32_t deviceCount = 0;
 
 	std::vector<vk::PhysicalDevice> physicalDevices = vkInst.enumeratePhysicalDevices();
 
-	UT_ASSERT_BOOL((!physicalDevices.empty()), "Can't find GPUs supporting Vulkan!!!");
+	CHECK_LOG(!physicalDevices.empty(), "Can't find GPUs supporting Vulkan!!!");
 
 	// List out all the physical devices & get their properties
 	vk::PhysicalDeviceProperties	vkDeviceProps;
@@ -166,20 +174,19 @@ void VulkanDevice::AcquirePhysicalDevice(vk::Instance vkInst, vk::SurfaceKHR vkS
 		if ((*iter).getProperties().deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
 		{
 			m_vkPhysicalDevice = (*iter);
-			vkDeviceProps = (*iter).getProperties();
+			vkDeviceProps = iter->getProperties();
 		}
 		else
 		{
-			LOG_WARNING("{0} device rejected since it's not a Discrete GPU", (*iter).getProperties().deviceName);
+			LOG_WARNING("{0} device rejected since it's not a Discrete GPU", iter->getProperties().deviceName);
 		}
 	}
 
-	UT_ASSERT_NULL(m_vkPhysicalDevice, "Failed to find suitable GPU!!!");
+	CHECK_LOG(m_vkPhysicalDevice, "Failed to find suitable GPU!!!");
 
 	// Check if Discrete GPU we found has all the needed extension support!
-	bool bExtensionsSupported = CheckDeviceExtensionSupport();
 
-	if (bExtensionsSupported)
+	if (bool bExtensionsSupported = CheckDeviceExtensionSupport())
 	{
 		// Fetch Queue families supported!
 		FetchQueueFamilies(vkSurface);
@@ -200,22 +207,23 @@ void VulkanDevice::AcquirePhysicalDevice(vk::Instance vkInst, vk::SurfaceKHR vkS
 		}
 	}
 
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanDevice::CreateLogicalDevice()
+bool VulkanDevice::CreateLogicalDevice()
 {
 	std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos{};
 
 	// std::set allows only One unique value for input values, no duplicate is allowed, so if both Graphics Queue family
 	// and Presentation Queue family index is same then it will avoid the duplicates and assign only one queue index!
-	std::set<uint32_t> uniqueQueueFamilies =
+	const std::set<uint32_t> uniqueQueueFamilies =
 	{
 		m_QueueFamilyIndices.graphicsFamily.value(),
 		m_QueueFamilyIndices.presentFamily.value()
 	};
 
-	float queuePriority = 1.0f;
+	constexpr float queuePriority = 1.0f;
 
 	for (uint32_t queueFamily = 0; queueFamily < uniqueQueueFamilies.size(); ++queueFamily)
 	{
@@ -236,18 +244,19 @@ void VulkanDevice::CreateLogicalDevice()
 	deviceCreateInfo.ppEnabledExtensionNames = UT::VkGlobals::GListDeviceExtensions.data();
 
 	// Physical device features that logical device will use...
-	vk::PhysicalDeviceFeatures deviceFeatures = m_vkPhysicalDevice.getFeatures();
+	const vk::PhysicalDeviceFeatures deviceFeatures = m_vkPhysicalDevice.getFeatures();
 
 	deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 
 	// Create logical device from the given physical device...
 	m_vkDevice = m_vkPhysicalDevice.createDevice(deviceCreateInfo);
-
 	LOG_DEBUG("Vulkan Logical device created!");
 
 	// Queues are created at the same time as device creation, store their handle!
 	m_vkQueueGraphics = m_vkDevice.getQueue(m_QueueFamilyIndices.graphicsFamily.value(), 0);
 	m_vkQueuePresent = m_vkDevice.getQueue(m_QueueFamilyIndices.presentFamily.value(), 0);
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -283,11 +292,10 @@ void VulkanDevice::FetchQueueFamilies(vk::SurfaceKHR vkSurface)
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool VulkanDevice::CheckDeviceExtensionSupport()
+bool VulkanDevice::CheckDeviceExtensionSupport() const
 {
 	// Get count of total number of extensions
-	std::vector<vk::ExtensionProperties> vecSupportedExtensions;
-	vecSupportedExtensions = m_vkPhysicalDevice.enumerateDeviceExtensionProperties();
+	std::vector<vk::ExtensionProperties> vecSupportedExtensions = m_vkPhysicalDevice.enumerateDeviceExtensionProperties();
 
 	// Compare Required extensions with supported extensions...
 	for (int i = 0; i < UT::VkGlobals::GListDeviceExtensions.size(); ++i)
@@ -319,7 +327,7 @@ bool VulkanDevice::CheckDeviceExtensionSupport()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-vk::ShaderModule VulkanDevice::CreateShaderModule(const std::string& fileName)
+vk::ShaderModule VulkanDevice::CreateShaderModule(const std::string& fileName) const
 {
 	// start reading at the end & in binary mode.
 	// Advantage of reading file from the end is we can use read position to determine
@@ -330,7 +338,7 @@ vk::ShaderModule VulkanDevice::CreateShaderModule(const std::string& fileName)
 		LOG_ERROR("Failed to open Shader file!");
 
 	// get the file size & allocate buffer memory!
-	size_t fileSize = (size_t)file.tellg();
+	const size_t fileSize = (size_t)file.tellg();
 	std::vector<char> buffer(fileSize);
 
 	// now seek back to the beginning of the file & read all bytes at once!
@@ -345,10 +353,9 @@ vk::ShaderModule VulkanDevice::CreateShaderModule(const std::string& fileName)
 	shaderModuleInfo.codeSize = buffer.size();
 	shaderModuleInfo.pCode = reinterpret_cast<const uint32_t*>(buffer.data());
 
-	vk::ShaderModule shaderModule;
 	std::string shaderModuleName = fileName;
 
-	shaderModule = m_vkDevice.createShaderModule(shaderModuleInfo);
+	const vk::ShaderModule shaderModule = m_vkDevice.createShaderModule(shaderModuleInfo);
 
 	return shaderModule;
 }
@@ -372,7 +379,7 @@ uint32_t VulkanDevice::FindMemoryTypeIndex(uint32_t allowedTypeIndex, vk::Memory
 //---------------------------------------------------------------------------------------------------------------------
 vk::Format VulkanDevice::ChooseSupportedFormat(const std::vector<vk::Format>& formats, vk::ImageTiling tiling, vk::FormatFeatureFlags featureFlags) const
 {
-	for (vk::Format format : formats)
+	for (const vk::Format format : formats)
 	{
 		// Get properties for given formats on this device
 		vk::FormatProperties props;
@@ -388,10 +395,11 @@ vk::Format VulkanDevice::ChooseSupportedFormat(const std::vector<vk::Format>& fo
 			return format;
 		}
 		else
+		{
+			LOG_ERROR("Failed to find matching format!");
 			return vk::Format::eUndefined;
+		}
 	}
-
-	LOG_ERROR("Failed to find matching format!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------

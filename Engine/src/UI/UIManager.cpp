@@ -26,7 +26,7 @@ bool UIManager::Initialize(const GLFWwindow* pWindow, vk::Instance vkInstance, v
 {
 	// create descriptor pool for imgui
 	// the size of the pool is oversized, but it's copied from the demo!
-	vk::DescriptorPoolSize poolSizes[] =
+	constexpr vk::DescriptorPoolSize poolSizes[] =
 	{
 		{vk::DescriptorType::eSampler, 1000},
 		{vk::DescriptorType::eCombinedImageSampler, 1000},
@@ -47,10 +47,10 @@ bool UIManager::Initialize(const GLFWwindow* pWindow, vk::Instance vkInstance, v
 	poolInfo.poolSizeCount = static_cast<uint32_t>(std::size(poolSizes));
 	poolInfo.pPoolSizes = poolSizes;
 
-	vk::Device vkDevice = pDevice->GetDevice();
-	vk::PhysicalDevice vkPhysicalDevice = pDevice->GetPhysicalDevice();
+	const vk::Device vkDevice = pDevice->GetDevice();
+	const vk::PhysicalDevice vkPhysicalDevice = pDevice->GetPhysicalDevice();
 
-	VkDescriptorPool imguiPool = vkDevice.createDescriptorPool(poolInfo);
+	const VkDescriptorPool imguiPool = vkDevice.createDescriptorPool(poolInfo);
 
 	// Initialize imgui library
 	IMGUI_CHECKVERSION();
@@ -82,12 +82,14 @@ bool UIManager::Initialize(const GLFWwindow* pWindow, vk::Instance vkInstance, v
 	ImGui_ImplVulkan_Init(&initInfo, renderPass);
 
 	// execute GPU commands to upload imgui fonts to textures
-	VkCommandBuffer cmdBuffer = pDevice->BeginTransferCommandBuffer();
+	const VkCommandBuffer cmdBuffer = pDevice->BeginTransferCommandBuffer();
 	ImGui_ImplVulkan_CreateFontsTexture(cmdBuffer);
 	pDevice->EndAndSubmitTransferCommandBuffer(cmdBuffer);
 
 	// clear fonts from the cpu memory!
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+	LOG_DEBUG("UIManager Initialized!");
 
 	return true;
 }

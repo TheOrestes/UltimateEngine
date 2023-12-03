@@ -2,6 +2,7 @@
 
 #include "vulkan/vulkan.hpp"
 #include "../VulkanRenderer/VulkanGlobals.h"
+#include "VulkanMeshData.h"
 
 class VulkanDevice;
 
@@ -10,7 +11,7 @@ class UT_API VulkanMesh
 {
 public:
 	VulkanMesh();
-	VulkanMesh(const VulkanDevice* pVulkanDevice, const std::vector<UT::VkStructs::VertexPNTBT>& vertices, const std::vector<uint32_t>& indices);
+	VulkanMesh(const VulkanDevice* pVulkanDevice, const std::vector<VertexPNTBT>& vertices, const std::vector<uint32_t>& indices);
 
 	void							Cleanup(vk::Device vkDevice);
 
@@ -24,7 +25,7 @@ public:
 	UT::VkStructs::VulkanBuffer		m_vkIndexBuffer;
 
 private:
-	void							CreateVertexBuffer(const VulkanDevice* pVulkanDevice, const std::vector<UT::VkStructs::VertexPNTBT>& vertices);
+	void							CreateVertexBuffer(const VulkanDevice* pVulkanDevice, const std::vector<VertexPNTBT>& vertices);
 	void							CreateIndexBuffer(const VulkanDevice* pVulkanDevice, const std::vector<uint32_t>& indices);
 };
 
