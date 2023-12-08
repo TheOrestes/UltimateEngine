@@ -130,7 +130,7 @@ void VulkanRenderer::SubmitAndPresentFrame()
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;						// sempahores to WAIT on
 
-	std::array<vk::PipelineStageFlags, 1> waitStages = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
+	constexpr std::array<vk::PipelineStageFlags, 1> waitStages = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
 
 	submitInfo.pWaitDstStageMask = waitStages.data();
 	submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
@@ -163,19 +163,30 @@ void VulkanRenderer::SubmitAndPresentFrame()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanRenderer::RecreateOnWindowsResize(const GLFWwindow* pWindow, vk::SurfaceKHR vkSurface) const
+void VulkanRenderer::RecreateOnWindowsResize(const GLFWwindow* pWindow, vk::SurfaceKHR vkSurface)
 {
+	LOG_DEBUG("Window Resize ======> Recreation started!");
 	m_pSwapchain->CreateSwapChain(pWindow, vkSurface, m_pVulkanDevice);
 	m_pFramebuffer->CreateFramebuffersAttachments(m_pVulkanDevice, m_pSwapchain);
+
+	CreateRenderPass();
+
 	m_pFramebuffer->CreateFramebuffers(m_pVulkanDevice, m_vkForwardRenderingRenderPass);
 	m_pVulkanDevice->CreateCommandBuffers(m_pFramebuffer);
+
+	CreateGraphicsPipeline();
+
+	LOG_DEBUG("Window Resize ======> Recreation finished!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanRenderer::Cleanup() const
+void VulkanRenderer::Cleanup()
 {
 	vk::Device vkDevice = m_pVulkanDevice->GetDevice();
 	vkDevice.waitIdle();
+
+	vkDevice.destroyPipeline(m_vkForwardRenderingPipeline);
+	vkDevice.destroyRenderPass(m_vkForwardRenderingRenderPass);
 
 	m_pSwapchain->Cleanup(vkDevice);
 	m_pFramebuffer->Cleanup(vkDevice);
@@ -183,8 +194,13 @@ void VulkanRenderer::Cleanup() const
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanRenderer::CleanupOnWindowsResize() const
+void VulkanRenderer::CleanupOnWindowsResize()
 {
+	LOG_DEBUG("Window Resize ======> Cleanup started!");
+
+	const vk::Device vkDevice = m_pVulkanDevice->GetDevice();
+	vkDevice.waitIdle();
+
 	int width = 0, height = 0;
 	glfwGetFramebufferSize(m_pWindow, &width, &height);
 	while (width == 0 || height == 0)
@@ -193,12 +209,17 @@ void VulkanRenderer::CleanupOnWindowsResize() const
 		glfwWaitEvents();
 	}
 
-	const vk::Device vkDevice = m_pVulkanDevice->GetDevice();
-	vkDevice.waitIdle();
+	vkDevice.destroyPipeline(m_vkForwardRenderingPipeline);
+	LOG_DEBUG("Window Resize ======> RenderPipeline Destroyed!");
+
+	vkDevice.destroyRenderPass(m_vkForwardRenderingRenderPass);
+	LOG_DEBUG("Window Resize ======> RenderPass Destroyed!");
 
 	m_pSwapchain->CleanupOnWindowResize(vkDevice);
 	m_pFramebuffer->CleanupOnWindowsResize(vkDevice);
 	m_pVulkanDevice->CleanupOnWindowsResize();
+
+	LOG_DEBUG("Window Resize ======> Cleanup finished!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -488,7 +509,7 @@ bool VulkanRenderer::CreateRenderPass()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool VulkanRenderer::CreateFramebuffers() const
+bool VulkanRenderer::CreateFramebuffers()
 {
 	UT_ASSERT_NULL(m_pFramebuffer, "CreateFrameBuffers()-->VulkanFramebuffer class object not valid?!");
 	UT_ASSERT_NULL(m_vkForwardRenderingRenderPass, "CreateFrameBuffers()-->vk::RenderPass not valid?!");

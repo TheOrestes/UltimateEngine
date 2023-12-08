@@ -86,12 +86,12 @@ void VulkanFramebuffer::CreateDepthBufferAttachment(const VulkanDevice* pDevice,
 	const vk::Format chosenFormat = pDevice->ChooseSupportedFormat(depthFormats, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 
 	// Create depth image
-	pDevice->CreateImage2D(	width, height,
-							chosenFormat, vk::ImageTiling::eOptimal,
-							vk::ImageUsageFlagBits::eDepthStencilAttachment,
-							vk::MemoryPropertyFlagBits::eDeviceLocal,
-							vk::ImageAspectFlagBits::eDepth,
-							&depthImage);
+	pDevice->CreateImage2D(width, height,
+		chosenFormat, vk::ImageTiling::eOptimal,
+		vk::ImageUsageFlagBits::eDepthStencilAttachment,
+		vk::MemoryPropertyFlagBits::eDeviceLocal,
+		vk::ImageAspectFlagBits::eDepth,
+		&depthImage);
 }
 
 //-----------------------------------------------------------------------------------------------------------------------
@@ -125,5 +125,7 @@ void VulkanFramebuffer::CleanupOnWindowsResize(vk::Device vkDevice)
 
 	m_ListColorAttachments.clear();
 	m_vkListFramebuffers.clear();
+
+	LOG_DEBUG("Window Resize ======> Framebuffer destroyed");
 }
 

@@ -21,9 +21,9 @@ public:
 	void								BeginFrame();
 	void								Render();
 	void								SubmitAndPresentFrame();
-	void								Cleanup() const;
-	void								CleanupOnWindowsResize() const;
-	void								RecreateOnWindowsResize(const GLFWwindow* pWindow, vk::SurfaceKHR vkSurface) const;
+	void								Cleanup();
+	void								CleanupOnWindowsResize();
+	void								RecreateOnWindowsResize(const GLFWwindow* pWindow, vk::SurfaceKHR vkSurface);
 	bool								CreateFencesAndSemaphores();
 	bool								CreateGraphicsPipeline();
 
@@ -32,7 +32,7 @@ private:
 	bool								CreateSwapchain(const GLFWwindow* pWindow, vk::SurfaceKHR vkSurface);
 	bool								CreateFramebufferAttachments();
 	bool								CreateRenderPass();
-	bool								CreateFramebuffers() const;
+	bool								CreateFramebuffers();
 	bool								CreateCommandbuffers() const;
 	void								RecordCommands(uint32_t currentImage) const;
 

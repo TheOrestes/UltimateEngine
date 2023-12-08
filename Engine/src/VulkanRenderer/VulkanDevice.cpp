@@ -54,6 +54,8 @@ void VulkanDevice::CleanupOnWindowsResize()
 
 	//pRC->vkDevice.destroySwapchainKHR(pRC->vkSwapchain);
 	//pRC->vkDevice.freeCommandBuffers(pRC->vkGraphicsCommandPool, pRC->vkListGraphicsCommandBuffers);
+
+	LOG_DEBUG("Window Resize ======> Command buffer destroyed");
 }
 
 //---------------------------------------------------------------------------------------------------------------------

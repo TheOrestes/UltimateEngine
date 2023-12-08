@@ -127,6 +127,8 @@ void VulkanSwapchain::CleanupOnWindowResize(vk::Device vkDevice)
 	m_vecSwapchainImages.clear();
 
 	vkDevice.destroySwapchainKHR(m_vkSwapchain);
+
+	LOG_DEBUG("Window Resize ======> Swapchain destroyed");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
