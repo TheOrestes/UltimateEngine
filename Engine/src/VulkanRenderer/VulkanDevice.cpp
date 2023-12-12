@@ -89,11 +89,8 @@ void VulkanDevice::CreateCommandBuffers(const VulkanFramebuffer* pFrameBuffer)
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-VkCommandBuffer VulkanDevice::BeginTransferCommandBuffer() const
+vk::CommandBuffer VulkanDevice::BeginTransferCommandBuffer() const
 {
-	// Command buffer to hold transfer command
-	vk::CommandBuffer commandBuffer;
-
 	// Command buffer details
 	vk::CommandBufferAllocateInfo allocInfo;
 	allocInfo.level = vk::CommandBufferLevel::ePrimary;
@@ -101,16 +98,16 @@ VkCommandBuffer VulkanDevice::BeginTransferCommandBuffer() const
 	allocInfo.commandBufferCount = 1;
 
 	// Allocate command buffer from pool
-	commandBuffer = m_vkDevice.allocateCommandBuffers(allocInfo).front();
+	const vk::CommandBuffer cmdBuffer = m_vkDevice.allocateCommandBuffers(allocInfo).front();
 
 	// Information to begin the command buffer record!
 	vk::CommandBufferBeginInfo beginInfo;
 	beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;	// We are only using the command buffer once, so set for one time submit!
 
 	// Begin recording transfer commands
-	commandBuffer.begin(beginInfo);
+	cmdBuffer.begin(beginInfo);
 
-	return commandBuffer;
+	return cmdBuffer;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -125,7 +122,7 @@ void VulkanDevice::EndAndSubmitTransferCommandBuffer(vk::CommandBuffer commandBu
 	submitInfo.pCommandBuffers = &commandBuffer;
 
 	// Submit transfer command to transfer queue (which is same as Graphics Queue) & wait until it finishes!
-	vk::Fence commandFence = m_vkDevice.createFence({});
+	const vk::Fence commandFence = m_vkDevice.createFence({});
 	m_vkQueueGraphics.submit(submitInfo, commandFence);
 	m_vkQueueGraphics.waitIdle();
 
@@ -408,23 +405,23 @@ vk::Format VulkanDevice::ChooseSupportedFormat(const std::vector<vk::Format>& fo
 void VulkanDevice::CopyBufferToImage(vk::Buffer srcBuffer, uint32_t width, uint32_t height, vk::Image* image) const
 {
 	// Create buffer
-	//VkCommandBuffer transferCommandBuffer = BeginCommandBuffer();
-	//
-	//VkBufferImageCopy imgRegion = {};
-	//imgRegion.bufferOffset = 0;
-	//imgRegion.bufferRowLength = 0;
-	//imgRegion.bufferImageHeight = 0;
-	//imgRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	//imgRegion.imageSubresource.mipLevel = 0;
-	//imgRegion.imageSubresource.baseArrayLayer = 0;
-	//imgRegion.imageSubresource.layerCount = 1;
-	//imgRegion.imageOffset = { 0,0,0 };
-	//imgRegion.imageExtent = { width, height, 1 };
-	//
-	//// copy buffer to given image!
-	//vkCmdCopyBufferToImage(transferCommandBuffer, srcBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgRegion);
-	//
-	//EndAndSubmitCommandBuffer(transferCommandBuffer);
+	const vk::CommandBuffer transferCommandBuffer = BeginTransferCommandBuffer();
+
+	vk::BufferImageCopy imgRegion = {};
+	imgRegion.bufferOffset = 0;
+	imgRegion.bufferRowLength = 0;
+	imgRegion.bufferImageHeight = 0;
+	imgRegion.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+	imgRegion.imageSubresource.mipLevel = 0;
+	imgRegion.imageSubresource.baseArrayLayer = 0;
+	imgRegion.imageSubresource.layerCount = 1;
+	imgRegion.imageOffset = VkOffset3D{ 0,0,0 };
+	imgRegion.imageExtent = VkExtent3D{ width, height, 1 };
+	
+	// copy buffer to given image!
+	transferCommandBuffer.copyBufferToImage(srcBuffer, *image, vk::ImageLayout::eTransferDstOptimal, imgRegion);
+		
+	EndAndSubmitTransferCommandBuffer(transferCommandBuffer);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -452,14 +449,14 @@ void VulkanDevice::CreateImage2D(uint32_t width, uint32_t height, vk::Format for
 	vk::Image image = m_vkDevice.createImage(imageInfo);
 
 	// Get memory requirements for the image...
-	vk::MemoryRequirements imgMemReqs = m_vkDevice.getImageMemoryRequirements(image);
+	const vk::MemoryRequirements imgMemReqs = m_vkDevice.getImageMemoryRequirements(image);
 
 	// Allocate memory using requirements & user defined properties...	
 	vk::MemoryAllocateInfo memAllocInfo;
 	memAllocInfo.allocationSize = imgMemReqs.size;
 	memAllocInfo.memoryTypeIndex = FindMemoryTypeIndex(imgMemReqs.memoryTypeBits, memoryPropertyFlags);
 
-	vk::DeviceMemory deviceMemory = m_vkDevice.allocateMemory(memAllocInfo);
+	const vk::DeviceMemory deviceMemory = m_vkDevice.allocateMemory(memAllocInfo);
 	m_vkDevice.bindImageMemory(image, deviceMemory, 0);
 
 	// Image View Creation
@@ -479,7 +476,7 @@ void VulkanDevice::CreateImage2D(uint32_t width, uint32_t height, vk::Format for
 	createInfo.subresourceRange.baseArrayLayer = 0;
 	createInfo.subresourceRange.layerCount = 1;
 
-	vk::ImageView imgView = m_vkDevice.createImageView(createInfo);
+	const vk::ImageView imgView = m_vkDevice.createImageView(createInfo);
 
 	// Fill out output image params!
 	pOutImage2D->image = image;
@@ -488,6 +485,171 @@ void VulkanDevice::CreateImage2D(uint32_t width, uint32_t height, vk::Format for
 	pOutImage2D->extent.height = height;
 	pOutImage2D->format = format;
 	pOutImage2D->imageView = imgView;
+}
+
+//-----------------------------------------------------------------------------------------------------------------------
+void VulkanDevice::TransitionImageLayout(vk::Image srcImage, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::CommandBuffer cmdBuffer) const
+{
+	vk::CommandBuffer commandBuffer;
+
+	if (cmdBuffer != VK_NULL_HANDLE)
+		commandBuffer = cmdBuffer;
+	else
+		commandBuffer = BeginTransferCommandBuffer();
+
+	vk::ImageMemoryBarrier imageMemoryBarrier = {};
+	imageMemoryBarrier.oldLayout = oldLayout;											// Layout to transition from
+	imageMemoryBarrier.newLayout = newLayout;											// Layout to transition to
+	imageMemoryBarrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;					// Queue family to transition from
+	imageMemoryBarrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;					// Queue family to transition to
+	imageMemoryBarrier.image = srcImage;												// Image being accessed & modified as a part of barrier
+	imageMemoryBarrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;	// Aspect of image being altered
+	imageMemoryBarrier.subresourceRange.baseMipLevel = 0;								// First mip level to start alteration on
+	imageMemoryBarrier.subresourceRange.levelCount = 1;									// Number of mip levels to alter starting from base mip level
+	imageMemoryBarrier.subresourceRange.baseArrayLayer = 0;								// First layer of start alterations on
+	imageMemoryBarrier.subresourceRange.layerCount = 1;									// Number of layers to alter starting from base array layer
+
+	vk::PipelineStageFlags srcStage = vk::PipelineStageFlagBits::eAllCommands;
+	vk::PipelineStageFlags dstStage = vk::PipelineStageFlagBits::eAllCommands;
+
+	// Credit = Sascha Willems : VulkanTools.cpp!
+	// Source layouts (old)
+	// Source access mask controls actions that have to be finished on the old layout
+	// before it will be transitioned to the new layout
+	// ? Added srcStage logic too, only where it's required! 
+	switch (oldLayout)
+	{
+		case vk::ImageLayout::eUndefined:
+		{
+			// Image layout is undefined (or does not matter)
+			// Only valid as initial layout
+			// No flags required, listed only for completeness
+			imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eNone;
+			srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
+			break;
+		}
+
+		case vk::ImageLayout::ePreinitialized:	
+		{
+			// Image is preinitialized
+			// Only valid as initial layout for linear images, preserves memory contents
+			// Make sure host writes have been finished
+			imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eHostWrite;
+			break;
+		}
+
+		case vk::ImageLayout::eColorAttachmentOptimal:
+		{
+			// Image is a color attachment
+			// Make sure any writes to the color buffer have been finished
+			imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+			srcStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+			break;
+		}
+
+		case vk::ImageLayout::eDepthStencilAttachmentOptimal:
+		{
+			// Image is a depth/stencil attachment
+			// Make sure any writes to the depth/stencil buffer have been finished
+			imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+			break;
+		}
+
+		case vk::ImageLayout::eTransferSrcOptimal:
+		{
+			// Image is a transfer source
+			// Make sure any reads from the image have been finished
+			imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
+			srcStage = vk::PipelineStageFlagBits::eTransfer;
+			break;
+		}
+
+		case vk::ImageLayout::eTransferDstOptimal:
+		{
+			// Image is a transfer destination
+			// Make sure any writes to the image have been finished
+			imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+			srcStage = vk::PipelineStageFlagBits::eTransfer;
+			break;
+		}
+
+		case vk::ImageLayout::eShaderReadOnlyOptimal:
+		{
+			// Image is read by a shader
+			// Make sure any shader reads from the image have been finished
+			imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
+			break;
+		}
+
+		default:
+			// Other source layouts aren't handled (yet)
+			break;
+	}
+
+	// Target layouts (new)
+	// Destination access mask controls the dependency for the new image layout
+	switch (newLayout)
+	{
+		case vk::ImageLayout::eTransferDstOptimal:
+		{
+			// Image will be used as a transfer destination
+			// Make sure any writes to the image have been finished
+			imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+			dstStage = vk::PipelineStageFlagBits::eTransfer;
+			break;
+		}
+
+		case vk::ImageLayout::eTransferSrcOptimal:
+		{
+			// Image will be used as a transfer source
+			// Make sure any reads from the image have been finished
+			imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
+			dstStage = vk::PipelineStageFlagBits::eTransfer;
+			break;
+		}
+
+		case vk::ImageLayout::eColorAttachmentOptimal:
+		{
+			// Image will be used as a color attachment
+			// Make sure any writes to the color buffer have been finished
+			imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+			dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+			break;
+		}
+
+		case vk::ImageLayout::eDepthStencilAttachmentOptimal:
+		{
+			// Image layout will be used as a depth/stencil attachment
+			// Make sure any writes to depth/stencil buffer have been finished
+			imageMemoryBarrier.dstAccessMask = imageMemoryBarrier.dstAccessMask | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+			break;
+		}
+
+		case vk::ImageLayout::eShaderReadOnlyOptimal:
+		{
+			// Image will be read in a shader (sampler, input attachment)
+			// Make sure any writes to the image have been finished
+			if (imageMemoryBarrier.srcAccessMask == vk::AccessFlagBits::eNone)
+			{
+				imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eHostWrite | vk::AccessFlagBits::eTransferWrite;
+			}
+
+			imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+			dstStage = vk::PipelineStageFlagBits::eFragmentShader;
+
+			break;
+		}
+
+		default:
+			// Other source layouts aren't handled (yet)
+			break;
+	}
+
+	vk::DependencyFlags flags = {};
+	//cmdBuffer.pipelineBarrier(srcStage, dstStage, vk::DependencyFlags(), nullptr, nullptr, &imageMemoryBarrier);
+	commandBuffer.pipelineBarrier(srcStage, dstStage, flags, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+
+	EndAndSubmitTransferCommandBuffer(commandBuffer);
 }
 
 //---------------------------------------------------------------------------------------------------------------------

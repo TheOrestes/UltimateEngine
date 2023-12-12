@@ -6,6 +6,7 @@
 class GameObject;
 class VulkanDevice;
 struct VulkanMeshData;
+class VulkanMaterial;
 
 class UT_API VulkanCube : public GameObject
 {
@@ -40,7 +41,7 @@ private:
 
 	VulkanMesh*							m_pMesh;
 	MeshUniformDataBuffer*				m_pShaderDataBuffer;
-	//VulkanMaterial* m_pMaterial;
+	VulkanMaterial*						m_pMaterial;
 
 	std::vector<VertexPNTBT>			m_ListVertices;
 	std::vector<uint32_t>				m_ListIndices;

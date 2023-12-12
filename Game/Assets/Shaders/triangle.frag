@@ -28,7 +28,7 @@ layout(set = 0, binding = 0) uniform mvpData
 }shaderData;
 
 //-- Textures
-// layout(set = 0, binding = 1) uniform sampler2D samplerAlbedoTexture;
+layout(set = 0, binding = 1) uniform sampler2D samplerAlbedoTexture;
 
 //---------------------------------------------------------------------------------------------------------------------
 void main()
@@ -40,7 +40,8 @@ void main()
     //{
     //    albedoColor = texture(samplerAlbedoTexture, vs_outUV);    
     //}
-
+    
+    albedoColor = texture(samplerAlbedoTexture, vs_outUV); 
     outColor = vec4(shaderData.albedoColor * albedoColor);
     //outColor = vec4(vs_outNormal, 1.0f);
 }

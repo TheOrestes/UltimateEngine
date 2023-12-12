@@ -30,7 +30,7 @@ void VulkanMesh::Cleanup(vk::Device vkDevice)
 void VulkanMesh::CreateVertexBuffer(const VulkanDevice* pVulkanDevice, const std::vector<VertexPNTBT>& vertices)
 {
 	// Get the size of buffer needed for vertices
-	VkDeviceSize bufferSize = m_uiVertexCount * sizeof(VertexPNTBT);
+	const VkDeviceSize bufferSize = m_uiVertexCount * sizeof(VertexPNTBT);
 	
 	// Create buffer & allocate memory to it!
 	UT::VkStructs::VulkanBuffer srcBuffer;
@@ -40,7 +40,7 @@ void VulkanMesh::CreateVertexBuffer(const VulkanDevice* pVulkanDevice, const std
 								&srcBuffer);
 
 	// Map memory to Vertex buffer
-	vk::Device vkDevice = pVulkanDevice->GetDevice();
+	const vk::Device vkDevice = pVulkanDevice->GetDevice();
 
 	void* data = vkDevice.mapMemory(srcBuffer.deviceMemory, 0, bufferSize);
 	memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
@@ -64,7 +64,7 @@ void VulkanMesh::CreateVertexBuffer(const VulkanDevice* pVulkanDevice, const std
 void VulkanMesh::CreateIndexBuffer(const VulkanDevice* pVulkanDevice, const std::vector<uint32_t>& indices)
 {
 	// Get size of buffer needed for indices
-	VkDeviceSize bufferSize = m_uiIndexCount * sizeof(uint32_t);
+	const VkDeviceSize bufferSize = m_uiIndexCount * sizeof(uint32_t);
 
 	// Temporary buffer to "stage" index data before transferring to GPU
 	UT::VkStructs::VulkanBuffer srcBuffer;
@@ -74,7 +74,7 @@ void VulkanMesh::CreateIndexBuffer(const VulkanDevice* pVulkanDevice, const std:
 								&srcBuffer);
 
 	// Map memory to Index buffer
-	vk::Device vkDevice = pVulkanDevice->GetDevice();
+	const vk::Device vkDevice = pVulkanDevice->GetDevice();
 
 	void* data = vkDevice.mapMemory(srcBuffer.deviceMemory, 0, bufferSize);
 	memcpy(data, indices.data(), static_cast<size_t>(bufferSize));

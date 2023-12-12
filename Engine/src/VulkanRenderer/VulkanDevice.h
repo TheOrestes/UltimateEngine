@@ -65,9 +65,10 @@ public:
 	void									EndGraphicsCommandBuffer(uint32_t imageIndex) const;
 	void									BeginRenderPass(uint32_t imageIndex, vk::RenderPassBeginInfo renderPassInfo) const;
 	void									EndRenderPass(uint32_t imageIndex) const;
-	VkCommandBuffer							BeginTransferCommandBuffer() const;
+	vk::CommandBuffer						BeginTransferCommandBuffer() const;
 	void									EndAndSubmitTransferCommandBuffer(vk::CommandBuffer commandBuffer) const;
 	void									BindPipeline(uint32_t imageIndex, vk::PipelineBindPoint bindPoint, vk::Pipeline pipeline) const;
+	void									TransitionImageLayout(vk::Image srcImage, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::CommandBuffer cmdBuffer) const;
 
 private:
 	vk::Device								m_vkDevice;

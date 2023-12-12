@@ -6,12 +6,15 @@
 #include "../VulkanRenderer/VulkanGlobals.h"
 #include "GameObject.h"
 #include "VulkanCube.h"
+#include "VulkanMaterial.h"
+#include "VulkanTexture.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 VulkanCube::VulkanCube(const std::string& name) : GameObject(name)
 {
 	m_pShaderDataBuffer = nullptr;
 	m_pMesh = nullptr;
+	m_pMaterial = nullptr;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -20,6 +23,7 @@ VulkanCube::~VulkanCube()
 	m_ListVertices.clear();
 	m_ListIndices.clear();
 
+	SAFE_DELETE(m_pMaterial);
 	SAFE_DELETE(m_pMesh);
 	SAFE_DELETE(m_pShaderDataBuffer);
 }
@@ -63,6 +67,10 @@ bool VulkanCube::Initialize(const void* pDevice)
 	m_ListIndices[33] = 6;				m_ListIndices[34] = 2;			m_ListIndices[35] = 1;
 
 	m_pMesh = new VulkanMesh(pVulkanDevice, m_ListVertices, m_ListIndices);
+
+	m_pMaterial = new VulkanMaterial();
+	m_pMaterial->LoadTexture(pVulkanDevice, "Assets/Textures/Cube/Default.png", TextureType::TEXTURE_ALBEDO);
+
 	CHECK_LOG(SetupDescriptors(pVulkanDevice), "{0}'s Setup Descriptor FAILED!", GameObject::getName());
 
 	// Create pipeline layout!
@@ -112,11 +120,11 @@ void VulkanCube::Update(float dt) const
 	m_pShaderDataBuffer->shaderData.matWorld = glm::rotate(m_pShaderDataBuffer->shaderData.matWorld, fCurrentAngle, m_vecRotationAxis);
 	m_pShaderDataBuffer->shaderData.matWorld = glm::scale(m_pShaderDataBuffer->shaderData.matWorld, m_vecScale);
 
-	float aspect = (float)(UT::VkGlobals::GCurrentResolution.x)/ (float)(UT::VkGlobals::GCurrentResolution.y);
+	const float aspect = (float)(UT::VkGlobals::GCurrentResolution.x)/ (float)(UT::VkGlobals::GCurrentResolution.y);
 	m_pShaderDataBuffer->shaderData.matProjection = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 1000.0f);
 	m_pShaderDataBuffer->shaderData.matProjection[1][1] *= -1.0f;
 
-	m_pShaderDataBuffer->shaderData.matView = glm::lookAt(glm::vec3(0.0f, 2.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	m_pShaderDataBuffer->shaderData.matView = glm::lookAt(glm::vec3(0.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -132,7 +140,17 @@ void VulkanCube::UpdateUniforms(vk::Device vkDevice, uint32_t imageIndex) const
 //---------------------------------------------------------------------------------------------------------------------
 void VulkanCube::Cleanup(void* pDevice)
 {
-	m_pMesh->Cleanup((static_cast<const VulkanDevice*>(pDevice)->GetDevice()));
+	const VulkanDevice* ptrDevice = static_cast<const VulkanDevice*>(pDevice);
+	const vk::Device vkDevice = ptrDevice->GetDevice();
+
+	m_pMesh->Cleanup(ptrDevice->GetDevice());
+	m_pShaderDataBuffer->Cleanup(ptrDevice);
+
+	vkDevice.destroyDescriptorPool(m_vkDescriptorPool);
+	vkDevice.destroyDescriptorSetLayout(m_vkDescriptorSetLayout);
+
+	m_ListVertices.clear();
+	m_ListIndices.clear();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -168,16 +186,16 @@ bool VulkanCube::SetupDescriptors(const VulkanDevice* pDevice)
 //---------------------------------------------------------------------------------------------------------------------
 bool VulkanCube::CreateDescriptorPool(const VulkanDevice* pDevice)
 {
-	std::array<vk::DescriptorPoolSize, 1> arrDescriptorPoolSize = {};
+	std::array<vk::DescriptorPoolSize, 2> arrDescriptorPoolSize = {};
 
 	//-- Uniform buffers
 	arrDescriptorPoolSize[0].descriptorCount = pDevice->GetSwapchainImageCount();
 
 	//-- Texture samplers
-	//arrDescriptorPoolSize[1].descriptorCount = m_pMaterial->m_uiNumTextures;
+	arrDescriptorPoolSize[1].descriptorCount = m_pMaterial->GetTexturesCount();
 
 	vk::DescriptorPoolCreateInfo poolCreateInfo = {};
-	poolCreateInfo.maxSets = pDevice->GetSwapchainImageCount();// +m_pMaterial->m_uiNumTextures;
+	poolCreateInfo.maxSets = pDevice->GetSwapchainImageCount() + m_pMaterial->GetTexturesCount();
 	poolCreateInfo.poolSizeCount = static_cast<uint32_t>(arrDescriptorPoolSize.size());
 	poolCreateInfo.pPoolSizes = arrDescriptorPoolSize.data();
 
@@ -190,7 +208,7 @@ bool VulkanCube::CreateDescriptorPool(const VulkanDevice* pDevice)
 //---------------------------------------------------------------------------------------------------------------------
 bool VulkanCube::CreateDescriptorSetLayout(const VulkanDevice* pDevice)
 {
-	std::array < vk::DescriptorSetLayoutBinding , 1 > layoutBindings;
+	std::array < vk::DescriptorSetLayoutBinding , 2> layoutBindings;
 
 	// Uniform buffer
 	layoutBindings[0].binding = 0;
@@ -199,11 +217,11 @@ bool VulkanCube::CreateDescriptorSetLayout(const VulkanDevice* pDevice)
 	layoutBindings[0].stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
 
 	// Albedo texture
-	//layoutBindings[1].binding = 1;
-	//layoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	//layoutBindings[1].descriptorCount = 1;
-	//layoutBindings[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-	//layoutBindings[1].pImmutableSamplers = nullptr;
+	layoutBindings[1].binding = 1;
+	layoutBindings[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+	layoutBindings[1].descriptorCount = 1;
+	layoutBindings[1].stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
+	layoutBindings[1].pImmutableSamplers = nullptr;
 
 	vk::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
 	layoutCreateInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
@@ -248,22 +266,21 @@ bool VulkanCube::CreateDescriptorSets(const VulkanDevice* pDevice)
 		ubWriteSet.pBufferInfo = &ubBufferInfo;
 
 		//-- Albedo Texture
-		//VkDescriptorImageInfo albedoImageInfo = {};
-		//albedoImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		//albedoImageInfo.imageView = m_pMaterial->m_pTextureAlbedo->getVkImageView();
-		//albedoImageInfo.sampler = m_pMaterial->m_pTextureAlbedo->getVkSampler();
-		//
-		//VkWriteDescriptorSet albedoWriteSet = {};
-		//albedoWriteSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		//albedoWriteSet.dstSet = m_ListDescriptorSets[i];
-		//albedoWriteSet.dstBinding = 1;
-		//albedoWriteSet.dstArrayElement = 0;
-		//albedoWriteSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		//albedoWriteSet.descriptorCount = 1;
-		//albedoWriteSet.pImageInfo = &albedoImageInfo;
+		vk::DescriptorImageInfo albedoImageInfo = {};
+		albedoImageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+		albedoImageInfo.imageView = m_pMaterial->GetVulkanTexture(TextureType::TEXTURE_ALBEDO)->getVkImageView();
+		albedoImageInfo.sampler = m_pMaterial->GetVulkanTexture(TextureType::TEXTURE_ALBEDO)->getVkSampler();
+
+		vk::WriteDescriptorSet albedoWriteSet = {};
+		albedoWriteSet.dstSet = m_ListDescriptorSets[i];
+		albedoWriteSet.dstBinding = 1;
+		albedoWriteSet.dstArrayElement = 0;
+		albedoWriteSet.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+		albedoWriteSet.descriptorCount = 1;
+		albedoWriteSet.pImageInfo = &albedoImageInfo;
 
 		// List of all Descriptor set writes!
-		std::array<vk::WriteDescriptorSet, 1> listWriteSets = { ubWriteSet };//, albedoWriteSet
+		std::array<vk::WriteDescriptorSet, 2> listWriteSets = { ubWriteSet , albedoWriteSet };
 
 		// Update the descriptor sets with buffers/binding info
 		pDevice->GetDevice().updateDescriptorSets(listWriteSets, nullptr);

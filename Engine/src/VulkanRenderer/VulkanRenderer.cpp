@@ -497,9 +497,29 @@ bool VulkanRenderer::CreateRenderPass()
 	subpass.pColorAttachments = &colorAttachRef;
 	subpass.pDepthStencilAttachment = &depthAttachRef;
 
+	//std::array<vk::SubpassDependency, 2> subpassDependencies;
+	//
+	//// 1. UNDEFINED --> COLOR ATTACHMENT
+	//subpassDependencies[0].srcSubpass = vk::SubpassExternal;
+	//subpassDependencies[0].dstSubpass = 0;
+	//subpassDependencies[0].srcStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;
+	//subpassDependencies[0].dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+	//subpassDependencies[0].srcAccessMask = vk::AccessFlagBits::eMemoryRead;
+	//subpassDependencies[0].dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+	//subpassDependencies[0].dependencyFlags = vk::DependencyFlagBits::eByRegion | vk::DependencyFlagBits::eDeviceGroup | vk::DependencyFlagBits::eFeedbackLoopEXT;
+	//
+	//// 2. COLOR_ATTACHMENT --> PRESENT_SRC_KHR
+	//subpassDependencies[1].srcSubpass = 0;
+	//subpassDependencies[1].dstSubpass = vk::SubpassExternal;
+	//subpassDependencies[1].srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+	//subpassDependencies[1].dstStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;
+	//subpassDependencies[1].srcAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+	//subpassDependencies[1].dstAccessMask = vk::AccessFlagBits::eMemoryRead;;
+	//subpassDependencies[1].dependencyFlags = vk::DependencyFlagBits::eByRegion| vk::DependencyFlagBits::eDeviceGroup | vk::DependencyFlagBits::eFeedbackLoopEXT;
+
 	std::array<vk::AttachmentDescription, 2> renderPassAttachmentsDesc = { colorAttachment, depthAttachment };
 
-	const vk::RenderPassCreateInfo renderPassInfo(vk::RenderPassCreateFlags(), renderPassAttachmentsDesc, subpass);
+	const vk::RenderPassCreateInfo renderPassInfo(vk::RenderPassCreateFlags(), renderPassAttachmentsDesc, subpass);// , subpassDependencies);
 
 	m_vkForwardRenderingRenderPass = m_pVulkanDevice->GetDevice().createRenderPass(renderPassInfo);
 
