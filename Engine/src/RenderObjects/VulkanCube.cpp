@@ -2,12 +2,13 @@
 #include "UltimateEnginePCH.h"
 #include "VulkanMesh.h"
 #include "VulkanMeshData.h"
-#include "../VulkanRenderer/VulkanDevice.h"
-#include "../VulkanRenderer/VulkanGlobals.h"
 #include "GameObject.h"
 #include "VulkanCube.h"
 #include "VulkanMaterial.h"
 #include "VulkanTexture.h"
+#include "../World/Camera.h"
+#include "../VulkanRenderer/VulkanDevice.h"
+#include "../VulkanRenderer/VulkanGlobals.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 VulkanCube::VulkanCube(const std::string& name) : GameObject(name)
@@ -109,7 +110,7 @@ void VulkanCube::Render(const VulkanDevice* pDevice, uint32_t index) const
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanCube::Update(float dt) const
+void VulkanCube::Update(const Camera* pCamera, float dt) const
 {
 	static float fCurrentAngle = 0.0f;
 	fCurrentAngle += dt * 0.05f;
@@ -121,10 +122,10 @@ void VulkanCube::Update(float dt) const
 	m_pShaderDataBuffer->shaderData.matWorld = glm::scale(m_pShaderDataBuffer->shaderData.matWorld, m_vecScale);
 
 	const float aspect = (float)(UT::VkGlobals::GCurrentResolution.x)/ (float)(UT::VkGlobals::GCurrentResolution.y);
-	m_pShaderDataBuffer->shaderData.matProjection = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 1000.0f);
+	m_pShaderDataBuffer->shaderData.matProjection = pCamera->m_matProjection; //glm::perspective(glm::radians(45.0f), aspect, 0.1f, 1000.0f);
 	m_pShaderDataBuffer->shaderData.matProjection[1][1] *= -1.0f;
 
-	m_pShaderDataBuffer->shaderData.matView = glm::lookAt(glm::vec3(0.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	m_pShaderDataBuffer->shaderData.matView = pCamera->m_matView; //glm::lookAt(glm::vec3(0.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
 //---------------------------------------------------------------------------------------------------------------------

@@ -84,6 +84,11 @@ void VulkanApplication::HandleWindowResizedCallback(const GLFWwindow* pWindow)
 	RecreateOnWindowResize(pWindow);
 }
 
+void VulkanApplication::HandleSceneInput(const GLFWwindow* pWindow, CameraAction direction, float mousePosX, float mousePosY, bool isMouseClicked) const
+{
+	m_pVulkanRenderer->HandleSceneInput(pWindow, direction, mousePosX, mousePosY, isMouseClicked);
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 bool VulkanApplication::CreateInstance()
 {

@@ -8,6 +8,7 @@
 
 class EngineApplication;
 class VulkanRenderer;
+enum class CameraAction;
 
 class UT_API VulkanApplication : public EngineApplication
 {
@@ -21,6 +22,7 @@ public:
 	virtual void				Update(float dt);
 	virtual void				Render();
 
+	void						HandleSceneInput(const GLFWwindow* pWindow, CameraAction direction, float mousePosX = 0.0f, float mousePosY = 0.0f, bool isMouseClicked = false) const;
 	void						HandleWindowResizedCallback(const GLFWwindow* pWindow);
 
 private:

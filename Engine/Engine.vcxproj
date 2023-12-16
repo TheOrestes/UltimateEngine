@@ -101,6 +101,7 @@
   <ItemGroup>
     <ClInclude Include="src\RenderObjects\VulkanMaterial.h" />
     <ClInclude Include="src\RenderObjects\VulkanTexture.h" />
+    <ClInclude Include="src\World\Camera.h" />
     <ClInclude Include="src\World\Scene.h" />
     <ClInclude Include="src\Core\EngineApplication.h" />
     <ClInclude Include="src\Core\Core.h" />
@@ -131,6 +132,7 @@
   <ItemGroup>
     <ClCompile Include="src\RenderObjects\VulkanMaterial.cpp" />
     <ClCompile Include="src\RenderObjects\VulkanTexture.cpp" />
+    <ClCompile Include="src\World\Camera.cpp" />
     <ClCompile Include="src\World\Scene.cpp" />
     <ClCompile Include="src\Core\EngineApplication.cpp" />
     <ClCompile Include="src\Core\Logger.cpp" />

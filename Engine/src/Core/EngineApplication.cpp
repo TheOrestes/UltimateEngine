@@ -1,6 +1,7 @@
 #include "UltimateEnginePCH.h"
 #include "EngineApplication.h"
 #include "../VulkanRenderer/VulkanApplication.h"
+#include "../World/Camera.h"
 #include "../EngineHeader.h"
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -85,7 +86,7 @@ void EngineApplication::WindowResizedCallback(GLFWwindow* pWindow, int width, in
 //---------------------------------------------------------------------------------------------------------------------
 void EngineApplication::KeyHandlerCallback(GLFWwindow* pWindow, int key, int scancode, int action, int mods)
 {
-	//VulkanApplication* pApp = static_cast<VulkanApplication*>(glfwGetWindowUserPointer(pWindow));
+	VulkanApplication* pApp = static_cast<VulkanApplication*>(glfwGetWindowUserPointer(pWindow));
 
 	if ((action == GLFW_REPEAT || GLFW_PRESS))
 	{
@@ -93,25 +94,25 @@ void EngineApplication::KeyHandlerCallback(GLFWwindow* pWindow, int key, int sca
 		{
 			case GLFW_KEY_W:
 			{
-				//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_FORWARD);
+				pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_FORWARD);
 				break;
 			}
 
 			case GLFW_KEY_S:
 			{
-				//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_BACK);
+				pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_BACK);
 				break;
 			}
 
 			case GLFW_KEY_A:
 			{
-				//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_LEFT);
+				pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_LEFT);
 				break;
 			}
 
 			case GLFW_KEY_D:
 			{
-				//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_RIGHT);
+				pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_RIGHT);
 				break;
 			}
 
@@ -120,13 +121,16 @@ void EngineApplication::KeyHandlerCallback(GLFWwindow* pWindow, int key, int sca
 				glfwSetWindowShouldClose(pWindow, true);
 				break;
 			}
+
+			default:
+				break;
 		}
 	}
 
 	// Stop if key is released...
 	if (action == GLFW_RELEASE)
 	{
-		//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_NONE);
+		pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_NONE);
 	}
 
 	LOG_INFO("{0} Key pressed...", key);

@@ -7,6 +7,7 @@ class GameObject;
 class VulkanDevice;
 struct VulkanMeshData;
 class VulkanMaterial;
+class Camera;
 
 class UT_API VulkanCube : public GameObject
 {
@@ -18,7 +19,7 @@ public:
 
 	virtual bool						Initialize(const void* pDevice) override;
 	void								Render(const VulkanDevice* pDevice, uint32_t index) const;
-	void								Update(float dt) const;
+	void								Update(const Camera* pCamera, float dt) const;
 	void								UpdateUniforms(vk::Device vkDevice, uint32_t imageIndex) const;
 	void								Cleanup(void* pDevice);
 	void								CleanupOnWindowsResize(VulkanDevice* pDevice);

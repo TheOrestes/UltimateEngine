@@ -9,6 +9,7 @@ class VulkanSwapchain;
 class VulkanFramebuffer;
 class UIManager;
 class Scene;
+enum class CameraAction;
 
 class UT_API VulkanRenderer
 {
@@ -26,6 +27,8 @@ public:
 	void								RecreateOnWindowsResize(const GLFWwindow* pWindow, vk::SurfaceKHR vkSurface);
 	bool								CreateFencesAndSemaphores();
 	bool								CreateGraphicsPipeline();
+
+	void								HandleSceneInput(const GLFWwindow* pWindow, CameraAction direction, float mousePosX = 0.0f, float mousePosY = 0.0f, bool isMouseClicked = false) const;
 
 private:
 	bool								CreateVulkanDevice(vk::Instance vkInst, vk::SurfaceKHR vkSurface);

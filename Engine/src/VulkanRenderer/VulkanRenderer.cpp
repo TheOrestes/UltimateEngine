@@ -6,6 +6,7 @@
 #include "VulkanFramebuffer.h"
 #include "VulkanGlobals.h"
 #include "../World/Scene.h"
+#include "../World/Camera.h"
 #include "../RenderObjects/GameObject.h"
 #include "../RenderObjects/VulkanCube.h"
 #include "../EngineHeader.h"
@@ -423,6 +424,44 @@ bool VulkanRenderer::CreateGraphicsPipeline()
 	vkDestroyShaderModule(vkDevice, vsModule, nullptr);
 
 	return true;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void VulkanRenderer::HandleSceneInput(const GLFWwindow* pWindow, CameraAction direction, float mousePosX, float mousePosY, bool isMouseClicked) const
+{
+	switch (direction)
+	{
+		case CameraAction::CAMERA_BACK:
+		case CameraAction::CAMERA_DOWN:
+		case CameraAction::CAMERA_FORWARD:
+		case CameraAction::CAMERA_LEFT:
+		case CameraAction::CAMERA_RIGHT:
+		case CameraAction::CAMERA_UP:
+		{
+			m_pScene->GetCamera()->Move(direction);
+			break;
+		}
+
+		case CameraAction::CAMERA_NONE:
+		{
+			m_pScene->GetCamera()->Stop();
+			break;
+		}
+
+		case CameraAction::CAMERA_PAN_2D:
+		{
+			m_pScene->GetCamera()->Move2D(glm::vec2(mousePosX, mousePosY), isMouseClicked);
+			break;
+		}
+
+		case CameraAction::CAMERA_CLICK:
+		{
+			break;
+		}
+
+		default:
+			break;
+	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------

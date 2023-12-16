@@ -4,6 +4,7 @@
 
 class VulkanDevice;
 class GameObject;
+class Camera;
 
 class UT_API Scene
 {
@@ -20,14 +21,14 @@ public:
 
 public:
 	inline GameObject* GetFirstObject() const { return m_ListModels[0]; }
-	//inline Camera* GetCamera()	const { return m_pCamera; }
+	inline Camera* GetCamera()			const { return m_pCamera; }
 
 private:
 	bool								LoadModels(const VulkanDevice* pDevice);
 
 public:
 	std::vector <GameObject*>			m_ListModels;
-	//Camera*							m_pCamera;
+	Camera*								m_pCamera;
 
 };
 

@@ -1,5 +1,6 @@
 #include "UltimateEnginePCH.h"
 #include "Scene.h"
+#include "Camera.h"
 #include "../RenderObjects/GameObject.h"
 #include "../VulkanRenderer/VulkanDevice.h"
 #include "../RenderObjects/VulkanCube.h"
@@ -7,7 +8,8 @@
 //---------------------------------------------------------------------------------------------------------------------
 bool Scene::LoadScene(const VulkanDevice* pDevice)
 {
-	return LoadModels(pDevice);
+	m_pCamera = new Camera();
+	CHECK(LoadModels(pDevice));
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -22,11 +24,13 @@ void Scene::Cleanup(VulkanDevice* pDevice)
 //---------------------------------------------------------------------------------------------------------------------
 void Scene::Update(float dt) const
 {
+	m_pCamera->Update(dt);
+
 	for (GameObject* object : m_ListModels)
 	{
 		if (const VulkanCube* pCube = dynamic_cast<VulkanCube*>(object))
 		{
-			pCube->Update(dt);
+			pCube->Update(m_pCamera, dt);
 		}
 	}
 }
