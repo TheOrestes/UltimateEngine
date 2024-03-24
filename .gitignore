@@ -35,3 +35,5 @@
 bin-int/
 bin/
 x64/
+
+*.bak

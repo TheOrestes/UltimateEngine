@@ -28,6 +28,7 @@ public:
 
 public:
 	inline std::string	getName() const							{ return m_strName; }
+	inline void			setName(const std::string& name)		{ m_strName = name; }
 
 protected:
 	// Transformations!

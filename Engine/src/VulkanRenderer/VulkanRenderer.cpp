@@ -66,7 +66,7 @@ bool VulkanRenderer::Initialize(const GLFWwindow* pWindow, vk::Instance vkInst, 
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanRenderer::Update(float dt) const
+void VulkanRenderer::Update(double dt) const
 {
 	m_pScene->Update(dt);
 }

@@ -8,14 +8,15 @@ class VulkanDevice;
 //---------------------------------------------------------------------------------------------------------------------
 enum class TextureType
 {
-	TEXTURE_ALBEDO,
+	TEXTURE_ALBEDO = 0,
 	TEXTURE_METALNESS,
 	TEXTURE_NORMAL,
 	TEXTURE_ROUGHNESS,
 	TEXTURE_AO,
 	TEXTURE_EMISSIVE,
 	TEXTURE_HDRI,
-	TEXTURE_ERROR
+	TEXTURE_ERROR,
+	TEXTURE_END
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -29,14 +30,19 @@ public:
 	void					Cleanup(const VulkanDevice* pContext);
 	void					CleanupOnWindowResize(const VulkanDevice* pContext);
 
-	inline uint32_t			GetTexturesCount() const					{ return m_umapTextures.size(); }
-	inline VulkanTexture*	GetVulkanTexture(TextureType type) const	{ return m_umapTextures.at(type); }
+	inline uint32_t			GetTexturesCount() const					{ return static_cast<uint32_t>(m_umapTextures.size()); }
+	VulkanTexture*			GetVulkanTexture(TextureType type) const;
 
 public:
-	// Has Textures?		
-	glm::vec3				m_hasTextureAEN;		// Albedo | Emissive | Normal
-	glm::vec3				m_hasTextureRMO;		// Roughness | Metallic | Occlusion
+	bool					HasTexture(TextureType type) const;
+	void					SetHasTexture(TextureType type);
 
+private:
+	// Has Textures?		
+	glm::ivec3				m_hasTextureAEN;		// Albedo | Emissive | Normal
+	glm::ivec3				m_hasTextureRMO;		// Roughness | Metallic | Occlusion
+
+public:
 	// Textures
 	std::unordered_map<TextureType, VulkanTexture*> m_umapTextures;
 	

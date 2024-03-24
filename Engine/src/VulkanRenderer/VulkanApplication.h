@@ -19,7 +19,7 @@ public:
 	virtual void				Cleanup() override;
 
 	virtual bool				Initialize(const GLFWwindow* pWindow);
-	virtual void				Update(float dt);
+	virtual void				Update(double dt);
 	virtual void				Render();
 
 	void						HandleSceneInput(const GLFWwindow* pWindow, CameraAction direction, float mousePosX = 0.0f, float mousePosY = 0.0f, bool isMouseClicked = false) const;

@@ -15,7 +15,7 @@ public:
 	bool								LoadScene(const VulkanDevice* pDevice);
 	void								Cleanup(VulkanDevice* pDevice);
 
-	void								Update(float dt) const;
+	void								Update(double dt) const;
 	void								UpdateUniforms(const VulkanDevice* pDevice, uint32_t imageIndex) const;
 	void								Render(const VulkanDevice* pDevice, uint32_t imageIndex) const;
 

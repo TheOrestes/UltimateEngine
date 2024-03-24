@@ -113,7 +113,7 @@ void VulkanCube::Render(const VulkanDevice* pDevice, uint32_t index) const
 void VulkanCube::Update(const Camera* pCamera, float dt) const
 {
 	static float fCurrentAngle = 0.0f;
-	fCurrentAngle += dt * 0.05f;
+	fCurrentAngle += dt * 0.5f;
 	if (fCurrentAngle > 360.0f) { fCurrentAngle = 0.0f; }
 
 	m_pShaderDataBuffer->shaderData.matWorld = glm::mat4(1);

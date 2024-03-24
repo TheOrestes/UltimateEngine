@@ -48,13 +48,17 @@ bool EngineApplication::Initialize(const std::string& name, uint16_t width, uint
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void EngineApplication::Run()
+void EngineApplication::Run() const
 {
 	while (!glfwWindowShouldClose(m_pGLFWWindow) && m_bAppInitialized)
 	{
 		glfwPollEvents();
 
-		float dt = 0.016f;
+		static double lastTime = 0.0f;
+		const double now = glfwGetTime();
+		const double dt = now - lastTime;
+		lastTime = now;
+
 		m_pVulkanApp->Update(dt);
 		m_pVulkanApp->Render();
 	}

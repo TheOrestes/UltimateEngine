@@ -21,8 +21,8 @@ struct MeshUniformData
 	// Material data...
 	alignas(16)	glm::vec4	albedoColor;
 	alignas(16) glm::vec4	emissionColor;
-	alignas(16) glm::vec3	hasTextureAEN;
-	alignas(16) glm::vec3	hasTextureRMO;
+	alignas(16) glm::ivec3	hasTextureAEN;
+	alignas(16) glm::ivec3	hasTextureRMO;
 	alignas(4)	float		occlusion;
 	alignas(4)	float		roughness;
 	alignas(4)	float		metalness;
@@ -41,7 +41,7 @@ struct MeshUniformDataBuffer
 		vk::DeviceSize bufferSize = sizeof(MeshUniformData);
 
 		// one uniform buffer for each swapchain/command buffer
-		uint16_t count = pDevice->GetSwapchainImageCount();
+		const uint16_t count = pDevice->GetSwapchainImageCount();
 
 		for (uint16_t i = 0; i < count; i++)
 		{

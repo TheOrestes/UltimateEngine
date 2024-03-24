@@ -54,7 +54,7 @@ bool VulkanApplication::Initialize(const GLFWwindow* pWindow)
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void VulkanApplication::Update(float dt)
+void VulkanApplication::Update(double dt)
 {
 	m_pVulkanRenderer->Update(dt);
 }

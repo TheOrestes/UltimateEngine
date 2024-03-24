@@ -18,7 +18,7 @@ public:
 	~VulkanRenderer();
 
 	bool								Initialize(const GLFWwindow* pWindow, vk::Instance vkInst, vk::SurfaceKHR vkSurface);
-	void								Update(float dt) const;
+	void								Update(double dt) const;
 	void								BeginFrame();
 	void								Render();
 	void								SubmitAndPresentFrame();

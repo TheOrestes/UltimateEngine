@@ -22,7 +22,7 @@ void Scene::Cleanup(VulkanDevice* pDevice)
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void Scene::Update(float dt) const
+void Scene::Update(double dt) const
 {
 	m_pCamera->Update(dt);
 

@@ -17,8 +17,18 @@ public:
 	void						CleanupOnWindowResize(const VulkanDevice* pDevice);
 
 public:
-	inline vk::Image			getVkImage()	 const	{ return m_pImage->image; }
-	inline vk::ImageView		getVkImageView() const	{ return m_pImage->imageView; }
+	inline vk::Image			getVkImage()	 const
+	{
+		if (!m_pImage) return nullptr;
+		else { return m_pImage->image; }
+	}
+
+	inline vk::ImageView		getVkImageView() const
+	{
+		if (!m_pImage) return nullptr;
+		else { return m_pImage->imageView; }
+	}
+
 	inline vk::Sampler			getVkSampler()	 const	{ return m_vkTextureSampler; }
 
 private:

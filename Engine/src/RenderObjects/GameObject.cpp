@@ -12,3 +12,4 @@ bool GameObject::Initialize(const void* pDevice)
 void GameObject::Cleanup(void* pDevice)
 {
 }
+
