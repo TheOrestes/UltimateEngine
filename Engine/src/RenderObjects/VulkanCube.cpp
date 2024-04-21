@@ -11,8 +11,10 @@
 #include "../VulkanRenderer/VulkanGlobals.h"
 
 //---------------------------------------------------------------------------------------------------------------------
-VulkanCube::VulkanCube(const std::string& name) : GameObject(name)
+VulkanCube::VulkanCube(const std::string& name, const glm::vec4 color) : GameObject(name)
 {
+	m_Color = color;
+
 	m_pShaderDataBuffer = nullptr;
 	m_pMesh = nullptr;
 	m_pMaterial = nullptr;
@@ -37,40 +39,40 @@ bool VulkanCube::Initialize(const void* pDevice)
 	// Vertex Data!
 	m_ListVertices.resize(8);
 
-	m_ListVertices[0] = VertexPNTBT(glm::vec3(-1, -1, 1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(0.0f, 0.0f));
-	m_ListVertices[1] = VertexPNTBT(glm::vec3(1, -1, 1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(1.0f, 0.0f));
-	m_ListVertices[2] = VertexPNTBT(glm::vec3(1, 1, 1),		glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(1.0f, 1.0f));
-	m_ListVertices[3] = VertexPNTBT(glm::vec3(-1, 1, 1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(0.0f, 1.0f));
-	m_ListVertices[4] = VertexPNTBT(glm::vec3(-1, -1, -1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(1.0f, 1.0f));
-	m_ListVertices[5] = VertexPNTBT(glm::vec3(1, -1, -1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(0.0f, 1.0f));
-	m_ListVertices[6] = VertexPNTBT(glm::vec3(1, 1, -1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(0.0f, 0.0f));
-	m_ListVertices[7] = VertexPNTBT(glm::vec3(-1, 1, -1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(1.0f, 0.0f));
+	m_ListVertices[0] = VertexPNTBT(glm::vec3(-1, -1, 1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(0,0));
+	m_ListVertices[1] = VertexPNTBT(glm::vec3(1, -1, 1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(1,0));
+	m_ListVertices[2] = VertexPNTBT(glm::vec3(1, 1, 1),		glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(1,1));
+	m_ListVertices[3] = VertexPNTBT(glm::vec3(-1, 1, 1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(0,1));
+	m_ListVertices[4] = VertexPNTBT(glm::vec3(-1, -1, -1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(0,0));
+	m_ListVertices[5] = VertexPNTBT(glm::vec3(1, -1, -1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(1,0));
+	m_ListVertices[6] = VertexPNTBT(glm::vec3(1, 1, -1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(1,1));
+	m_ListVertices[7] = VertexPNTBT(glm::vec3(-1, 1, -1),	glm::vec3(1), glm::vec3(0), glm::vec3(0), glm::vec2(0,1));
 
 	// Index Data!
 	m_ListIndices.resize(36);
 
 	m_ListIndices[0] = 0;				m_ListIndices[1] = 1;			m_ListIndices[2] = 2;
-	m_ListIndices[3] = 2;				m_ListIndices[4] = 3;			m_ListIndices[5] = 0;
+	m_ListIndices[3] = 0;				m_ListIndices[4] = 2;			m_ListIndices[5] = 3;
 
-	m_ListIndices[6] = 3;				m_ListIndices[7] = 2;			m_ListIndices[8] = 6;
-	m_ListIndices[9] = 6;				m_ListIndices[10] = 7;			m_ListIndices[11] = 3;
+	m_ListIndices[6] = 1;				m_ListIndices[7] = 5;			m_ListIndices[8] = 6;
+	m_ListIndices[9] = 1;				m_ListIndices[10] = 6;			m_ListIndices[11] = 2;
 
-	m_ListIndices[12] = 7;				m_ListIndices[13] = 6;			m_ListIndices[14] = 5;
-	m_ListIndices[15] = 5;				m_ListIndices[16] = 4;			m_ListIndices[17] = 7;
+	m_ListIndices[12] = 5;				m_ListIndices[13] = 4;			m_ListIndices[14] = 7;
+	m_ListIndices[15] = 5;				m_ListIndices[16] = 7;			m_ListIndices[17] = 6;
 
-	m_ListIndices[18] = 4;				m_ListIndices[19] = 5;			m_ListIndices[20] = 1;
-	m_ListIndices[21] = 1;				m_ListIndices[22] = 0;			m_ListIndices[23] = 4;
+	m_ListIndices[18] = 4;				m_ListIndices[19] = 0;			m_ListIndices[20] = 3;
+	m_ListIndices[21] = 4;				m_ListIndices[22] = 3;			m_ListIndices[23] = 7;
 
-	m_ListIndices[24] = 4;				m_ListIndices[25] = 0;			m_ListIndices[26] = 3;
-	m_ListIndices[27] = 3;				m_ListIndices[28] = 7;			m_ListIndices[29] = 4;
+	m_ListIndices[24] = 3;				m_ListIndices[25] = 2;			m_ListIndices[26] = 6;
+	m_ListIndices[27] = 3;				m_ListIndices[28] = 6;			m_ListIndices[29] = 7;
 
-	m_ListIndices[30] = 1;				m_ListIndices[31] = 5;			m_ListIndices[32] = 6;
-	m_ListIndices[33] = 6;				m_ListIndices[34] = 2;			m_ListIndices[35] = 1;
+	m_ListIndices[30] = 0;				m_ListIndices[31] = 4;			m_ListIndices[32] = 5;
+	m_ListIndices[33] = 0;				m_ListIndices[34] = 5;			m_ListIndices[35] = 1;
 
 	m_pMesh = new VulkanMesh(pVulkanDevice, m_ListVertices, m_ListIndices);
 
 	m_pMaterial = new VulkanMaterial();
-	m_pMaterial->LoadTexture(pVulkanDevice, "Assets/Textures/Cube/Default.png", TextureType::TEXTURE_ALBEDO);
+	m_pMaterial->CreateMaterial(pVulkanDevice, "Assets/Textures/Cube/DefaultWhite.png", TextureType::TEXTURE_ALBEDO, m_Color, m_Color);
 
 	CHECK_LOG(SetupDescriptors(pVulkanDevice), "{0}'s Setup Descriptor FAILED!", GameObject::getName());
 
@@ -113,12 +115,12 @@ void VulkanCube::Render(const VulkanDevice* pDevice, uint32_t index) const
 void VulkanCube::Update(const Camera* pCamera, float dt) const
 {
 	static float fCurrentAngle = 0.0f;
-	fCurrentAngle += dt * 0.5f;
+	//fCurrentAngle += dt * 0.5f;
 	if (fCurrentAngle > 360.0f) { fCurrentAngle = 0.0f; }
 
 	m_pShaderDataBuffer->shaderData.matWorld = glm::mat4(1);
 	m_pShaderDataBuffer->shaderData.matWorld = glm::translate(m_pShaderDataBuffer->shaderData.matWorld, m_vecPosition);
-	m_pShaderDataBuffer->shaderData.matWorld = glm::rotate(m_pShaderDataBuffer->shaderData.matWorld, fCurrentAngle, m_vecRotationAxis);
+	m_pShaderDataBuffer->shaderData.matWorld = glm::rotate(m_pShaderDataBuffer->shaderData.matWorld, glm::degrees(m_fRotation), m_vecRotationAxis);
 	m_pShaderDataBuffer->shaderData.matWorld = glm::scale(m_pShaderDataBuffer->shaderData.matWorld, m_vecScale);
 
 	const float aspect = (float)(UT::VkGlobals::GCurrentResolution.x)/ (float)(UT::VkGlobals::GCurrentResolution.y);
@@ -166,9 +168,9 @@ bool VulkanCube::SetupDescriptors(const VulkanDevice* pDevice)
 	m_pShaderDataBuffer->CreateUniformDataBuffers(pDevice);
 
 	// Set default material info!
-	m_pShaderDataBuffer->shaderData.albedoColor = glm::vec4(1);
-	m_pShaderDataBuffer->shaderData.emissionColor = glm::vec4(1);
-	m_pShaderDataBuffer->shaderData.hasTextureAEN = glm::vec3(1, 0, 0);
+	m_pShaderDataBuffer->shaderData.albedoColor = m_Color;
+	m_pShaderDataBuffer->shaderData.emissionColor = m_Color;
+	m_pShaderDataBuffer->shaderData.hasTextureAEN = glm::vec3(0);
 	m_pShaderDataBuffer->shaderData.hasTextureRMO = glm::vec3(0);
 	m_pShaderDataBuffer->shaderData.metalness = 0.0f;
 	m_pShaderDataBuffer->shaderData.occlusion = 1.0f;
@@ -209,7 +211,7 @@ bool VulkanCube::CreateDescriptorPool(const VulkanDevice* pDevice)
 //---------------------------------------------------------------------------------------------------------------------
 bool VulkanCube::CreateDescriptorSetLayout(const VulkanDevice* pDevice)
 {
-	std::array < vk::DescriptorSetLayoutBinding , 2> layoutBindings;
+	std::array < vk::DescriptorSetLayoutBinding, 2> layoutBindings;
 
 	// Uniform buffer
 	layoutBindings[0].binding = 0;
@@ -285,7 +287,7 @@ bool VulkanCube::CreateDescriptorSets(const VulkanDevice* pDevice)
 
 		// Update the descriptor sets with buffers/binding info
 		pDevice->GetDevice().updateDescriptorSets(listWriteSets, nullptr);
-	};
+	}
 
 	return true;
 }

@@ -12,7 +12,7 @@ class Camera;
 class UT_API VulkanCube : public GameObject
 {
 public:
-	VulkanCube(const std::string& name);
+	VulkanCube(const std::string& name, const glm::vec4 color);
 	//VulkanCube(const glm::vec3& color);
 
 	~VulkanCube() override;
@@ -46,4 +46,6 @@ private:
 
 	std::vector<VertexPNTBT>			m_ListVertices;
 	std::vector<uint32_t>				m_ListIndices;
+
+	glm::vec4							m_Color;
 };

@@ -130,12 +130,12 @@ bool VulkanTexture::CreateTextureSampler(const VulkanDevice* pDevice)
 	samplerCreateInfo.addressModeV = vk::SamplerAddressMode::eRepeat;			// how to handle texture wrap in V (y) direction
 	samplerCreateInfo.addressModeW = vk::SamplerAddressMode::eRepeat;			// how to handle texture wrap in W (z) direction
 	samplerCreateInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;			// border beyond texture (only works for border clamp)
-	samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;						// whether values of texture coords between [0,1] i.e. normalized
+	samplerCreateInfo.unnormalizedCoordinates = false;						// whether values of texture coords between [0,1] i.e. normalized
 	samplerCreateInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;				// Mipmap interpolation mode
 	samplerCreateInfo.mipLodBias = 0.0f;										// Level of detail bias for mip level
 	samplerCreateInfo.minLod = 0.0f;											// minimum level of detail to pick mip level
 	samplerCreateInfo.maxLod = 0.0f;											// maximum level of detail to pick mip level
-	samplerCreateInfo.anisotropyEnable = VK_FALSE;								// Enable Anisotropy or not? Check physical device features to see if anisotropy is supported or not!
+	samplerCreateInfo.anisotropyEnable = true;								// Enable Anisotropy or not? Check physical device features to see if anisotropy is supported or not!
 	samplerCreateInfo.maxAnisotropy = 16;										// Anisotropy sample level
 
 	m_vkTextureSampler = pDevice->GetDevice().createSampler(samplerCreateInfo);

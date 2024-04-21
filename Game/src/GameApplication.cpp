@@ -5,8 +5,8 @@
 class GameApplication : public EngineApplication
 {
 public:
-	GameApplication() {}
-	virtual ~GameApplication() {}
+	GameApplication() = default;
+	~GameApplication() override = default;
 
 private:
 
@@ -17,7 +17,7 @@ int main(int argc, char** argv)
 	LOG_DEBUG("Game App Start...");
 
 	GameApplication Game;
-	Game.Initialize("The Ultimate Game Engine", 960, 540);
+	Game.Initialize("The Ultimate Game Engine", 1920, 1080);
 	Game.Run();
 
 	LOG_DEBUG("Game App End...");

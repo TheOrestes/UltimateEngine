@@ -46,6 +46,17 @@ VulkanMaterial::~VulkanMaterial()
 }
 
 //-----------------------------------------------------------------------------------------------------------------------
+bool VulkanMaterial::CreateMaterial(const VulkanDevice* pDevice, const std::string& filePath, TextureType type,
+	const glm::vec4& albedoColor, const glm::vec4 emissiveColor)
+{
+	m_colAlbedo = albedoColor;
+	m_colEmission = emissiveColor;
+
+	if(type != TextureType::TEXTURE_NONE)
+		CHECK(LoadTexture(pDevice, filePath, type))
+}
+
+//-----------------------------------------------------------------------------------------------------------------------
 bool VulkanMaterial::LoadTexture(const VulkanDevice* pDevice, const std::string& filePath, TextureType type)
 {
 	VulkanTexture* pTexture = new VulkanTexture();
