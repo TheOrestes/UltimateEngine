@@ -64,7 +64,7 @@ void Scene::Render(const VulkanDevice* pDevice, uint32_t imageIndex) const
 //---------------------------------------------------------------------------------------------------------------------
 bool Scene::LoadModels(const VulkanDevice* pDevice)
 {
-	std::array<glm::vec4, 12> randomColors =
+	constexpr std::array<glm::vec4, 12> randomColors =
 	{
 		glm::vec4(1, 0, 0, 1),
 		glm::vec4(0, 1, 0, 1),

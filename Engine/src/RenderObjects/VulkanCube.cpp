@@ -128,6 +128,8 @@ void VulkanCube::Update(const Camera* pCamera, float dt) const
 	m_pShaderDataBuffer->shaderData.matProjection[1][1] *= -1.0f;
 
 	m_pShaderDataBuffer->shaderData.matView = pCamera->m_matView; //glm::lookAt(glm::vec3(0.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+	m_pShaderDataBuffer->shaderData.albedoColor = m_Color;
 }
 
 //---------------------------------------------------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 struct GLFWwindow;
 class VulkanDevice;
+class Scene;
 
 class UIManager
 {
@@ -14,6 +15,6 @@ public:
 	void			HandleWindowResize();
 	void			BeginRender();
 	void			EndRender(const VulkanDevice* pDevice, uint32_t imageIndex);
-	void			Render();
+	void			Render(Scene* pScene);
 };
 

@@ -622,7 +622,7 @@ void VulkanRenderer::RecordCommands(uint32_t currentImage) const
 	m_pScene->Render(m_pVulkanDevice, currentImage);
 
 	m_pGUI->BeginRender();
-	m_pGUI->Render();
+	m_pGUI->Render(m_pScene);
 	m_pGUI->EndRender(m_pVulkanDevice, currentImage);
 
 	// End RenderPass

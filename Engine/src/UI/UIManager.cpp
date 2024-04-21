@@ -9,6 +9,9 @@
 #include "imgui_impl_vulkan_hpp.h"
 
 #include "GLFW/glfw3.h"
+#include "RenderObjects/GameObject.h"
+#include "RenderObjects/VulkanCube.h"
+#include "World/Scene.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 UIManager::UIManager()
@@ -115,7 +118,7 @@ void UIManager::EndRender(const VulkanDevice* pDevice, uint32_t imageIndex)
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void UIManager::Render()
+void UIManager::Render(Scene* pScene)
 {
 	//ImGui::ShowDemoWindow();
 
@@ -127,7 +130,36 @@ void UIManager::Render()
 
 	bool open_flag = false;
 	ImGui::Begin("DockSpace Demo", &open_flag, window_flags);
- 
+
+	if(ImGui::CollapsingHeader("Scene Objects"))
+	{
+		for (uint32_t i = 0; i < pScene->m_ListModels.size(); ++i)
+		{
+			ImGui::PushID(i);
+			ImGui::AlignTextToFramePadding();
+
+			GameObject* pObject = pScene->m_ListModels[i];
+
+			std::string nodeName = pObject->getName();
+			if (ImGui::TreeNode(nodeName.c_str()))
+			{
+				
+				glm::vec4 color = dynamic_cast<VulkanCube*>(pObject)->getColor();
+				float albedo[4] = { color.r, color.g, color.b, color.a };
+
+				if(ImGui::ColorEdit4("Albedo", albedo))
+				{
+					dynamic_cast<VulkanCube*>(pObject)->setColor(glm::vec4(albedo[0], albedo[1], albedo[2], albedo[3]));
+				}
+
+				ImGui::TreePop();
+			}
+
+			ImGui::PopID();
+		}
+	}
+	
+
 	ImGui::ShowAboutWindow(&open_flag);
  
 	ImGui::End();

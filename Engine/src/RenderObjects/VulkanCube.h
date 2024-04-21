@@ -33,6 +33,9 @@ private:
 public:
 	inline vk::PipelineLayout			GetPipelineLayout() const { return m_vkRenderingPipelineLayout; }
 
+	glm::vec4							getColor() const { return m_Color; }
+	void								setColor(const glm::vec4& _color) { m_Color = _color; }
+
 private:
 	vk::DescriptorPool					m_vkDescriptorPool;
 	vk::DescriptorSetLayout				m_vkDescriptorSetLayout;
