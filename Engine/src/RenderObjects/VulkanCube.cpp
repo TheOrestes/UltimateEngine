@@ -179,13 +179,13 @@ bool VulkanCube::SetupDescriptors(const VulkanDevice* pDevice)
 	m_pShaderDataBuffer->shaderData.roughness = 1.0f;
 
 	// Descriptor Pool
-	CHECK(CreateDescriptorPool(pDevice));
+	CHECK(CreateDescriptorPool(pDevice))
 
 	// Descriptor Set Layout
-	CHECK(CreateDescriptorSetLayout(pDevice));
+	CHECK(CreateDescriptorSetLayout(pDevice))
 
 	// Descriptor Sets
-	CHECK(CreateDescriptorSets(pDevice));
+	CHECK(CreateDescriptorSets(pDevice))
 }
 
 //---------------------------------------------------------------------------------------------------------------------
