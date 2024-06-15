@@ -1,29 +1,34 @@
 #include "UltimateEnginePCH.h"
 #include "EngineApplication.h"
-
-#include "..\EngineHeader.h"
+#include "../D3D12Renderer/DirectXApplication.h"
+#include "../EngineHeader.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 EngineApplication::EngineApplication()
 {
 	m_pGLFWWindow = nullptr;
+	m_pD3DApp = nullptr;
+
+	m_bAppInitialized = false;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 EngineApplication::~EngineApplication()
 {
+	SAFE_DELETE(m_pD3DApp);
+
 	glfwDestroyWindow(m_pGLFWWindow);
 	glfwTerminate();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void EngineApplication::Initialize()
+bool EngineApplication::Initialize(const std::string& name, uint16_t width, uint16_t height)
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-	m_pGLFWWindow = glfwCreateWindow(gWindowWidht, gWindowHeight, "The Ultimate Engine", nullptr, nullptr);
-	UT_ASSERT(m_pGLFWWindow, "Creating Window!");
+	m_pGLFWWindow = glfwCreateWindow(width, height, name.c_str(), nullptr, nullptr);
+	UT_ASSERT_NULL(m_pGLFWWindow, "Creating Window!");
 
 	// Register Events!
 	glfwSetWindowCloseCallback(m_pGLFWWindow, WindowClosedCallback);
@@ -32,15 +37,36 @@ void EngineApplication::Initialize()
 	glfwSetCursorPosCallback(m_pGLFWWindow, MousePositionCallback);
 	glfwSetMouseButtonCallback(m_pGLFWWindow, MouseButtonCallback);
 	glfwSetScrollCallback(m_pGLFWWindow, MouseScrollCallback);
+
+	m_pD3DApp = new DirectXApplication();
+	m_bAppInitialized = m_pD3DApp->Initialize(m_pGLFWWindow);
+
+	glfwSetWindowUserPointer(m_pGLFWWindow, m_pD3DApp);
+
+	return m_bAppInitialized;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void EngineApplication::Run()
+void EngineApplication::Run() const
 {
 	while (!glfwWindowShouldClose(m_pGLFWWindow))
 	{
 		glfwPollEvents();
+
+		static double lastTime = 0.0f;
+		const double now = glfwGetTime();
+		const double dt = now - lastTime;
+		lastTime = now;
+
+		m_pD3DApp->Update(dt);
+		m_pD3DApp->Render();
 	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void EngineApplication::Cleanup()
+{
+	m_pD3DApp->Cleanup();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -53,17 +79,16 @@ void EngineApplication::WindowClosedCallback(GLFWwindow* pWindow)
 //---------------------------------------------------------------------------------------------------------------------
 void EngineApplication::WindowResizedCallback(GLFWwindow* pWindow, int width, int height)
 {
-	//VulkanApplication* pApp = static_cast<VulkanApplication*>(glfwGetWindowUserPointer(pWindow));
-	//pApp->HandleWindowResizedCallback(pWindow);
+	DirectXApplication* pApp = static_cast<DirectXApplication*>(glfwGetWindowUserPointer(pWindow));
+	pApp->HandleWindowResizeCallback(pWindow);
 
-	//m_pVulkanApp->HandleWindowResizedCallback(pWindow, width, height);
 	LOG_DEBUG("Window Resized to [{0}, {1}]", width, height);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void EngineApplication::KeyHandlerCallback(GLFWwindow* pWindow, int key, int scancode, int action, int mods)
 {
-	//VulkanApplication* pApp = static_cast<VulkanApplication*>(glfwGetWindowUserPointer(pWindow));
+	DirectXApplication* pApp = static_cast<DirectXApplication*>(glfwGetWindowUserPointer(pWindow));
 
 	if ((action == GLFW_REPEAT || GLFW_PRESS))
 	{

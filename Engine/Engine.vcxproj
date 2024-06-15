@@ -25,7 +25,7 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -47,6 +47,10 @@
     <OutDir>$(SolutionDir)bin\$(Configuration)-$(Platform)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)bin-int\$(Configuration)-$(Platform)\$(ProjectName)\</IntDir>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)bin\$(Configuration)-$(Platform)\$(ProjectName)\</OutDir>
+    <IntDir>$(SolutionDir)bin-int\$(Configuration)-$(Platform)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -57,6 +61,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>UltimateEnginePCH.h</PrecompiledHeaderFile>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -79,6 +84,8 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>UltimateEnginePCH.h</PrecompiledHeaderFile>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -93,6 +100,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\D3D12Renderer\DirectXApplication.h" />
     <ClInclude Include="src\Core\EngineApplication.h" />
     <ClInclude Include="src\Core\Core.h" />
     <ClInclude Include="src\Core\Logger.h" />
@@ -100,6 +108,7 @@
     <ClInclude Include="src\UltimateEnginePCH.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\D3D12Renderer\DirectXApplication.cpp" />
     <ClCompile Include="src\Core\EngineApplication.cpp" />
     <ClCompile Include="src\Core\Logger.cpp" />
     <ClCompile Include="src\UltimateEnginePCH.cpp">

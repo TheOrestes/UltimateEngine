@@ -1,14 +1,11 @@
-
+#include "UltimateEnginePCH.h"
 #include "EngineHeader.h"
 
 class GameApplication : public EngineApplication
 {
 public:
-	GameApplication() {}
-	~GameApplication() {}
-
-private:
-
+	GameApplication() = default;
+	~GameApplication() override = default;
 };
 
 int main(int argc, char** argv)
@@ -16,7 +13,7 @@ int main(int argc, char** argv)
 	LOG_INFO("Game App Start...");
 
 	GameApplication Game;
-	Game.Initialize();
+	Game.Initialize("The Ultimate Game Engine", 960, 540);
 	Game.Run();
 
 	LOG_INFO("Game App End...");

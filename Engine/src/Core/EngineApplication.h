@@ -3,14 +3,17 @@
 #include "GLFW/glfw3.h"
 #include "Core.h"
 
+class DirectXApplication;
+
 class UT_API EngineApplication
 {
 public:
 	EngineApplication();
 	virtual ~EngineApplication();
 
-	virtual void Initialize();
-	virtual void Run();
+	bool					Initialize(const std::string& name, uint16_t width, uint16_t height);
+	void					Run() const;
+	virtual void			Cleanup();
 
 	//-- EVENTS
 	static void				WindowClosedCallback(GLFWwindow* pWindow);
@@ -21,6 +24,9 @@ public:
 	static void				MouseScrollCallback(GLFWwindow* pWindow, double xOffset, double yOffset);
 
 private:
-	GLFWwindow* m_pGLFWWindow;
+	GLFWwindow*				m_pGLFWWindow;
+	DirectXApplication*		m_pD3DApp;
+
+	bool					m_bAppInitialized;
 };
 

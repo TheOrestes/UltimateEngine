@@ -30,6 +30,9 @@
     <ClInclude Include="src\UltimateEnginePCH.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\D3D12Renderer\DirectXApplication.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\EngineApplication.cpp">
@@ -39,6 +42,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\UltimateEnginePCH.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\D3D12Renderer\DirectXApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
