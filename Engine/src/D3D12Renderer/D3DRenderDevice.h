@@ -16,7 +16,13 @@ public:
 	void					CleanupOnWindowResize();
 
 private:
+	bool					CreateDevice(IDXGIFactory6* pFactory);
+	bool					CreateCommandQueue();
+
+private:
 	ID3D12Device*			m_pD3DDevice;
 	ID3D12DebugDevice*		m_pD3DDebugDevice;
+
+	ID3D12CommandQueue*		m_pD3DCommandQueue;
 };
 

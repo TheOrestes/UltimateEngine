@@ -9,17 +9,37 @@ D3DRenderDevice::D3DRenderDevice()
 {
 	m_pD3DDevice = nullptr;
 	m_pD3DDebugDevice = nullptr;
+	m_pD3DCommandQueue = nullptr;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 D3DRenderDevice::~D3DRenderDevice()
 {
-	SAFE_RELEASE(m_pD3DDebugDevice);
-	SAFE_RELEASE(m_pD3DDevice);
+	Cleanup();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 bool D3DRenderDevice::Initialize(IDXGIFactory6* pFactory)
+{
+	CHECK(CreateDevice(pFactory))
+	CHECK(CreateCommandQueue())
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void D3DRenderDevice::Cleanup()
+{
+	SAFE_RELEASE(m_pD3DCommandQueue)
+	SAFE_RELEASE(m_pD3DDebugDevice)
+	SAFE_RELEASE(m_pD3DDevice)
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void D3DRenderDevice::CleanupOnWindowResize()
+{
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+bool D3DRenderDevice::CreateDevice(IDXGIFactory6* pFactory)
 {
 	// Create Adapter
 	IDXGIAdapter1* pD3DAdapter;
@@ -44,18 +64,29 @@ bool D3DRenderDevice::Initialize(IDXGIFactory6* pFactory)
 
 #if defined (_DEBUG)
 	if (FAILED(m_pD3DDevice->QueryInterface(&m_pD3DDebugDevice)))
+	{
+		LOG_ERROR("D3D Debug Device creation failed!");
 		return false;
+	}
 #endif
 
 	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void D3DRenderDevice::Cleanup()
+bool D3DRenderDevice::CreateCommandQueue()
 {
-}
+	UT_CHECK_NULL(m_pD3DDevice, "ID3DDevice pointer");
 
-//---------------------------------------------------------------------------------------------------------------------
-void D3DRenderDevice::CleanupOnWindowResize()
-{
+	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+
+	if (FAILED(m_pD3DDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pD3DCommandQueue))))
+	{
+		LOG_ERROR("Command Queue creation failed!");
+		return false;
+	}
+
+	return true;
 }

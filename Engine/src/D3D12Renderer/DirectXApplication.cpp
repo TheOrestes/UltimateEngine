@@ -34,7 +34,7 @@ void DirectXApplication::Cleanup()
 //---------------------------------------------------------------------------------------------------------------------
 bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 {
-	UT_ASSERT_NULL(pWindow, "Windows pointer cannot be NULL!");
+	UT_CHECK_NULL(pWindow, "GLFW Windows pointer");
 
 	int width, height = 0;
 	glfwGetWindowSize(const_cast<GLFWwindow*>(pWindow), &width, &height);

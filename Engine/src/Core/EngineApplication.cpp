@@ -28,7 +28,7 @@ bool EngineApplication::Initialize(const std::string& name, uint16_t width, uint
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
 	m_pGLFWWindow = glfwCreateWindow(width, height, name.c_str(), nullptr, nullptr);
-	UT_ASSERT_NULL(m_pGLFWWindow, "Creating Window!");
+	UT_CHECK_NULL(m_pGLFWWindow, "GLTF Window Pointer!");
 
 	// Register Events!
 	glfwSetWindowCloseCallback(m_pGLFWWindow, WindowClosedCallback);
