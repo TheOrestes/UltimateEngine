@@ -15,10 +15,10 @@ EngineApplication::EngineApplication()
 //---------------------------------------------------------------------------------------------------------------------
 EngineApplication::~EngineApplication()
 {
-	SAFE_DELETE(m_pD3DApp);
-
 	glfwDestroyWindow(m_pGLFWWindow);
 	glfwTerminate();
+
+	SAFE_DELETE(m_pD3DApp);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
