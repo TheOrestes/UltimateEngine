@@ -71,7 +71,7 @@ bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 		return false;
 
 	m_pRenderDeviceD3D = new D3DRenderDevice();
-	CHECK(m_pRenderDeviceD3D->Initialize(m_pDXGIFactory))
+	CHECK(m_pRenderDeviceD3D->Initialize(m_hwnd, m_pDXGIFactory))
 
 	return true;
 }

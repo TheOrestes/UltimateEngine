@@ -2,6 +2,7 @@
 #include "EngineApplication.h"
 #include "../D3D12Renderer/DirectXApplication.h"
 #include "../EngineHeader.h"
+#include "D3D12Renderer/D3DGlobals.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 EngineApplication::EngineApplication()
@@ -42,6 +43,10 @@ bool EngineApplication::Initialize(const std::string& name, uint16_t width, uint
 	m_bAppInitialized = m_pD3DApp->Initialize(m_pGLFWWindow);
 
 	glfwSetWindowUserPointer(m_pGLFWWindow, m_pD3DApp);
+
+	// Set globals
+	UT::D3DGlobals::GWindowWidth = width;
+	UT::D3DGlobals::GWindowHeight = height;
 
 	return m_bAppInitialized;
 }
