@@ -33,10 +33,13 @@
     <ClInclude Include="src\D3D12Renderer\DirectXApplication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\D3D12Renderer\D3DRenderDevice.h">
+    <ClInclude Include="src\D3D12Renderer\DXRenderDevice.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\D3D12Renderer\D3DGlobals.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\D3D12Renderer\DXRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -53,7 +56,10 @@
     <ClCompile Include="src\D3D12Renderer\DirectXApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\D3D12Renderer\D3DRenderDevice.cpp">
+    <ClCompile Include="src\D3D12Renderer\DXRenderDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\D3D12Renderer\DXRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -11,16 +11,26 @@
 #define LOG_DEBUG(...)		Logger::getInstance().GetLogger()->debug(__VA_ARGS__);
 
 //---------------------------------------------------------------------------------------------------------------------
-#define UT_CHECK_NULL(x,...){if((!x)){LOG_ERROR("Null Ptr:{0}",__VA_ARGS__);return false;}}
+#define UT_CHECK_NULL(x,...){if((x == nullptr)){LOG_ERROR("Null Ptr:{0}",__VA_ARGS__);return false;}}
 //---------------------------------------------------------------------------------------------------------------------
 #define UT_CHECK_BOOL(x,...){if((!x)){LOG_ERROR("Bool False",__VA_ARGS__);return false;}}
 //---------------------------------------------------------------------------------------------------------------------
 #define UT_CHECK_HRESULT(x,...){if(FAILED(x)){LOG_ERROR("HRESULT FAILED : {0}",__VA_ARGS__);return false;}}
 
 //---------------------------------------------------------------------------------------------------------------------
-#define UT_ASSERT_VK(x,...)																\
+#define UT_ASSERT_NULL(x,...)															\
 {																						\
-	if (x != vk::Result::eSuccess)														\
+	if (x == nullptr)																	\
+	{																					\
+		LOG_CRITICAL("Assertion Failed:{0}", __VA_ARGS__)								\
+		__debugbreak();																	\
+	}																					\
+}																						\
+
+//---------------------------------------------------------------------------------------------------------------------
+#define UT_ASSERT_HRESULT(x,...)														\
+{																						\
+	if (FAILED(x))																		\
 	{																					\
 		LOG_CRITICAL("Assertion Failed:{0}", __VA_ARGS__);								\
 		__debugbreak();																	\

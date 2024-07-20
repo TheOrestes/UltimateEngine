@@ -1,7 +1,7 @@
 
 #include "UltimateEnginePCH.h"
 #include "DirectXApplication.h"
-#include "D3DRenderDevice.h"
+#include "DXRenderer.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 DirectXApplication::DirectXApplication()
@@ -12,7 +12,7 @@ DirectXApplication::DirectXApplication()
 	m_pD3D12DebugController = nullptr;
 	m_pDXGIFactory = nullptr;
 
-	m_pRenderDeviceD3D = nullptr;
+	m_pDXRenderer = nullptr;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -24,8 +24,7 @@ DirectXApplication::~DirectXApplication()
 //---------------------------------------------------------------------------------------------------------------------
 void DirectXApplication::Cleanup()
 {
-	m_pRenderDeviceD3D->Cleanup();
-	SAFE_DELETE(m_pRenderDeviceD3D);
+	SAFE_DELETE(m_pDXRenderer);
 
 	SAFE_RELEASE(m_pD3D12DebugController);
 	SAFE_RELEASE(m_pDXGIFactory);
@@ -70,8 +69,8 @@ bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 	if(FAILED(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_pDXGIFactory))))
 		return false;
 
-	m_pRenderDeviceD3D = new D3DRenderDevice();
-	CHECK(m_pRenderDeviceD3D->Initialize(m_hwnd, m_pDXGIFactory))
+	m_pDXRenderer = new DXRenderer();
+	CHECK(m_pDXRenderer->Initialize(m_hwnd, m_pDXGIFactory))
 
 	return true;
 }
@@ -84,6 +83,9 @@ void DirectXApplication::Update(double dt)
 //---------------------------------------------------------------------------------------------------------------------
 void DirectXApplication::Render()
 {
+	UT_ASSERT_NULL(m_pDXRenderer, "DXRenderDevice is null!")
+
+	m_pDXRenderer->Render();
 }
 
 //---------------------------------------------------------------------------------------------------------------------

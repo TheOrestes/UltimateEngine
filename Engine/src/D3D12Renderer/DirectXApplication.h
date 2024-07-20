@@ -6,7 +6,7 @@
 #include "../Core/Core.h"
 #include "../EngineHeader.h"
 
-class D3DRenderDevice;
+class DXRenderer;
 class EngineApplication;
 enum class CameraAction;
 
@@ -39,6 +39,6 @@ private:
 	IDXGIFactory6*							m_pDXGIFactory;
 	ID3D12Debug1*							m_pD3D12DebugController;
 
-	D3DRenderDevice*						m_pRenderDeviceD3D;
+	DXRenderer*								m_pDXRenderer;
 };
 
