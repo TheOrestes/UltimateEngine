@@ -16,7 +16,7 @@ int main(int argc, char** argv)
 	Game.Initialize("The Ultimate Game Engine", 960, 540);
 	Game.Run();
 
-	LOG_INFO("Game App End...");
+	LOG_INFO("Ending Game App...");
 
 	return EXIT_SUCCESS;
 } 

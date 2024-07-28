@@ -1,6 +1,10 @@
 #pragma once
 
+#if _DEBUG
 #include <d3d12sdklayers.h>
+#include <dxgidebug.h>
+#endif
+
 #include <dxgi1_6.h>
 
 #include "../Core/Core.h"
@@ -21,6 +25,9 @@ public:
 	virtual void							Update(double dt);
 	virtual void							Render();
 
+	void									EnableDebug();
+	void									DisableDebug();
+
 	void									HandleSceneInput(const GLFWwindow* pWindow, CameraAction direction, float mousePosX = 0.0f, float mousePosY = 0.0f, bool isMouseClicked = false) const;
 	void									HandleWindowResizeCallback(const GLFWwindow* pWindow);
 
@@ -35,9 +42,11 @@ private:
 	uint16_t								m_uiAppHeight;
 
 	HWND									m_hwnd;
+	std::string								m_strGPUName;
 
 	IDXGIFactory6*							m_pDXGIFactory;
-	ID3D12Debug1*							m_pD3D12DebugController;
+	ID3D12Debug*							m_pD3DDebug;
+	IDXGIDebug1*							m_pDXGIDebug;
 
 	DXRenderer*								m_pDXRenderer;
 };

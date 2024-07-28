@@ -9,7 +9,6 @@
 DXRenderDevice::DXRenderDevice()
 {
 	m_pD3DDevice = nullptr;
-	m_pD3DDebugDevice = nullptr;
 	m_pD3DCommandQueue = nullptr;
 	m_pSwapchain = nullptr;
 	m_pD3DDescriptorHeap = nullptr;
@@ -24,13 +23,27 @@ DXRenderDevice::~DXRenderDevice()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+const char* DXRenderDevice::GetAPIName()
+{
+	return "D3D12";
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+const char* DXRenderDevice::GetGPUName()
+{
+	return m_strGPUName.c_str();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 bool DXRenderDevice::Initialize(HWND hwnd, IDXGIFactory6* pFactory)
 {
-	CHECK(CreateDevice(pFactory))
-	CHECK(CreateCommandQueue())
-	CHECK(CreateSwapchain(hwnd, pFactory))
-	CHECK(CreateDescriptorHeap())
-	CHECK(CreateRenderTargetView())
+	UT_CHECK_BOOL(CreateDevice(pFactory), "D3D Device creation failed!");
+	UT_CHECK_BOOL(CreateCommandQueue(), "D3D Command Queue creation failed!");
+	UT_CHECK_BOOL(CreateSwapchain(hwnd, pFactory), "D3D Swapchain creation failed!");
+	UT_CHECK_BOOL(CreateDescriptorHeap(), "D3D Descriptor Heap creation failed!");
+	UT_CHECK_BOOL(CreateRenderTargetView(), "D3D Render Target View creation failed!");
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -50,11 +63,10 @@ void DXRenderDevice::Cleanup()
 
 	m_pListD3DRenderTargets.clear();
 
-	SAFE_RELEASE(m_pD3DDescriptorHeap)
-	SAFE_RELEASE(m_pSwapchain)
-	SAFE_RELEASE(m_pD3DCommandQueue)
-	SAFE_RELEASE(m_pD3DDebugDevice)
-	SAFE_RELEASE(m_pD3DDevice)
+	SAFE_RELEASE(m_pD3DDescriptorHeap);
+	SAFE_RELEASE(m_pSwapchain);
+	SAFE_RELEASE(m_pD3DCommandQueue);
+	SAFE_RELEASE(m_pD3DDevice);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -66,20 +78,20 @@ void DXRenderDevice::CleanupOnWindowResize()
 void DXRenderDevice::SignalFence(ID3D12Fence* pFence, uint64_t uiFenceValue) const
 {
 	HRESULT Hr = m_pD3DCommandQueue->Signal(pFence, uiFenceValue);
-	UT_ASSERT_HRESULT(Hr, "Signalling fence FAILED!")
+	UT_ASSERT_HRESULT(Hr, "Signalling fence FAILED!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderDevice::Present() const 
 {
 	HRESULT Hr = m_pSwapchain->Present(0, 0);
-	UT_ASSERT_HRESULT(Hr, "Swapchain Present FAILED!")
+	UT_ASSERT_HRESULT(Hr, "Swapchain Present FAILED!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderDevice::ExecuteCommandLists(ID3D12CommandList** ppCommandLists)
 {
-	uint32_t listSize = sizeof(*ppCommandLists) / sizeof(ppCommandLists[0][0]);
+	constexpr uint32_t listSize = sizeof(*ppCommandLists) / sizeof(ppCommandLists[0][0]);
 
 	// execute the array of command lists
 	m_pD3DCommandQueue->ExecuteCommandLists(listSize, ppCommandLists);
@@ -109,11 +121,6 @@ bool DXRenderDevice::CreateDevice(IDXGIFactory6* pFactory)
 
 		pD3DAdapter->Release();
 	}
-
-#if defined (_DEBUG)
-	const HRESULT Hr = m_pD3DDevice->QueryInterface(&m_pD3DDebugDevice);
-	UT_CHECK_HRESULT(Hr, "D3D DebugDevice creation failed!");
-#endif
 
 	LOG_DEBUG("D3D Device created...");
 	return true;

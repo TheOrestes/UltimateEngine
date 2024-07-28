@@ -26,12 +26,14 @@ DXRenderer::~DXRenderer()
 bool DXRenderer::Initialize(HWND hwnd, IDXGIFactory6* pFactory)
 {
 	m_pDXRenderDevice = new DXRenderDevice();
-	UT_CHECK_NULL(m_pDXRenderDevice, ": DXRenderDevice object")
+	UT_CHECK_NULL(m_pDXRenderDevice, ": DXRenderDevice object");
 
-	CHECK(m_pDXRenderDevice->Initialize(hwnd, pFactory))
-	CHECK(CreateCommandAllocator())
-	CHECK(CreateCommandList())
-	CHECK(CreateFences())
+	UT_CHECK_BOOL(m_pDXRenderDevice->Initialize(hwnd, pFactory), "DXRenderDevice Initialization failed!");
+	UT_CHECK_BOOL(CreateCommandAllocator(), "D3D Command Allocator creation failed!");
+	UT_CHECK_BOOL(CreateCommandList(), "D3D Command List creation failed!");
+	UT_CHECK_BOOL(CreateFences(), "D3D Fence creation failed!");
+
+	return true;
 }
 
 
@@ -116,7 +118,7 @@ void DXRenderer::RecordCommands(uint32_t currFrameIndex)
 
 	// Get cuurent Render Target
 	ID3D12Resource* pRenderTarget = m_pDXRenderDevice->GetRenderTarget(currFrameIndex);
-	UT_ASSERT_NULL(pRenderTarget, "Current RenderTarget is NULL!")
+	UT_ASSERT_NULL(pRenderTarget, "Current RenderTarget is NULL!");
 
 	//-- Start recording commands into command list
 	D3D12_RESOURCE_BARRIER rtBarrier = {};
@@ -149,7 +151,7 @@ void DXRenderer::RecordCommands(uint32_t currFrameIndex)
 
 	m_pD3DGraphicsCommandList->ResourceBarrier(1, &presentBarrier);
 
-	UT_ASSERT_HRESULT(m_pD3DGraphicsCommandList->Close(), "Failed to close the Command List!")
+	UT_ASSERT_HRESULT(m_pD3DGraphicsCommandList->Close(), "Failed to close the Command List!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -187,7 +189,7 @@ bool DXRenderer::CreateCommandList()
 void DXRenderer::ResetCommandAllocator(uint32_t renderTargetID) const
 {
 	HRESULT Hr = m_pListD3DCommandAllocator.at(renderTargetID)->Reset();
-	UT_ASSERT_HRESULT(Hr, "Command Allocator Reset FAILED!")
+	UT_ASSERT_HRESULT(Hr, "Command Allocator Reset FAILED!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -196,10 +198,10 @@ void DXRenderer::ResetCommandList(uint32_t renderTargetID) const
 	HRESULT	Hr = 0;
 	ID3D12CommandAllocator* pCmdAllocator = m_pListD3DCommandAllocator.at(renderTargetID);
 
-	UT_ASSERT_NULL(pCmdAllocator, ": Command Allocator")
+	UT_ASSERT_NULL(pCmdAllocator, ": Command Allocator");
 
 	Hr = m_pD3DGraphicsCommandList->Reset(pCmdAllocator, nullptr);
-	UT_ASSERT_HRESULT(Hr, "CommandList Reset FAILED!")
+	UT_ASSERT_HRESULT(Hr, "CommandList Reset FAILED!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -247,7 +249,7 @@ uint32_t DXRenderer::WaitForPreviousFrame()
 	{
 		// we have the fence create an event which is signaled once the fence's current value is "fenceValue"
 		Hr = pFence->SetEventOnCompletion(uiFenceValue, m_handleFenceEvent);
-		UT_ASSERT_HRESULT(Hr, "")
+		UT_ASSERT_HRESULT(Hr, "");
 
 		// We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value
 		// has reached "fenceValue", we know the command queue has finished executing

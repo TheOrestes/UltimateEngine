@@ -4,6 +4,8 @@
 #include <dxgi1_6.h>
 
 #include "D3DGlobals.h"
+#include "DXRenderDevice.h"
+#include "EngineHeader.h"
 #include "Core/EngineApplication.h"
 
 class DXRenderDevice;
