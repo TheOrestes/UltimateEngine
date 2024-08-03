@@ -16,7 +16,7 @@ public:
 	DXRenderer();
 	virtual ~DXRenderer();
 
-	bool									Initialize(HWND hwnd, IDXGIFactory6* pFactory);
+	bool									Initialize(HWND hwnd, ComPtr<IDXGIFactory6> pFactory);
 	void									Render();
 	void									Cleanup();
 
@@ -35,16 +35,16 @@ private:
 	void									ResetCommandList(uint32_t renderTargetID) const;
 
 private:
-	std::vector<ID3D12CommandAllocator*>	m_pListD3DCommandAllocator;
-	ID3D12GraphicsCommandList*				m_pD3DGraphicsCommandList;
+	std::vector<ComPtr<ID3D12CommandAllocator>>	m_pListD3DCommandAllocator;
+	ComPtr<ID3D12GraphicsCommandList>			m_pD3DGraphicsCommandList;
 
-	std::vector<ID3D12Fence*>				m_pListFences;
-	std::vector<uint64_t>					m_pListFenceValue;
-	HANDLE									m_handleFenceEvent;
+	std::vector<ComPtr<ID3D12Fence>>			m_pListFences;
+	std::vector<uint64_t>						m_pListFenceValue;
+	HANDLE										m_handleFenceEvent;
 
-	uint32_t								m_uiCurrentFrameIndex;
-	bool									m_bIsCurrentFrameRunning;
+	uint32_t									m_uiCurrentFrameIndex;
+	bool										m_bIsCurrentFrameRunning;
 
-	DXRenderDevice*							m_pDXRenderDevice;
+	DXRenderDevice*								m_pDXRenderDevice;
 };
 

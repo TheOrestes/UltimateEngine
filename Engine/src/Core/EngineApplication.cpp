@@ -63,11 +63,12 @@ void EngineApplication::Run() const
 		const double dt = now - lastTime;
 		lastTime = now;
 
-		if (m_bAppInitialized)
+		if(m_bAppInitialized)
 		{
 			m_pD3DApp->Update(dt);
 			m_pD3DApp->Render();
 		}
+		
 	}
 }
 

@@ -6,6 +6,7 @@
 	#else
 		#define UT_API __declspec(dllimport)
 	#endif
+using namespace Microsoft::WRL;
 #else
 	#error Ultimate Engine supports only Windows Platform!
 #endif

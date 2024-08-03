@@ -24,11 +24,8 @@ DirectXApplication::~DirectXApplication()
 //---------------------------------------------------------------------------------------------------------------------
 void DirectXApplication::Cleanup()
 {
+
 	SAFE_DELETE(m_pDXRenderer);
-
-	SAFE_RELEASE(m_pD3DDebug);
-	SAFE_RELEASE(m_pDXGIFactory);
-
 	DisableDebug();
 }
 
@@ -71,6 +68,7 @@ void DirectXApplication::EnableDebug()
 	D3D12GetDebugInterface(IID_PPV_ARGS(&m_pD3DDebug));
 
 	m_pD3DDebug->EnableDebugLayer();
+	m_pD3DDebug->SetEnableGPUBasedValidation(true);
 #endif
 }
 
@@ -78,10 +76,7 @@ void DirectXApplication::EnableDebug()
 void DirectXApplication::DisableDebug()
 {
 #if _DEBUG
-	SAFE_RELEASE(m_pD3DDebug);
-
 	m_pDXGIDebug->ReportLiveObjects(DXGI_DEBUG_ALL, (DXGI_DEBUG_RLO_FLAGS)(DXGI_DEBUG_RLO_IGNORE_INTERNAL | DXGI_DEBUG_RLO_DETAIL));
-	SAFE_RELEASE(m_pDXGIDebug);
 #endif
 }
 

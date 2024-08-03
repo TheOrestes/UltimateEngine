@@ -1,5 +1,8 @@
 #include "UltimateEnginePCH.h"
 #include "DXRenderer.h"
+
+#include <wrl/client.h>
+
 #include "DXRenderDevice.h"
 #include "EngineHeader.h"
 
@@ -23,7 +26,7 @@ DXRenderer::~DXRenderer()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderer::Initialize(HWND hwnd, IDXGIFactory6* pFactory)
+bool DXRenderer::Initialize(HWND hwnd, Microsoft::WRL::ComPtr<IDXGIFactory6> pFactory)
 {
 	m_pDXRenderDevice = new DXRenderDevice();
 	UT_CHECK_NULL(m_pDXRenderDevice, ": DXRenderDevice object");
@@ -52,18 +55,18 @@ void DXRenderer::Cleanup()
 	const uint32_t currRenderTargetIndex = WaitForPreviousFrame();
 	m_pDXRenderDevice->SignalFence(m_pListFences.at(currRenderTargetIndex), m_pListFenceValue.at(currRenderTargetIndex));
 
-	for (uint16_t i = 0; i < UT::D3DGlobals::GBackbufferCount; ++i)
-	{
-		SAFE_RELEASE(m_pListFences.at(i));
-		SAFE_RELEASE(m_pListD3DCommandAllocator.at(i));
-	}
-
-	m_pListFences.clear();
-	m_pListFenceValue.clear();
-	m_pListD3DCommandAllocator.clear();
-
-	SAFE_RELEASE(m_pD3DGraphicsCommandList);
 	SAFE_DELETE(m_pDXRenderDevice);
+	//SAFE_RELEASE(m_pD3DGraphicsCommandList);
+	//
+	//for (uint16_t i = 0; i < UT::D3DGlobals::GBackbufferCount; ++i)
+	//{
+	//	SAFE_RELEASE(m_pListFences.at(i));
+	//	SAFE_RELEASE(m_pListD3DCommandAllocator.at(i));
+	//}
+
+	//m_pListFences.clear();
+	//m_pListFenceValue.clear();
+	//m_pListD3DCommandAllocator.clear();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -87,10 +90,10 @@ void DXRenderer::EndFrame(uint32_t currFrameIndex)
 	HRESULT Hr = 0;
 
 	// create an array of command lists (only one command list here)
-	ID3D12CommandList* ppCommandLists[] = { m_pD3DGraphicsCommandList };
+	const std::vector<ComPtr<ID3D12CommandList>> vecCommandList = { m_pD3DGraphicsCommandList };
 
 	// execute the array of command lists
-	m_pDXRenderDevice->ExecuteCommandLists(ppCommandLists);
+	m_pDXRenderDevice->ExecuteCommandLists(vecCommandList);
 
 	// this command goes in at the end of our command queue. we will know when our command queue has finished because
 	// the fence value will be set to "fenceValue" from the GPU since the command queue is being executed on the GPU!
@@ -117,14 +120,14 @@ void DXRenderer::RecordCommands(uint32_t currFrameIndex)
 	ResetCommandList(currFrameIndex);
 
 	// Get cuurent Render Target
-	ID3D12Resource* pRenderTarget = m_pDXRenderDevice->GetRenderTarget(currFrameIndex);
+	const ComPtr<ID3D12Resource> pRenderTarget = m_pDXRenderDevice->GetRenderTarget(currFrameIndex);
 	UT_ASSERT_NULL(pRenderTarget, "Current RenderTarget is NULL!");
 
 	//-- Start recording commands into command list
 	D3D12_RESOURCE_BARRIER rtBarrier = {};
 	rtBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	rtBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	rtBarrier.Transition.pResource = pRenderTarget;
+	rtBarrier.Transition.pResource = pRenderTarget.Get();
 	rtBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	rtBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	rtBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -144,7 +147,7 @@ void DXRenderer::RecordCommands(uint32_t currFrameIndex)
 	D3D12_RESOURCE_BARRIER presentBarrier = {};
 	presentBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	presentBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	presentBarrier.Transition.pResource = pRenderTarget;
+	presentBarrier.Transition.pResource = pRenderTarget.Get();
 	presentBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	presentBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 	presentBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -174,7 +177,7 @@ bool DXRenderer::CreateCommandAllocator()
 bool DXRenderer::CreateCommandList()
 {
 	// create the command list with the first allocator
-	HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pListD3DCommandAllocator.at(0), nullptr, IID_PPV_ARGS(&m_pD3DGraphicsCommandList));
+	HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pListD3DCommandAllocator.at(0).Get(), nullptr, IID_PPV_ARGS(&m_pD3DGraphicsCommandList));
 	UT_CHECK_HRESULT(Hr, "Cannot create command list!");
 
 	// Command lists are created in "Recording" state. We do not want to record the command list yet, so we close it. 
@@ -196,11 +199,11 @@ void DXRenderer::ResetCommandAllocator(uint32_t renderTargetID) const
 void DXRenderer::ResetCommandList(uint32_t renderTargetID) const
 {
 	HRESULT	Hr = 0;
-	ID3D12CommandAllocator* pCmdAllocator = m_pListD3DCommandAllocator.at(renderTargetID);
+	const ComPtr<ID3D12CommandAllocator> pCmdAllocator = m_pListD3DCommandAllocator.at(renderTargetID);
 
 	UT_ASSERT_NULL(pCmdAllocator, ": Command Allocator");
 
-	Hr = m_pD3DGraphicsCommandList->Reset(pCmdAllocator, nullptr);
+	Hr = m_pD3DGraphicsCommandList->Reset(pCmdAllocator.Get(), nullptr);
 	UT_ASSERT_HRESULT(Hr, "CommandList Reset FAILED!");
 }
 
@@ -213,7 +216,7 @@ bool DXRenderer::CreateFences()
 	// Create the fences...
 	for (uint16_t i = 0; i < UT::D3DGlobals::GBackbufferCount; ++i)
 	{
-		ID3D12Fence* pFence;
+		ComPtr<ID3D12Fence> pFence;
 		uint64_t uiFenceValue = 0;
 
 		HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence));
@@ -240,8 +243,8 @@ uint32_t DXRenderer::WaitForPreviousFrame()
 	const uint32_t uiCurrentFrameIndex = m_pDXRenderDevice->GetCurrentBackbufferIndex();
 
 	// Acquire pointers for code readibility!
-	ID3D12Fence*	pFence			= m_pListFences.at(uiCurrentFrameIndex);
-	const uint64_t	uiFenceValue	= m_pListFenceValue.at(uiCurrentFrameIndex);
+	const ComPtr<ID3D12Fence>	pFence	= m_pListFences.at(uiCurrentFrameIndex);
+	const uint64_t	uiFenceValue		= m_pListFenceValue.at(uiCurrentFrameIndex);
 
 	// if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
 	// the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command

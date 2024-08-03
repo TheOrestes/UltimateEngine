@@ -8,11 +8,6 @@
 //---------------------------------------------------------------------------------------------------------------------
 DXRenderDevice::DXRenderDevice()
 {
-	m_pD3DDevice = nullptr;
-	m_pD3DCommandQueue = nullptr;
-	m_pSwapchain = nullptr;
-	m_pD3DDescriptorHeap = nullptr;
-
 	m_pListD3DRenderTargets.clear();
 }
 
@@ -35,7 +30,7 @@ const char* DXRenderDevice::GetGPUName()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::Initialize(HWND hwnd, IDXGIFactory6* pFactory)
+bool DXRenderDevice::Initialize(HWND hwnd, ComPtr<IDXGIFactory6> pFactory)
 {
 	UT_CHECK_BOOL(CreateDevice(pFactory), "D3D Device creation failed!");
 	UT_CHECK_BOOL(CreateCommandQueue(), "D3D Command Queue creation failed!");
@@ -56,17 +51,7 @@ void DXRenderDevice::Cleanup()
 		m_pSwapchain->SetFullscreenState(false, nullptr);
 	}
 
-	for (uint16_t i = 0 ; i < UT::D3DGlobals::GBackbufferCount ; ++i)
-	{
-		SAFE_RELEASE(m_pListD3DRenderTargets.at(i));
-	}
-
 	m_pListD3DRenderTargets.clear();
-
-	SAFE_RELEASE(m_pD3DDescriptorHeap);
-	SAFE_RELEASE(m_pSwapchain);
-	SAFE_RELEASE(m_pD3DCommandQueue);
-	SAFE_RELEASE(m_pD3DDevice);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -75,9 +60,9 @@ void DXRenderDevice::CleanupOnWindowResize()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void DXRenderDevice::SignalFence(ID3D12Fence* pFence, uint64_t uiFenceValue) const
+void DXRenderDevice::SignalFence(ComPtr<ID3D12Fence> pFence, uint64_t uiFenceValue) const
 {
-	HRESULT Hr = m_pD3DCommandQueue->Signal(pFence, uiFenceValue);
+	HRESULT Hr = m_pD3DCommandQueue->Signal(pFence.Get(), uiFenceValue);
 	UT_ASSERT_HRESULT(Hr, "Signalling fence FAILED!");
 }
 
@@ -88,21 +73,19 @@ void DXRenderDevice::Present() const
 	UT_ASSERT_HRESULT(Hr, "Swapchain Present FAILED!");
 }
 
-//---------------------------------------------------------------------------------------------------------------------
-void DXRenderDevice::ExecuteCommandLists(ID3D12CommandList** ppCommandLists)
+void DXRenderDevice::ExecuteCommandLists(const std::vector<ComPtr<ID3D12CommandList>>& vecCommandList)
 {
-	constexpr uint32_t listSize = sizeof(*ppCommandLists) / sizeof(ppCommandLists[0][0]);
+	ID3D12CommandList* listCommandLists[] = { vecCommandList.data()->Get() };
 
 	// execute the array of command lists
-	m_pD3DCommandQueue->ExecuteCommandLists(listSize, ppCommandLists);
+	m_pD3DCommandQueue->ExecuteCommandLists(vecCommandList.size(), listCommandLists);
 }
 
-
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::CreateDevice(IDXGIFactory6* pFactory)
+bool DXRenderDevice::CreateDevice(ComPtr<IDXGIFactory6> pFactory)
 {
 	// Create Adapter
-	IDXGIAdapter1* pD3DAdapter;
+	ComPtr<IDXGIAdapter1> pD3DAdapter;
 	for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pFactory->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&pD3DAdapter)); ++i)
 	{
 		DXGI_ADAPTER_DESC1 desc;
@@ -114,12 +97,10 @@ bool DXRenderDevice::CreateDevice(IDXGIFactory6* pFactory)
 		LOG_INFO("Device Chosen = {0}", description);
 
 		// check if adapter supports D3D12
-		if (SUCCEEDED(D3D12CreateDevice(pD3DAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_pD3DDevice))))
+		if (SUCCEEDED(D3D12CreateDevice(pD3DAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_pD3DDevice))))
 		{
 			break;
 		}
-
-		pD3DAdapter->Release();
 	}
 
 	LOG_DEBUG("D3D Device created...");
@@ -129,7 +110,7 @@ bool DXRenderDevice::CreateDevice(IDXGIFactory6* pFactory)
 //---------------------------------------------------------------------------------------------------------------------
 bool DXRenderDevice::CreateCommandQueue()
 {
-	UT_CHECK_NULL(m_pD3DDevice, "ID3DDevice pointer");
+	UT_CHECK_NULL(m_pD3DDevice.Get(), "ID3DDevice pointer");
 
 	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -143,7 +124,7 @@ bool DXRenderDevice::CreateCommandQueue()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::CreateSwapchain(HWND hwnd, IDXGIFactory6* pFactory)
+bool DXRenderDevice::CreateSwapchain(HWND hwnd, ComPtr<IDXGIFactory6> pFactory)
 {
 	DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
 	swapchainDesc.Width = UT::D3DGlobals::GWindowWidth;
@@ -158,7 +139,7 @@ bool DXRenderDevice::CreateSwapchain(HWND hwnd, IDXGIFactory6* pFactory)
 	swapchainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
 
 	IDXGISwapChain1* pTempSwapchain;
-	const HRESULT Hr = pFactory->CreateSwapChainForHwnd(m_pD3DCommandQueue, hwnd, &swapchainDesc, nullptr, nullptr, &pTempSwapchain);
+	const HRESULT Hr = pFactory->CreateSwapChainForHwnd(m_pD3DCommandQueue.Get(), hwnd, &swapchainDesc, nullptr, nullptr, &pTempSwapchain);
 	UT_CHECK_HRESULT(Hr, "Swapchain creation failed!");
 
 	if(SUCCEEDED(pTempSwapchain->QueryInterface(__uuidof(IDXGISwapChain4), (void**)&m_pSwapchain)))

@@ -14,4 +14,5 @@
 
 #ifdef UT_PLATFORM_WINDOWS
 	#include <Windows.h>
+	#include <wrl.h>
 #endif
