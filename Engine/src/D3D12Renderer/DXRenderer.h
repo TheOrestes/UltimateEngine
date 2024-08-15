@@ -16,9 +16,12 @@ public:
 	DXRenderer();
 	virtual ~DXRenderer();
 
-	bool									Initialize(HWND hwnd, ComPtr<IDXGIFactory6> pFactory);
+	bool									Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFactory);
 	void									Render();
 	void									Cleanup();
+
+	void									CleanupOnWindowResize();
+	void									RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeight);
 
 private:
 	bool									CreateCommandList();
@@ -46,5 +49,7 @@ private:
 	bool										m_bIsCurrentFrameRunning;
 
 	DXRenderDevice*								m_pDXRenderDevice;
+
+	DirectX::XMFLOAT4							m_colorClear;
 };
 

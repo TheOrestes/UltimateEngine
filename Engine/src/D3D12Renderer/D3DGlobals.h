@@ -10,7 +10,7 @@ namespace UT
 		inline uint16_t GWindowWidth = 960;
 		inline uint16_t GWindowHeight = 540;
 
-		constexpr uint16_t GBackbufferCount = 2;
+		constexpr uint16_t GBackbufferCount = 3;
 	}
 
 	namespace D3DStructs

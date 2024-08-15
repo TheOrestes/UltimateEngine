@@ -57,6 +57,14 @@ void DXRenderDevice::Cleanup()
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderDevice::CleanupOnWindowResize()
 {
+	m_pListD3DRenderTargets.clear();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DXRenderDevice::RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeight)
+{
+	m_pSwapchain->ResizeBuffers(UT::D3DGlobals::GBackbufferCount, newWidth, newHeight, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT);
+	CreateRenderTargetView();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -154,14 +162,25 @@ bool DXRenderDevice::CreateSwapchain(HWND hwnd, ComPtr<IDXGIFactory6> pFactory)
 //---------------------------------------------------------------------------------------------------------------------
 bool DXRenderDevice::CreateDescriptorHeap()
 {
-	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-	desc.NumDescriptors = UT::D3DGlobals::GBackbufferCount;
-	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	// Descriptor heap for RTV...
+	D3D12_DESCRIPTOR_HEAP_DESC descRTV = {};
+	descRTV.NumDescriptors = UT::D3DGlobals::GBackbufferCount;
+	descRTV.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	descRTV.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
-	const HRESULT Hr = m_pD3DDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_pD3DDescriptorHeap));
-	UT_CHECK_HRESULT(Hr, "Descriptor Heap creation failed!");
+	HRESULT Hr = m_pD3DDevice->CreateDescriptorHeap(&descRTV, IID_PPV_ARGS(&m_pD3DDescriptorHeapRTV));
+	UT_CHECK_HRESULT(Hr, "Descriptor Heap RTV creation failed!");
 
-	LOG_DEBUG("Descriptor heap created...");
+	// Descriptor heap for Shader Resource view, Unordered Access view & Constant Buffer view...
+	D3D12_DESCRIPTOR_HEAP_DESC descSRV = {};
+	descSRV.NumDescriptors = 1;
+	descSRV.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	descSRV.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+	Hr = m_pD3DDevice->CreateDescriptorHeap(&descSRV, IID_PPV_ARGS(&m_pD3DDescriptorHeapSRV));
+	UT_CHECK_HRESULT(Hr, "Descriptor Heap SRV creation failed!");
+
+	LOG_DEBUG("Descriptor heaps created...");
 	return true;
 }
 
@@ -169,10 +188,10 @@ bool DXRenderDevice::CreateDescriptorHeap()
 bool DXRenderDevice::CreateRenderTargetView()
 {
 	// Query vendor-specific size of single descriptor
-	m_rtvDescriptorSize = m_pD3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_uiDescriptorSizeRTV = m_pD3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	// Get handle to first descriptor
-	D3D12_CPU_DESCRIPTOR_HANDLE descHandle = m_pD3DDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_CPU_DESCRIPTOR_HANDLE descHandle = m_pD3DDescriptorHeapRTV->GetCPUDescriptorHandleForHeapStart();
 
 	m_pListD3DRenderTargets.reserve(UT::D3DGlobals::GBackbufferCount);
 
@@ -184,7 +203,7 @@ bool DXRenderDevice::CreateRenderTargetView()
 			m_pD3DDevice->CreateRenderTargetView(backBuffer, nullptr, descHandle);
 			m_pListD3DRenderTargets.emplace_back(backBuffer);
 
-			descHandle.ptr += (1 * m_rtvDescriptorSize);
+			descHandle.ptr += (1 * m_uiDescriptorSizeRTV);
 		}
 	}
 

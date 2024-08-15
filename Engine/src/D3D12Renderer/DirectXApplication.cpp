@@ -41,8 +41,6 @@ bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 	m_uiAppWidth = static_cast<uint16_t>(width);
 	m_uiAppHeight = static_cast<uint16_t>(height);
 
-	m_hwnd = glfwGetWin32Window(const_cast<GLFWwindow*>(pWindow));
-
 	EnableDebug();
 
 	// Create factory
@@ -55,7 +53,7 @@ bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 	UT_CHECK_HRESULT(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_pDXGIFactory)));
 
 	m_pDXRenderer = new DXRenderer();
-	UT_CHECK_BOOL(m_pDXRenderer->Initialize(m_hwnd, m_pDXGIFactory));
+	UT_CHECK_BOOL(m_pDXRenderer->Initialize(pWindow, m_pDXGIFactory));
 
 	return true;
 }
@@ -109,11 +107,17 @@ void DirectXApplication::HandleWindowResizeCallback(const GLFWwindow* pWindow)
 void DirectXApplication::CleanupOnWindowResize()
 {
 	LOG_DEBUG("Cleaning up on windows resize...");
+	m_pDXRenderer->CleanupOnWindowResize();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void DirectXApplication::RecreateOnWindowResize(const GLFWwindow* pWindow)
 {
 	LOG_DEBUG("Recreating on windows resize...");
+
+	int width, height;
+	glfwGetWindowSize(const_cast<GLFWwindow*>(pWindow), &width, &height);
+
+	m_pDXRenderer->RecreateOnWindowResize(width, height);
 }
 

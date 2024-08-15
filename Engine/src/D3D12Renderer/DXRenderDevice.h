@@ -20,6 +20,7 @@ public:
 	bool									Initialize(HWND hwnd, ComPtr<IDXGIFactory6> pFactory);
 	void									Cleanup();
 	void									CleanupOnWindowResize();
+	void									RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeight);
 
 	void									SignalFence(ComPtr<ID3D12Fence> pFence, uint64_t uiFenceValue) const;
 	void									Present() const;
@@ -38,8 +39,14 @@ public:
 	inline ComPtr<IDXGISwapChain4>			GetD3DSwapChain() const					{ return m_pSwapchain; }
 	inline ComPtr<ID3D12Resource>			GetRenderTarget(uint32_t index) const	{ return m_pListD3DRenderTargets.at(index); }
 	inline uint32_t							GetCurrentBackbufferIndex() const		{ return m_pSwapchain->GetCurrentBackBufferIndex(); }
-	inline uint32_t							GetRTVDescriptorSize() const			{ return m_rtvDescriptorSize; }
-	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandle() const			{ return m_pD3DDescriptorHeap->GetCPUDescriptorHandleForHeapStart(); }
+	inline uint32_t							GetRTVDescriptorSize() const			{ return m_uiDescriptorSizeRTV; }
+
+	inline ComPtr<ID3D12DescriptorHeap>		GetDescriptorHeapRTV() const			{ return m_pD3DDescriptorHeapRTV; }
+	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleRTV() const		{ return m_pD3DDescriptorHeapRTV->GetCPUDescriptorHandleForHeapStart(); }
+
+	inline ComPtr<ID3D12DescriptorHeap>		GetDescriptorHeapSRV() const			{ return m_pD3DDescriptorHeapSRV; }
+	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleSRV() const		{ return m_pD3DDescriptorHeapSRV->GetCPUDescriptorHandleForHeapStart(); }
+	inline D3D12_GPU_DESCRIPTOR_HANDLE		GetGPUDescriptorHandleSRV() const		{ return m_pD3DDescriptorHeapSRV->GetGPUDescriptorHandleForHeapStart(); }
 
 private:
 	std::string								m_strGPUName;
@@ -49,8 +56,10 @@ private:
 	ComPtr<ID3D12DebugDevice>				m_pD3DDebugDevice;
 
 	ComPtr<IDXGISwapChain4>					m_pSwapchain;
-	ComPtr<ID3D12DescriptorHeap>			m_pD3DDescriptorHeap;
-	uint32_t								m_rtvDescriptorSize;
+	ComPtr<ID3D12DescriptorHeap>			m_pD3DDescriptorHeapRTV;
+	uint32_t								m_uiDescriptorSizeRTV;
+
+	ComPtr<ID3D12DescriptorHeap>			m_pD3DDescriptorHeapSRV;
 
 	std::vector<ComPtr<ID3D12Resource>>		m_pListD3DRenderTargets;
 
