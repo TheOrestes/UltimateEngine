@@ -3,14 +3,9 @@
 
 #include <wrl/client.h>
 
-#include "UI/imgui.h"
-#include "UI/imgui_impl_win32.h"
-#include "UI/imgui_impl_glfw.h"
-#include "UI/imgui_impl_dx12.h"
-#include "UI/imgui_internal.h"
-
 #include "DXRenderDevice.h"
 #include "EngineHeader.h"
+#include "UI/UIRenderer.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 DXRenderer::DXRenderer()
@@ -23,6 +18,7 @@ DXRenderer::DXRenderer()
 	m_bIsCurrentFrameRunning = false;
 
 	m_pDXRenderDevice = nullptr;
+	m_pUIRenderer = nullptr;
 
 	m_colorClear = DirectX::XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
 }
@@ -46,27 +42,8 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	UT_CHECK_BOOL(CreateCommandList(), "D3D Command List creation failed!");
 	UT_CHECK_BOOL(CreateFences(), "D3D Fence creation failed!");
 
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         
-	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-
-	ImGui::StyleColorsDark();
-
-	
-
-	UT_CHECK_BOOL(ImGui_ImplGlfw_InitForOther(const_cast<GLFWwindow*>(pWindow), true), "ImGui_ImplGlfw_InitForOther() failed!");
-	//UT_CHECK_BOOL(ImGui_ImplWin32_Init(hwnd), "ImGui_ImplWin32_Init() FAILED!");
-	UT_CHECK_BOOL(ImGui_ImplDX12_Init(	m_pDXRenderDevice->GetD3DDevice().Get(),
-										UT::D3DGlobals::GBackbufferCount,
-										DXGI_FORMAT_R8G8B8A8_UNORM,
-										m_pDXRenderDevice->GetDescriptorHeapSRV().Get(),
-										m_pDXRenderDevice->GetCPUDescriptorHandleSRV(),
-										m_pDXRenderDevice->GetGPUDescriptorHandleSRV()),
-		"ImGui_ImplDX12_Init() FAILED!");
+	m_pUIRenderer = new UIRenderer();
+	UT_CHECK_BOOL(m_pUIRenderer->Initialize(pWindow, m_pDXRenderDevice));
 
 	return true;
 }
@@ -87,10 +64,7 @@ void DXRenderer::Cleanup()
 	const uint32_t currRenderTargetIndex = WaitForPreviousFrame();
 	m_pDXRenderDevice->SignalFence(m_pListFences.at(currRenderTargetIndex), m_pListFenceValue.at(currRenderTargetIndex));
 
-	ImGui_ImplDX12_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
-
+	SAFE_DELETE(m_pUIRenderer);
 	SAFE_DELETE(m_pDXRenderDevice);
 	//SAFE_RELEASE(m_pD3DGraphicsCommandList);
 	//
@@ -112,15 +86,14 @@ void DXRenderer::CleanupOnWindowResize()
 	m_pDXRenderDevice->SignalFence(m_pListFences.at(currRenderTargetIndex), m_pListFenceValue.at(currRenderTargetIndex));
 
 	m_pDXRenderDevice->CleanupOnWindowResize();
+	m_pUIRenderer->CleanupOnWindowResize();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderer::RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeight)
 {
 	m_pDXRenderDevice->RecreateOnWindowResize(newWidth, newHeight);
-
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.DisplaySize = ImVec2(static_cast<float>(newWidth), static_cast<float>(newHeight));
+	m_pUIRenderer->RecreateOnWindowResize(newWidth, newHeight);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -135,9 +108,7 @@ uint32_t DXRenderer::BeginFrame()
 	// resetting an allocator frees the memory that the command list was stored in.
 	ResetCommandAllocator(currRenderTargetIndex);
 
-	ImGui_ImplDX12_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
+	m_pUIRenderer->Begin();
 
 	return currRenderTargetIndex;
 }
@@ -164,31 +135,7 @@ void DXRenderer::EndFrame(uint32_t currFrameIndex)
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderer::DrawCommands()
 {
-	bool show = true;
-	//ImGui::ShowDemoWindow(&show);
-
-	ImVec4 ClearColor = ImVec4(m_colorClear.x, m_colorClear.y, m_colorClear.z, m_colorClear.w);
-
-	ImGui::Begin("Globals");                         
-
-
-	if(ImGui::ColorEdit3("clear color", (float*)&ClearColor))
-	{
-		m_colorClear.x = ClearColor.x;
-		m_colorClear.y = ClearColor.y;
-		m_colorClear.z = ClearColor.z;
-		m_colorClear.w = ClearColor.w;
-	}
-
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-
-	ImGui::End();
-
-	ImGui::Render();
-
-	m_pD3DGraphicsCommandList->SetDescriptorHeaps(1, m_pDXRenderDevice->GetDescriptorHeapSRV().GetAddressOf());
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_pD3DGraphicsCommandList.Get());
+	m_pUIRenderer->Render(m_pDXRenderDevice, m_pD3DGraphicsCommandList, m_colorClear);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -239,14 +186,7 @@ void DXRenderer::RecordCommands(uint32_t currFrameIndex)
 
 	UT_ASSERT_HRESULT(m_pD3DGraphicsCommandList->Close(), "Failed to close the Command List!");
 
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-
-	// Update and Render additional Platform Windows
-	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-	{
-		ImGui::UpdatePlatformWindows();
-		ImGui::RenderPlatformWindowsDefault(nullptr, (void*)m_pD3DGraphicsCommandList.Get());
-	}
+	m_pUIRenderer->End(m_pD3DGraphicsCommandList);
 }
 
 //---------------------------------------------------------------------------------------------------------------------

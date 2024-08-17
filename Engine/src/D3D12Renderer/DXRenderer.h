@@ -9,6 +9,7 @@
 #include "Core/EngineApplication.h"
 
 class DXRenderDevice;
+class UIRenderer;
 
 class UT_API DXRenderer
 {
@@ -49,6 +50,7 @@ private:
 	bool										m_bIsCurrentFrameRunning;
 
 	DXRenderDevice*								m_pDXRenderDevice;
+	UIRenderer*									m_pUIRenderer;
 
 	DirectX::XMFLOAT4							m_colorClear;
 };

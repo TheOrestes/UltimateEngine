@@ -119,6 +119,7 @@
     <ClInclude Include="src\UI\imstb_textedit.h" />
     <ClInclude Include="src\UI\imstb_truetype.h" />
     <ClInclude Include="src\UltimateEnginePCH.h" />
+    <ClInclude Include="src\UI\UIRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\D3D12Renderer\DXRenderer.cpp" />
@@ -138,6 +139,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\UI\UIRenderer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
