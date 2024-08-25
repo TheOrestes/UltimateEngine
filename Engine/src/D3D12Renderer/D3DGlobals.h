@@ -1,11 +1,17 @@
 #pragma once
 
 #include "Core/Core.h"
+#include <dxgidebug.h>
 #include <DirectXMath.h>
+#include <GLFW/glfw3.h>
+#include <d3d12.h>
+#include <dxgi1_6.h>
+
+using namespace Microsoft::WRL;
 
 namespace UT
 {
-	namespace D3DGlobals
+	namespace Globals
 	{
 		inline uint16_t GWindowWidth = 960;
 		inline uint16_t GWindowHeight = 540;
@@ -13,7 +19,7 @@ namespace UT
 		constexpr uint16_t GBackbufferCount = 3;
 	}
 
-	namespace D3DStructs
+	namespace DAS
 	{
 		struct VertexPC
 		{

@@ -22,6 +22,10 @@ public:
 	void									CleanupOnWindowResize();
 	void									RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeight);
 
+	void									CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ComPtr<ID3D12CommandAllocator>& pOutCmdAllocator);
+	void									CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, const ComPtr<ID3D12CommandAllocator>& pCmdAllocator, ComPtr<ID3D12GraphicsCommandList>& pOutCmdList);
+	void									CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ComPtr<ID3D12Fence>& pOutFence);
+
 	void									SignalFence(ComPtr<ID3D12Fence> pFence, uint64_t uiFenceValue) const;
 	void									Present() const;
 	void									ExecuteCommandLists(const std::vector<ComPtr<ID3D12CommandList>>& vecCommandList);
@@ -32,6 +36,8 @@ private:
 	bool									CreateDescriptorHeap();
 	bool									CreateCommandQueue();
 	bool									CreateRenderTargetView();
+
+	
 
 public:
 	inline std::string						GetGPUAdapterName() const				{ return m_strGPUName; }
@@ -50,6 +56,7 @@ public:
 
 private:
 	std::string								m_strGPUName;
+
 	ComPtr<ID3D12Device>					m_pD3DDevice;
 
 

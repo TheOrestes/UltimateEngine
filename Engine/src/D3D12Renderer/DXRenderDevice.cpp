@@ -1,7 +1,6 @@
 #include "UltimateEnginePCH.h"
 #include "DXRenderDevice.h"
 #include <dxgi1_4.h>
-
 #include "D3DGlobals.h"
 #include "EngineHeader.h"
 
@@ -63,8 +62,29 @@ void DXRenderDevice::CleanupOnWindowResize()
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderDevice::RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeight)
 {
-	m_pSwapchain->ResizeBuffers(UT::D3DGlobals::GBackbufferCount, newWidth, newHeight, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT);
+	m_pSwapchain->ResizeBuffers(UT::Globals::GBackbufferCount, newWidth, newHeight, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT);
 	CreateRenderTargetView();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DXRenderDevice::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ComPtr<ID3D12CommandAllocator>& pOutCmdAllocator)
+{
+	HRESULT Hr = m_pD3DDevice->CreateCommandAllocator(cmdListType, IID_PPV_ARGS(&pOutCmdAllocator));
+	UT_CHECK_HRESULT(Hr, "Command Allocator creation failed!");
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DXRenderDevice::CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, const ComPtr<ID3D12CommandAllocator>& pCmdAllocator, ComPtr<ID3D12GraphicsCommandList>& pOutCmdList)
+{
+	HRESULT Hr = m_pD3DDevice->CreateCommandList(0, cmdListType, pCmdAllocator.Get(), nullptr, IID_PPV_ARGS(&pOutCmdList));
+	UT_CHECK_HRESULT(Hr, "Cannot create command list!");
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DXRenderDevice::CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ComPtr<ID3D12Fence>& pOutFence)
+{
+	HRESULT Hr = m_pD3DDevice->CreateFence(initialValue, fenceFlags, IID_PPV_ARGS(&pOutFence));
+	UT_CHECK_HRESULT(Hr, "Failed to create Fence!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -135,13 +155,13 @@ bool DXRenderDevice::CreateCommandQueue()
 bool DXRenderDevice::CreateSwapchain(HWND hwnd, ComPtr<IDXGIFactory6> pFactory)
 {
 	DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
-	swapchainDesc.Width = UT::D3DGlobals::GWindowWidth;
-	swapchainDesc.Height = UT::D3DGlobals::GWindowHeight;
+	swapchainDesc.Width = UT::Globals::GWindowWidth;
+	swapchainDesc.Height = UT::Globals::GWindowHeight;
 	swapchainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	swapchainDesc.Stereo = false;
 	swapchainDesc.SampleDesc = { 1,0 };
 	swapchainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapchainDesc.BufferCount = UT::D3DGlobals::GBackbufferCount;
+	swapchainDesc.BufferCount = UT::Globals::GBackbufferCount;
 	swapchainDesc.Scaling = DXGI_SCALING_STRETCH;
 	swapchainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	swapchainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
@@ -164,7 +184,7 @@ bool DXRenderDevice::CreateDescriptorHeap()
 {
 	// Descriptor heap for RTV...
 	D3D12_DESCRIPTOR_HEAP_DESC descRTV = {};
-	descRTV.NumDescriptors = UT::D3DGlobals::GBackbufferCount;
+	descRTV.NumDescriptors = UT::Globals::GBackbufferCount;
 	descRTV.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	descRTV.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
@@ -193,9 +213,9 @@ bool DXRenderDevice::CreateRenderTargetView()
 	// Get handle to first descriptor
 	D3D12_CPU_DESCRIPTOR_HANDLE descHandle = m_pD3DDescriptorHeapRTV->GetCPUDescriptorHandleForHeapStart();
 
-	m_pListD3DRenderTargets.reserve(UT::D3DGlobals::GBackbufferCount);
+	m_pListD3DRenderTargets.reserve(UT::Globals::GBackbufferCount);
 
-	for(uint16_t i = 0 ; i < UT::D3DGlobals::GBackbufferCount ; ++i)
+	for(uint16_t i = 0 ; i < UT::Globals::GBackbufferCount ; ++i)
 	{
 		ID3D12Resource* backBuffer;
 		if(SUCCEEDED(m_pSwapchain->GetBuffer(i, IID_PPV_ARGS(&backBuffer))))

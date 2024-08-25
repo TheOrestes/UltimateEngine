@@ -23,7 +23,7 @@ bool UIRenderer::Initialize(const GLFWwindow* pWindow, const DXRenderDevice* pDX
 
 	UT_CHECK_BOOL(ImGui_ImplGlfw_InitForOther(const_cast<GLFWwindow*>(pWindow), true), "ImGui_ImplGlfw_InitForOther() failed!");
 	UT_CHECK_BOOL(ImGui_ImplDX12_Init(	pDXRenderDevice->GetD3DDevice().Get(),
-										UT::D3DGlobals::GBackbufferCount,
+										UT::Globals::GBackbufferCount,
 										DXGI_FORMAT_R8G8B8A8_UNORM,
 										pDXRenderDevice->GetDescriptorHeapSRV().Get(),
 										pDXRenderDevice->GetCPUDescriptorHandleSRV(),

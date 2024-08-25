@@ -45,8 +45,8 @@ bool EngineApplication::Initialize(const std::string& name, uint16_t width, uint
 	glfwSetWindowUserPointer(m_pGLFWWindow, m_pD3DApp);
 
 	// Set globals
-	UT::D3DGlobals::GWindowWidth = width;
-	UT::D3DGlobals::GWindowHeight = height;
+	UT::Globals::GWindowWidth = width;
+	UT::Globals::GWindowHeight = height;
 
 	return m_bAppInitialized;
 }

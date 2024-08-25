@@ -68,7 +68,7 @@ void DXRenderer::Cleanup()
 	SAFE_DELETE(m_pDXRenderDevice);
 	//SAFE_RELEASE(m_pD3DGraphicsCommandList);
 	//
-	//for (uint16_t i = 0; i < UT::D3DGlobals::GBackbufferCount; ++i)
+	//for (uint16_t i = 0; i < UT::Globals::GBackbufferCount; ++i)
 	//{
 	//	SAFE_RELEASE(m_pListFences.at(i));
 	//	SAFE_RELEASE(m_pListD3DCommandAllocator.at(i));
@@ -192,11 +192,13 @@ void DXRenderer::RecordCommands(uint32_t currFrameIndex)
 //---------------------------------------------------------------------------------------------------------------------
 bool DXRenderer::CreateCommandAllocator()
 {
-	for (uint16_t i = 0; i < UT::D3DGlobals::GBackbufferCount; ++i)
+	for (uint16_t i = 0; i < UT::Globals::GBackbufferCount; ++i)
 	{
-		ID3D12CommandAllocator* pCmdAllocator;
-		HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&pCmdAllocator));
-		UT_CHECK_HRESULT(Hr, "Command Allocator creation failed!");
+		ComPtr<ID3D12CommandAllocator> pCmdAllocator;
+		m_pDXRenderDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, pCmdAllocator);
+
+		//HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&pCmdAllocator));
+		//UT_CHECK_HRESULT(Hr, "Command Allocator creation failed!");
 
 		m_pListD3DCommandAllocator.emplace_back(pCmdAllocator);
 	}
@@ -209,11 +211,12 @@ bool DXRenderer::CreateCommandAllocator()
 bool DXRenderer::CreateCommandList()
 {
 	// create the command list with the first allocator
-	HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pListD3DCommandAllocator.at(0).Get(), nullptr, IID_PPV_ARGS(&m_pD3DGraphicsCommandList));
-	UT_CHECK_HRESULT(Hr, "Cannot create command list!");
+	m_pDXRenderDevice->CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE_DIRECT, m_pListD3DCommandAllocator.at(0), m_pD3DGraphicsCommandList);
+	//HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pListD3DCommandAllocator.at(0).Get(), nullptr, IID_PPV_ARGS(&m_pD3DGraphicsCommandList));
+	//UT_CHECK_HRESULT(Hr, "Cannot create command list!");
 
 	// Command lists are created in "Recording" state. We do not want to record the command list yet, so we close it. 
-	Hr = m_pD3DGraphicsCommandList->Close();
+	HRESULT Hr = m_pD3DGraphicsCommandList->Close();
 	UT_CHECK_HRESULT(Hr, "Command List Close() failed!");
 
 	LOG_DEBUG("Graphics command list created...");
@@ -242,17 +245,19 @@ void DXRenderer::ResetCommandList(uint32_t renderTargetID) const
 //---------------------------------------------------------------------------------------------------------------------
 bool DXRenderer::CreateFences()
 {
-	m_pListFences.reserve(UT::D3DGlobals::GBackbufferCount);
-	m_pListFenceValue.reserve(UT::D3DGlobals::GBackbufferCount);
+	m_pListFences.reserve(UT::Globals::GBackbufferCount);
+	m_pListFenceValue.reserve(UT::Globals::GBackbufferCount);
 
 	// Create the fences...
-	for (uint16_t i = 0; i < UT::D3DGlobals::GBackbufferCount; ++i)
+	for (uint16_t i = 0; i < UT::Globals::GBackbufferCount; ++i)
 	{
 		ComPtr<ID3D12Fence> pFence;
 		uint64_t uiFenceValue = 0;
 
-		HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence));
-		UT_CHECK_HRESULT(Hr, "Failed to create Fence!");
+		//HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence));
+		//UT_CHECK_HRESULT(Hr, "Failed to create Fence!");
+
+		m_pDXRenderDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, pFence);
 
 		m_pListFences.emplace_back(pFence);
 		m_pListFenceValue.emplace_back(uiFenceValue);	// Initialize with zero. 

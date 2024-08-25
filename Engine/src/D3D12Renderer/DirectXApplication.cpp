@@ -24,7 +24,6 @@ DirectXApplication::~DirectXApplication()
 //---------------------------------------------------------------------------------------------------------------------
 void DirectXApplication::Cleanup()
 {
-
 	SAFE_DELETE(m_pDXRenderer);
 	DisableDebug();
 }
