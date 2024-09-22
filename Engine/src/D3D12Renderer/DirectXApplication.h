@@ -14,7 +14,7 @@ class DXRenderer;
 class EngineApplication;
 enum class CameraAction;
 
-class UT_API DirectXApplication : public EngineApplication
+class DirectXApplication : public EngineApplication
 {
 public:
 	DirectXApplication();

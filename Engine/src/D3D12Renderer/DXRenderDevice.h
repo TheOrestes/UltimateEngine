@@ -8,7 +8,7 @@
 #include "D3DGlobals.h"
 #include "Core/EngineApplication.h"
 
-class UT_API DXRenderDevice : public IRenderDevice
+class DXRenderDevice : public IRenderDevice
 {
 public:
 	DXRenderDevice();
@@ -17,22 +17,25 @@ public:
 	const char*								GetAPIName() override;
 	const char*								GetGPUName() override;
 
-	bool									Initialize(HWND hwnd, ComPtr<IDXGIFactory6> pFactory);
+	bool									Initialize(HWND hwnd, ComPtr<IDXGIFactory6>& pFactory);
 	void									Cleanup();
 	void									CleanupOnWindowResize();
 	void									RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeight);
 
-	void									CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ComPtr<ID3D12CommandAllocator>& pOutCmdAllocator);
-	void									CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, const ComPtr<ID3D12CommandAllocator>& pCmdAllocator, ComPtr<ID3D12GraphicsCommandList>& pOutCmdList);
-	void									CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ComPtr<ID3D12Fence>& pOutFence);
+	bool									CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ComPtr<ID3D12CommandAllocator>& pOutCmdAllocator);
+	bool									CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, const ComPtr<ID3D12CommandAllocator>& pCmdAllocator, ComPtr<ID3D12GraphicsCommandList>& pOutCmdList);
+	bool									CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ComPtr<ID3D12Fence>& pOutFence);
 
-	void									SignalFence(ComPtr<ID3D12Fence> pFence, uint64_t uiFenceValue) const;
+	//bool									CreateRootSignature(const D3D12_ROOT_SIGNATURE_DESC& rootSignDesc, ComPtr<ID3D12RootSignature>& pOutRootSignature);
+	bool									CreatePSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& psoDesc, ComPtr<ID3D12PipelineState>& pOutPSO);
+
+	void									SignalFence(const ComPtr<ID3D12Fence>& pFence, uint64_t uiFenceValue) const;
 	void									Present() const;
 	void									ExecuteCommandLists(const std::vector<ComPtr<ID3D12CommandList>>& vecCommandList);
 
 private:
-	bool									CreateDevice(ComPtr<IDXGIFactory6> pFactory);
-	bool									CreateSwapchain(HWND hwnd, ComPtr<IDXGIFactory6> pFactory);
+	bool									CreateDevice(const ComPtr<IDXGIFactory6>& pFactory);
+	bool									CreateSwapchain(HWND hwnd, const ComPtr<IDXGIFactory6>& pFactory);
 	bool									CreateDescriptorHeap();
 	bool									CreateCommandQueue();
 	bool									CreateRenderTargetView();
@@ -46,13 +49,15 @@ public:
 	inline ComPtr<ID3D12Resource>			GetRenderTarget(uint32_t index) const	{ return m_pListD3DRenderTargets.at(index); }
 	inline uint32_t							GetCurrentBackbufferIndex() const		{ return m_pSwapchain->GetCurrentBackBufferIndex(); }
 	inline uint32_t							GetRTVDescriptorSize() const			{ return m_uiDescriptorSizeRTV; }
-
+		   
 	inline ComPtr<ID3D12DescriptorHeap>		GetDescriptorHeapRTV() const			{ return m_pD3DDescriptorHeapRTV; }
 	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleRTV() const		{ return m_pD3DDescriptorHeapRTV->GetCPUDescriptorHandleForHeapStart(); }
-
+		   
 	inline ComPtr<ID3D12DescriptorHeap>		GetDescriptorHeapSRV() const			{ return m_pD3DDescriptorHeapSRV; }
 	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleSRV() const		{ return m_pD3DDescriptorHeapSRV->GetCPUDescriptorHandleForHeapStart(); }
 	inline D3D12_GPU_DESCRIPTOR_HANDLE		GetGPUDescriptorHandleSRV() const		{ return m_pD3DDescriptorHeapSRV->GetGPUDescriptorHandleForHeapStart(); }
+
+	inline ComPtr<ID3D12CommandQueue>		GetCommandQueue() const					{ return m_pD3DCommandQueue; }
 
 private:
 	std::string								m_strGPUName;

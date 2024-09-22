@@ -45,6 +45,8 @@ template<typename T, typename... Types> bool UT_CHECK_NULL(T a, Types... args)
 		LOG_ERROR("NULL_PTR:{0}", args...);
 		return false;
 	}
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -55,6 +57,8 @@ template<typename T, typename... Types> bool UT_CHECK_BOOL(T a, Types... args)
 		LOG_ERROR("BOOL_FALSE:{0}", args...);
 		return false;
 	}
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -65,6 +69,8 @@ template<typename T, typename... Types> bool UT_CHECK_HRESULT(T a, Types... args
 		LOG_ERROR("HRESULT FAILED:{0}", args...);
 		return false;
 	}
+
+	return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------

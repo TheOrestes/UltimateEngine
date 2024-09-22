@@ -29,7 +29,7 @@ const char* DXRenderDevice::GetGPUName()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::Initialize(HWND hwnd, ComPtr<IDXGIFactory6> pFactory)
+bool DXRenderDevice::Initialize(HWND hwnd, ComPtr<IDXGIFactory6>& pFactory)
 {
 	UT_CHECK_BOOL(CreateDevice(pFactory), "D3D Device creation failed!");
 	UT_CHECK_BOOL(CreateCommandQueue(), "D3D Command Queue creation failed!");
@@ -67,28 +67,45 @@ void DXRenderDevice::RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeigh
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void DXRenderDevice::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ComPtr<ID3D12CommandAllocator>& pOutCmdAllocator)
+bool DXRenderDevice::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ComPtr<ID3D12CommandAllocator>& pOutCmdAllocator)
 {
-	HRESULT Hr = m_pD3DDevice->CreateCommandAllocator(cmdListType, IID_PPV_ARGS(&pOutCmdAllocator));
-	UT_CHECK_HRESULT(Hr, "Command Allocator creation failed!");
+	const HRESULT Hr = m_pD3DDevice->CreateCommandAllocator(cmdListType, IID_PPV_ARGS(&pOutCmdAllocator));
+	return UT_CHECK_HRESULT(Hr, "Command Allocator creation failed!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void DXRenderDevice::CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, const ComPtr<ID3D12CommandAllocator>& pCmdAllocator, ComPtr<ID3D12GraphicsCommandList>& pOutCmdList)
+bool DXRenderDevice::CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, const ComPtr<ID3D12CommandAllocator>& pCmdAllocator, ComPtr<ID3D12GraphicsCommandList>& pOutCmdList)
 {
-	HRESULT Hr = m_pD3DDevice->CreateCommandList(0, cmdListType, pCmdAllocator.Get(), nullptr, IID_PPV_ARGS(&pOutCmdList));
-	UT_CHECK_HRESULT(Hr, "Cannot create command list!");
+	const HRESULT Hr = m_pD3DDevice->CreateCommandList(0, cmdListType, pCmdAllocator.Get(), nullptr, IID_PPV_ARGS(&pOutCmdList));
+	return UT_CHECK_HRESULT(Hr, "Cannot create command list!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void DXRenderDevice::CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ComPtr<ID3D12Fence>& pOutFence)
+bool DXRenderDevice::CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ComPtr<ID3D12Fence>& pOutFence)
 {
-	HRESULT Hr = m_pD3DDevice->CreateFence(initialValue, fenceFlags, IID_PPV_ARGS(&pOutFence));
-	UT_CHECK_HRESULT(Hr, "Failed to create Fence!");
+	const HRESULT Hr = m_pD3DDevice->CreateFence(initialValue, fenceFlags, IID_PPV_ARGS(&pOutFence));
+	return UT_CHECK_HRESULT(Hr, "Failed to create Fence!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void DXRenderDevice::SignalFence(ComPtr<ID3D12Fence> pFence, uint64_t uiFenceValue) const
+//bool DXRenderDevice::CreateRootSignature(const D3D12_ROOT_SIGNATURE_DESC& rootSignDesc, ComPtr<ID3D12RootSignature>& pOutRootSignature)
+//{
+//	ComPtr<ID3DBlob> pError;
+//	UT_CHECK_HRESULT(D3D12SerializeRootSignature(&rootDesc, D3D_ROOT_SIGNATURE_VERSION_1, &pError, nullptr), "Root Signature Serialize Failed!");
+//
+//	UT_CHECK_HRESULT(m_pD3DDevice->CreateRootSignature(0, pError->GetBufferPointer(), pError->GetBufferSize(), IID_PPV_ARGS(&pOutRootSignature)),
+//					"Root Signature creation failed!");
+//}
+
+//---------------------------------------------------------------------------------------------------------------------
+bool DXRenderDevice::CreatePSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& psoDesc, ComPtr<ID3D12PipelineState>& pOutPSO)
+{
+	//HRESULT Hr = m_pD3DDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pOutPSO));
+	return UT_CHECK_HRESULT(m_pD3DDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pOutPSO)), "Failed to create PSO!");
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DXRenderDevice::SignalFence(const ComPtr<ID3D12Fence>& pFence, uint64_t uiFenceValue) const
 {
 	HRESULT Hr = m_pD3DCommandQueue->Signal(pFence.Get(), uiFenceValue);
 	UT_ASSERT_HRESULT(Hr, "Signalling fence FAILED!");
@@ -101,6 +118,7 @@ void DXRenderDevice::Present() const
 	UT_ASSERT_HRESULT(Hr, "Swapchain Present FAILED!");
 }
 
+//---------------------------------------------------------------------------------------------------------------------
 void DXRenderDevice::ExecuteCommandLists(const std::vector<ComPtr<ID3D12CommandList>>& vecCommandList)
 {
 	ID3D12CommandList* listCommandLists[] = { vecCommandList.data()->Get() };
@@ -110,7 +128,7 @@ void DXRenderDevice::ExecuteCommandLists(const std::vector<ComPtr<ID3D12CommandL
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::CreateDevice(ComPtr<IDXGIFactory6> pFactory)
+bool DXRenderDevice::CreateDevice(const ComPtr<IDXGIFactory6>& pFactory)
 {
 	// Create Adapter
 	ComPtr<IDXGIAdapter1> pD3DAdapter;
@@ -152,7 +170,7 @@ bool DXRenderDevice::CreateCommandQueue()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::CreateSwapchain(HWND hwnd, ComPtr<IDXGIFactory6> pFactory)
+bool DXRenderDevice::CreateSwapchain(HWND hwnd, const ComPtr<IDXGIFactory6>& pFactory)
 {
 	DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
 	swapchainDesc.Width = UT::Globals::GWindowWidth;

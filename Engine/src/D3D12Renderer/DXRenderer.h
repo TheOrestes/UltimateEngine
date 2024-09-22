@@ -11,32 +11,32 @@
 class DXRenderDevice;
 class UIRenderer;
 
-class UT_API DXRenderer
+class DXRenderer
 {
 public:
 	DXRenderer();
 	virtual ~DXRenderer();
 
-	bool									Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFactory);
-	void									Render();
-	void									Cleanup();
+	bool										Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFactory);
+	void										Render();
+	void										Cleanup();
 
-	void									CleanupOnWindowResize();
-	void									RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeight);
+	void										CleanupOnWindowResize();
+	void										RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeight);
 
 private:
-	bool									CreateCommandList();
-	bool									CreateCommandAllocator();
+	bool										CreateCommandList();
+	bool										CreateCommandAllocator();
 
-	uint32_t								WaitForPreviousFrame();
-	uint32_t								BeginFrame();
-	void									EndFrame(uint32_t currRenderTargetID);
-	void									RecordCommands(uint32_t currFrameIndex);
-	void									DrawCommands();
-	bool									CreateFences();
+	uint32_t									WaitForPreviousFrame();
+	uint32_t									BeginFrame();
+	void										EndFrame(uint32_t currRenderTargetID);
+	void										RecordCommands(uint32_t currFrameIndex);
+	void										DrawCommands();
+	bool										CreateFences();
 
-	void									ResetCommandAllocator(uint32_t renderTargetID) const;
-	void									ResetCommandList(uint32_t renderTargetID) const;
+	void										ResetCommandAllocator(uint32_t renderTargetID) const;
+	void										ResetCommandList(uint32_t renderTargetID) const;
 
 private:
 	std::vector<ComPtr<ID3D12CommandAllocator>>	m_pListD3DCommandAllocator;
@@ -53,5 +53,13 @@ private:
 	UIRenderer*									m_pUIRenderer;
 
 	DirectX::XMFLOAT4							m_colorClear;
+
+	ComPtr<ID3D12PipelineState>					m_pPSO;
+	ComPtr<ID3D12RootSignature>					m_pRootSignature;
+	D3D12_VIEWPORT								m_Viewport;
+	D3D12_RECT									m_ScissorRect;
+	ComPtr<ID3D12Resource>						m_pVBuffer;
+	ComPtr<ID3D12Resource>						m_pUploadBuffer;
+	D3D12_VERTEX_BUFFER_VIEW					m_VBView;
 };
 

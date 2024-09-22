@@ -3,6 +3,12 @@
 
 #include <wrl/client.h>
 
+#include "DirectXHelpers.h"
+#include "BufferHelpers.h"
+#include "CommonStates.h"
+#include "ResourceUploadBatch.h"
+#include "VertexTypes.h"
+
 #include "DXRenderDevice.h"
 #include "EngineHeader.h"
 #include "UI/UIRenderer.h"
@@ -44,6 +50,140 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 
 	m_pUIRenderer = new UIRenderer();
 	UT_CHECK_BOOL(m_pUIRenderer->Initialize(pWindow, m_pDXRenderDevice));
+
+	//---- TRIANGLE RENDERING START
+
+	// 1. Create Root signature
+	D3D12_ROOT_SIGNATURE_DESC rootDesc = {};
+	rootDesc.NumParameters = 0;
+	rootDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	rootDesc.NumStaticSamplers = 0;
+	rootDesc.pParameters = nullptr;
+	rootDesc.pStaticSamplers = nullptr;
+
+	DirectX::CreateRootSignature(m_pDXRenderDevice->GetD3DDevice().Get(), &rootDesc, &m_pRootSignature);
+
+	//m_pDXRenderDevice->CreateRootSignature(rootDesc, m_pRootSignature);
+
+	// 2. Create Vertex & Fragment shaders
+	ComPtr<ID3DBlob> vertexShader = UT::HelperFunc::CreateVertexShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicVS.hlsl");
+	ComPtr<ID3DBlob> pixelShader = UT::HelperFunc::CreateFragmentShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicFS.hlsl");
+
+	D3D12_SHADER_BYTECODE vsByteCode = {};
+	vsByteCode.BytecodeLength = vertexShader.Get()->GetBufferSize();
+	vsByteCode.pShaderBytecode = vertexShader.Get()->GetBufferPointer();
+
+	D3D12_SHADER_BYTECODE psByteCode = {};
+	psByteCode.BytecodeLength = pixelShader.Get()->GetBufferSize();
+	psByteCode.pShaderBytecode = pixelShader.Get()->GetBufferPointer();
+
+	//D3D12_SHADER_BYTECODE vsByteCode = {};
+	//UT::HelperFunc::CreateVertexShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicVS.hlsl", &vsByteCode);
+	//
+	//D3D12_SHADER_BYTECODE fsByteCode = {};
+	//UT::HelperFunc::CreateFragmentShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicFS.hlsl", &fsByteCode);
+
+
+
+	// 3. Create Input layout
+	D3D12_INPUT_ELEMENT_DESC inputLayout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+	};
+
+	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
+
+	// fill out an input layout description structure
+	inputLayoutDesc.NumElements = sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC);
+	inputLayoutDesc.pInputElementDescs = inputLayout;
+
+
+	//UT::HelperFunc::CreateVertexInputLayoutDesc(inputLayoutDesc);
+
+	// 4. Create PSO
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+	psoDesc.InputLayout = inputLayoutDesc;										// structure describing our input layout.
+	psoDesc.pRootSignature = m_pRootSignature.Get();							// input data that this pso needs
+	psoDesc.VS = vsByteCode;													// struct describing where to find vs bytecode & how large it is.
+	psoDesc.PS = psByteCode;													// struct describing where to find fs bytecode & how large it is.
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;		// topology we are drawing
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;							// format of render target
+	psoDesc.SampleDesc.Count = 1;												// same as swapchain
+	psoDesc.SampleMask = 0xffffffff;											// multi-sampling, here we are choosing point sampling.
+	psoDesc.RasterizerState = DirectX::CommonStates::CullCounterClockwise;		// default rasterizer state
+	psoDesc.BlendState = DirectX::CommonStates::Opaque;							// default blend state
+	psoDesc.NumRenderTargets = 1;												// we are binding only one render target
+
+	//m_pDXRenderDevice->CreatePSO(psoDesc, m_pPSO);
+
+	HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPSO));
+
+	// 5. Create Vertex Buffer & transfer the data to GPU!
+	DirectX::ResourceUploadBatch resourceUpload(m_pDXRenderDevice->GetD3DDevice().Get());
+	resourceUpload.Begin();
+
+	std::array<DirectX::DX12::VertexPosition, 3> vertices;
+
+	vertices[0] = DirectX::XMFLOAT3(0.0f, 0.5f, 0.5f);
+	vertices[1] = DirectX::XMFLOAT3(0.5f, -0.5f, 0.5f);
+	vertices[2] = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.5f);
+
+	DirectX::CreateStaticBuffer(m_pDXRenderDevice->GetD3DDevice().Get(), resourceUpload, vertices.data(), vertices.size(), D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pVBuffer);
+
+	auto uploadResourcesFinished = resourceUpload.End(m_pDXRenderDevice->GetCommandQueue().Get());
+	uploadResourcesFinished.wait();
+
+	// // Create a default heap. This will be created on the GPU & only GPU will have access to this.
+	// m_pDXRenderDevice->CreateBuffer(D3D12_HEAP_TYPE_DEFAULT, D3D12_HEAP_FLAG_NONE, vBufferSize, D3D12_RESOURCE_STATE_COPY_DEST, L"VB Resource Heap", m_pVBuffer);
+	// 
+	// // To get data into this heap, we will have to upload the data using an Upload heap!
+	// m_pDXRenderDevice->CreateBuffer(D3D12_HEAP_TYPE_UPLOAD, D3D12_HEAP_FLAG_NONE, vBufferSize, D3D12_RESOURCE_STATE_GENERIC_READ, L"VB Upload Heap", m_pUploadBuffer);
+	// 
+	// // store vertex buffer in upload heap
+	// D3D12_SUBRESOURCE_DATA vertexData = {};
+	// vertexData.pData = reinterpret_cast<BYTE*>(vertices);
+	// vertexData.RowPitch = vBufferSize;
+	// vertexData.SlicePitch = vBufferSize;
+	// 
+	// // create command with command list to copy data from the upload heap to default heap!
+	// UpdateSubresources(m_pD3DGraphicsCommandList.Get(), m_pVBuffer.Get(), m_pUploadBuffer.Get(), 0, 0, 1, &vertexData);
+	// 
+	// // transition the vertex buffer data from copy destination state to vertex buffer state
+	// CD3DX12_RESOURCE_BARRIER transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_pVBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+	// m_pD3DGraphicsCommandList->ResourceBarrier(1, &transitionBarrier);
+	// 
+	// // Now we execute the command list to upload the triangle data
+	// m_pD3DGraphicsCommandList->Close();
+	// 
+	// // create an array of command lists (only one command list here)
+	// const std::vector<ComPtr<ID3D12CommandList>> vecCommandList = { m_pD3DGraphicsCommandList };
+	// 
+	// // execute the array of command lists
+	// m_pDXRenderDevice->ExecuteCommandLists(vecCommandList);
+	// 
+	// const uint32_t uiCurrentFrameIndex = m_pDXRenderDevice->GetCurrentBackbufferIndex();
+	// m_pDXRenderDevice->SignalFence(m_pListFences.at(uiCurrentFrameIndex), m_pListFenceValue.at(uiCurrentFrameIndex));
+
+	// create vertex buffer view for the triangle
+	m_VBView.BufferLocation = m_pVBuffer->GetGPUVirtualAddress();
+	m_VBView.StrideInBytes = sizeof(DirectX::DX12::VertexPosition);
+	m_VBView.SizeInBytes = vertices.size() * sizeof(DirectX::DX12::VertexPosition);
+
+	// Fill out the Viewport
+	m_Viewport.TopLeftX = 0;
+	m_Viewport.TopLeftY = 0;
+	m_Viewport.Width = UT::Globals::GWindowWidth;
+	m_Viewport.Height = UT::Globals::GWindowHeight;
+	m_Viewport.MinDepth = 0.0f;
+	m_Viewport.MaxDepth = 1.0f;
+
+	// Fill out a scissor rect
+	m_ScissorRect.left = 0;
+	m_ScissorRect.top = 0;
+	m_ScissorRect.right = UT::Globals::GWindowWidth;
+	m_ScissorRect.bottom = UT::Globals::GWindowHeight;
+
+	//---- TRIANGLE RENDERING END
 
 	return true;
 }
@@ -135,6 +275,13 @@ void DXRenderer::EndFrame(uint32_t currFrameIndex)
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderer::DrawCommands()
 {
+	m_pD3DGraphicsCommandList->SetGraphicsRootSignature(m_pRootSignature.Get());
+	m_pD3DGraphicsCommandList->RSSetViewports(1, &m_Viewport);
+	m_pD3DGraphicsCommandList->RSSetScissorRects(1, &m_ScissorRect);
+	m_pD3DGraphicsCommandList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_pD3DGraphicsCommandList->IASetVertexBuffers(0, 1, &m_VBView);
+	m_pD3DGraphicsCommandList->DrawInstanced(3, 1, 0, 0);
+
 	m_pUIRenderer->Render(m_pDXRenderDevice, m_pD3DGraphicsCommandList, m_colorClear);
 }
 
@@ -238,7 +385,7 @@ void DXRenderer::ResetCommandList(uint32_t renderTargetID) const
 
 	UT_ASSERT_NULL(pCmdAllocator, ": Command Allocator");
 
-	Hr = m_pD3DGraphicsCommandList->Reset(pCmdAllocator.Get(), nullptr);
+	Hr = m_pD3DGraphicsCommandList->Reset(pCmdAllocator.Get(), m_pPSO.Get());
 	UT_ASSERT_HRESULT(Hr, "CommandList Reset FAILED!");
 }
 
