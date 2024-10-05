@@ -11,6 +11,7 @@
 #include "EngineHeader.h"
 
 using namespace Microsoft::WRL;
+using namespace DirectX;
 
 namespace UT
 {
@@ -28,7 +29,40 @@ namespace UT
 	{
 		struct VertexP
 	 	{
-			DirectX::XMFLOAT3 Position;
+			VertexP() = default;
+
+			VertexP(XMFLOAT3 const& iposition) noexcept
+				: Position(iposition)
+			{
+			}
+
+			VertexP(const VertexP&) = default;
+			VertexP& operator=(const VertexP&) = default;
+
+			VertexP(VertexP&&) = default;
+			VertexP& operator=(VertexP&&) = default;
+
+			XMFLOAT3 Position;
+		};
+
+		struct VertexPC
+		{
+			VertexPC() = default;
+
+			VertexPC(XMFLOAT3 const& iposition, XMFLOAT4 const& icolor) noexcept
+				: Position(iposition),
+				  Color(icolor)
+			{
+			}
+
+			VertexPC(const VertexPC&) = default;
+			VertexPC& operator=(const VertexPC&) = default;
+
+			VertexPC(VertexPC&&) = default;
+			VertexPC& operator=(VertexPC&&) = default;
+
+			XMFLOAT3 Position;
+			XMFLOAT4 Color;
 		};
 	}
 

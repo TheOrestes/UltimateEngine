@@ -88,7 +88,8 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	// 3. Create Input layout
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 	};
 
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
@@ -122,11 +123,11 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	DirectX::ResourceUploadBatch resourceUpload(m_pDXRenderDevice->GetD3DDevice().Get());
 	resourceUpload.Begin();
 
-	std::array<DirectX::DX12::VertexPosition, 3> vertices;
+	std::array<UT::DAS::VertexPC, 3> vertices;
 
-	vertices[0] = DirectX::XMFLOAT3(0.0f, 0.5f, 0.5f);
-	vertices[1] = DirectX::XMFLOAT3(0.5f, -0.5f, 0.5f);
-	vertices[2] = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.5f);
+	vertices[0] = { XMFLOAT3(0.0f, 0.5f, 0.5f),   XMFLOAT4(1,0,0,1) };
+	vertices[1] = { XMFLOAT3(0.5f, -0.5f, 0.5f),  XMFLOAT4(0,1,0,1) };
+	vertices[2] = { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(0,0,1,1) };
 
 	DirectX::CreateStaticBuffer(m_pDXRenderDevice->GetD3DDevice().Get(), resourceUpload, vertices.data(), vertices.size(), D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pVBuffer);
 
@@ -166,8 +167,8 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 
 	// create vertex buffer view for the triangle
 	m_VBView.BufferLocation = m_pVBuffer->GetGPUVirtualAddress();
-	m_VBView.StrideInBytes = sizeof(DirectX::DX12::VertexPosition);
-	m_VBView.SizeInBytes = vertices.size() * sizeof(DirectX::DX12::VertexPosition);
+	m_VBView.StrideInBytes = sizeof(UT::DAS::VertexPC);
+	m_VBView.SizeInBytes = vertices.size() * sizeof(UT::DAS::VertexPC);
 
 	// Fill out the Viewport
 	m_Viewport.TopLeftX = 0;
