@@ -120,19 +120,36 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPSO));
 
 	// 5. Create Vertex Buffer & transfer the data to GPU!
-	DirectX::ResourceUploadBatch resourceUpload(m_pDXRenderDevice->GetD3DDevice().Get());
-	resourceUpload.Begin();
+	DirectX::ResourceUploadBatch vbResourceUpload(m_pDXRenderDevice->GetD3DDevice().Get());
+	vbResourceUpload.Begin();
 
-	std::array<UT::DAS::VertexPC, 3> vertices;
+	// vertex data...
+	std::array<UT::DAS::VertexPC, 4> vertices;
 
-	vertices[0] = { XMFLOAT3(0.0f, 0.5f, 0.5f),   XMFLOAT4(1,0,0,1) };
-	vertices[1] = { XMFLOAT3(0.5f, -0.5f, 0.5f),  XMFLOAT4(0,1,0,1) };
+	vertices[0] = { XMFLOAT3(-0.5f,  0.5f, 0.5f), XMFLOAT4(1,0,0,1) };
+	vertices[1] = { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT4(0,1,0,1) };
 	vertices[2] = { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(0,0,1,1) };
+	vertices[3] = { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(1,0,1,1) };
 
-	DirectX::CreateStaticBuffer(m_pDXRenderDevice->GetD3DDevice().Get(), resourceUpload, vertices.data(), vertices.size(), D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pVBuffer);
+	DirectX::CreateStaticBuffer(m_pDXRenderDevice->GetD3DDevice().Get(), vbResourceUpload, vertices, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pVBuffer);
 
-	auto uploadResourcesFinished = resourceUpload.End(m_pDXRenderDevice->GetCommandQueue().Get());
-	uploadResourcesFinished.wait();
+	auto vbUploadResourcesFinished = vbResourceUpload.End(m_pDXRenderDevice->GetCommandQueue().Get());
+	vbUploadResourcesFinished.wait();
+
+	// 6. Create Indices data & transfer the data to GPU!
+	DirectX::ResourceUploadBatch ibResourceUpload(m_pDXRenderDevice->GetD3DDevice().Get());
+	ibResourceUpload.Begin();
+
+	// index data...
+	std::array<uint16_t, 6> indices;
+	
+	indices[0] = 0;		indices[1] = 1;		indices[2] = 2;
+	indices[3] = 0,		indices[4] = 3;		indices[5] = 1;
+
+	DirectX::CreateStaticBuffer(m_pDXRenderDevice->GetD3DDevice().Get(), ibResourceUpload, indices, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pIBuffer);
+
+	auto ibUploadResourcesFinished = ibResourceUpload.End(m_pDXRenderDevice->GetCommandQueue().Get());
+	ibUploadResourcesFinished.wait();
 
 	// // Create a default heap. This will be created on the GPU & only GPU will have access to this.
 	// m_pDXRenderDevice->CreateBuffer(D3D12_HEAP_TYPE_DEFAULT, D3D12_HEAP_FLAG_NONE, vBufferSize, D3D12_RESOURCE_STATE_COPY_DEST, L"VB Resource Heap", m_pVBuffer);
@@ -165,10 +182,15 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	// const uint32_t uiCurrentFrameIndex = m_pDXRenderDevice->GetCurrentBackbufferIndex();
 	// m_pDXRenderDevice->SignalFence(m_pListFences.at(uiCurrentFrameIndex), m_pListFenceValue.at(uiCurrentFrameIndex));
 
-	// create vertex buffer view for the triangle
+	// create vertex buffer view for the quad
 	m_VBView.BufferLocation = m_pVBuffer->GetGPUVirtualAddress();
 	m_VBView.StrideInBytes = sizeof(UT::DAS::VertexPC);
 	m_VBView.SizeInBytes = vertices.size() * sizeof(UT::DAS::VertexPC);
+
+	// create index buffer view for the quad
+	m_IBView.BufferLocation = m_pIBuffer->GetGPUVirtualAddress();
+	m_IBView.Format = DXGI_FORMAT_R16_UINT;
+	m_IBView.SizeInBytes = indices.size() * sizeof(uint16_t);
 
 	// Fill out the Viewport
 	m_Viewport.TopLeftX = 0;
@@ -279,9 +301,11 @@ void DXRenderer::DrawCommands()
 	m_pD3DGraphicsCommandList->SetGraphicsRootSignature(m_pRootSignature.Get());
 	m_pD3DGraphicsCommandList->RSSetViewports(1, &m_Viewport);
 	m_pD3DGraphicsCommandList->RSSetScissorRects(1, &m_ScissorRect);
-	m_pD3DGraphicsCommandList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_pD3DGraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_pD3DGraphicsCommandList->IASetVertexBuffers(0, 1, &m_VBView);
-	m_pD3DGraphicsCommandList->DrawInstanced(3, 1, 0, 0);
+	m_pD3DGraphicsCommandList->IASetIndexBuffer(& m_IBView);
+	m_pD3DGraphicsCommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+	
 
 	m_pUIRenderer->Render(m_pDXRenderDevice, m_pD3DGraphicsCommandList, m_colorClear);
 }

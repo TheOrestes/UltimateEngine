@@ -59,7 +59,8 @@ private:
 	D3D12_VIEWPORT								m_Viewport;
 	D3D12_RECT									m_ScissorRect;
 	ComPtr<ID3D12Resource>						m_pVBuffer;
-	ComPtr<ID3D12Resource>						m_pUploadBuffer;
+	ComPtr<ID3D12Resource>						m_pIBuffer;
 	D3D12_VERTEX_BUFFER_VIEW					m_VBView;
+	D3D12_INDEX_BUFFER_VIEW						m_IBView;
 };
 
