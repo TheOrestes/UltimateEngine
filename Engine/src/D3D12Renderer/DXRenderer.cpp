@@ -63,8 +63,6 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 
 	DirectX::CreateRootSignature(m_pDXRenderDevice->GetD3DDevice().Get(), &rootDesc, &m_pRootSignature);
 
-	//m_pDXRenderDevice->CreateRootSignature(rootDesc, m_pRootSignature);
-
 	// 2. Create Vertex & Fragment shaders
 	ComPtr<ID3DBlob> vertexShader = UT::HelperFunc::CreateVertexShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicVS.hlsl");
 	ComPtr<ID3DBlob> pixelShader = UT::HelperFunc::CreateFragmentShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicFS.hlsl");
@@ -98,6 +96,24 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	inputLayoutDesc.NumElements = sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC);
 	inputLayoutDesc.pInputElementDescs = inputLayout;
 
+	// create depth-stencil state...
+	D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
+	depthStencilDesc.DepthEnable = true;
+	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+	depthStencilDesc.StencilEnable = false;
+	depthStencilDesc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+	depthStencilDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+
+	// Stencil states won't matter now as it is disabled. 
+	D3D12_DEPTH_STENCILOP_DESC depthStencilOpDesc = {};
+	depthStencilOpDesc.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	depthStencilOpDesc.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	depthStencilOpDesc.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	depthStencilOpDesc.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+
+	depthStencilDesc.FrontFace = depthStencilOpDesc;
+	depthStencilDesc.BackFace = depthStencilOpDesc;
 
 	//UT::HelperFunc::CreateVertexInputLayoutDesc(inputLayoutDesc);
 
@@ -113,9 +129,9 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	psoDesc.SampleMask = 0xffffffff;											// multi-sampling, here we are choosing point sampling.
 	psoDesc.RasterizerState = DirectX::CommonStates::CullCounterClockwise;		// default rasterizer state
 	psoDesc.BlendState = DirectX::CommonStates::Opaque;							// default blend state
+	psoDesc.DepthStencilState = depthStencilDesc;
 	psoDesc.NumRenderTargets = 1;												// we are binding only one render target
 
-	//m_pDXRenderDevice->CreatePSO(psoDesc, m_pPSO);
 
 	HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPSO));
 
@@ -124,12 +140,19 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	vbResourceUpload.Begin();
 
 	// vertex data...
-	std::array<UT::DAS::VertexPC, 4> vertices;
+	std::array<UT::DAS::VertexPC, 8> vertices;
 
+	// first quad
 	vertices[0] = { XMFLOAT3(-0.5f,  0.5f, 0.5f), XMFLOAT4(1,0,0,1) };
 	vertices[1] = { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT4(0,1,0,1) };
 	vertices[2] = { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(0,0,1,1) };
 	vertices[3] = { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(1,0,1,1) };
+
+	// second quad
+	vertices[4] = { XMFLOAT3(-0.75f,  0.75f, 0.7f), XMFLOAT4(1,0,0,1) };
+	vertices[5] = { XMFLOAT3(0.0f, 0.0f, 0.7f), XMFLOAT4(0,1,0,1) };
+	vertices[6] = { XMFLOAT3(-0.75f, 0.0f, 0.7f), XMFLOAT4(0,0,1,1) };
+	vertices[7] = { XMFLOAT3(0.0f,  0.75f, 0.7f), XMFLOAT4(1,0,1,1) };
 
 	DirectX::CreateStaticBuffer(m_pDXRenderDevice->GetD3DDevice().Get(), vbResourceUpload, vertices, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pVBuffer);
 
@@ -305,7 +328,7 @@ void DXRenderer::DrawCommands()
 	m_pD3DGraphicsCommandList->IASetVertexBuffers(0, 1, &m_VBView);
 	m_pD3DGraphicsCommandList->IASetIndexBuffer(& m_IBView);
 	m_pD3DGraphicsCommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
-	
+	m_pD3DGraphicsCommandList->DrawIndexedInstanced(6, 1, 0, 4, 0);
 
 	m_pUIRenderer->Render(m_pDXRenderDevice, m_pD3DGraphicsCommandList, m_colorClear);
 }
@@ -336,13 +359,16 @@ void DXRenderer::RecordCommands(uint32_t currFrameIndex)
 
 	m_pD3DGraphicsCommandList->ResourceBarrier(1, &rtBarrier);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE rtHandle = m_pDXRenderDevice->GetCPUDescriptorHandleRTV();
+	D3D12_CPU_DESCRIPTOR_HANDLE rtHandle = m_pDXRenderDevice->GetCPUDescriptorHandleRenderTargetView();
 	rtHandle.ptr += currFrameIndex * m_pDXRenderDevice->GetRTVDescriptorSize();
 
-	m_pD3DGraphicsCommandList->OMSetRenderTargets(1, &rtHandle, false, nullptr);
+	const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_pDXRenderDevice->GetCPUDescriptorHandleDepthStencilView();
+
+	m_pD3DGraphicsCommandList->OMSetRenderTargets(1, &rtHandle, false, &dsvHandle);
 
 	const float clearColor[] = { m_colorClear.x, m_colorClear.y, m_colorClear.z, m_colorClear.w };
 	m_pD3DGraphicsCommandList->ClearRenderTargetView(rtHandle, clearColor, 0, nullptr);
+	m_pD3DGraphicsCommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	DrawCommands();
 

@@ -1,13 +1,15 @@
 #include "UltimateEnginePCH.h"
 #include "DXRenderDevice.h"
 #include <dxgi1_4.h>
+
+#include "BufferHelpers.h"
 #include "D3DGlobals.h"
 #include "EngineHeader.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 DXRenderDevice::DXRenderDevice()
 {
-	m_pListD3DRenderTargets.clear();
+	m_pListD3DRenderTargetBuffers.clear();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -50,13 +52,13 @@ void DXRenderDevice::Cleanup()
 		m_pSwapchain->SetFullscreenState(false, nullptr);
 	}
 
-	m_pListD3DRenderTargets.clear();
+	m_pListD3DRenderTargetBuffers.clear();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderDevice::CleanupOnWindowResize()
 {
-	m_pListD3DRenderTargets.clear();
+	m_pListD3DRenderTargetBuffers.clear();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -96,13 +98,6 @@ bool DXRenderDevice::CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceF
 //	UT_CHECK_HRESULT(m_pD3DDevice->CreateRootSignature(0, pError->GetBufferPointer(), pError->GetBufferSize(), IID_PPV_ARGS(&pOutRootSignature)),
 //					"Root Signature creation failed!");
 //}
-
-//---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::CreatePSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& psoDesc, ComPtr<ID3D12PipelineState>& pOutPSO)
-{
-	//HRESULT Hr = m_pD3DDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pOutPSO));
-	return UT_CHECK_HRESULT(m_pD3DDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pOutPSO)), "Failed to create PSO!");
-}
 
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderDevice::SignalFence(const ComPtr<ID3D12Fence>& pFence, uint64_t uiFenceValue) const
@@ -206,8 +201,17 @@ bool DXRenderDevice::CreateDescriptorHeap()
 	descRTV.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	descRTV.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
-	HRESULT Hr = m_pD3DDevice->CreateDescriptorHeap(&descRTV, IID_PPV_ARGS(&m_pD3DDescriptorHeapRTV));
+	HRESULT Hr = m_pD3DDevice->CreateDescriptorHeap(&descRTV, IID_PPV_ARGS(&m_pD3DDescriptorHeapRenderTargetView));
 	UT_CHECK_HRESULT(Hr, "Descriptor Heap RTV creation failed!");
+
+	// Descriptor heap for DepthStencilView
+	D3D12_DESCRIPTOR_HEAP_DESC depthStencilViewDesc = {};
+	depthStencilViewDesc.NumDescriptors = 1;
+	depthStencilViewDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	depthStencilViewDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+	Hr = m_pD3DDevice->CreateDescriptorHeap(&depthStencilViewDesc, IID_PPV_ARGS(&m_pD3DDescriptorHeapDepthStencilView));
+	UT_CHECK_HRESULT(Hr, "Descriptor Heap creation for Depth Stencil View failed!");
 
 	// Descriptor heap for Shader Resource view, Unordered Access view & Constant Buffer view...
 	D3D12_DESCRIPTOR_HEAP_DESC descSRV = {};
@@ -215,7 +219,7 @@ bool DXRenderDevice::CreateDescriptorHeap()
 	descSRV.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	descSRV.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-	Hr = m_pD3DDevice->CreateDescriptorHeap(&descSRV, IID_PPV_ARGS(&m_pD3DDescriptorHeapSRV));
+	Hr = m_pD3DDevice->CreateDescriptorHeap(&descSRV, IID_PPV_ARGS(&m_pD3DDescriptorHeapShaderResourceView));
 	UT_CHECK_HRESULT(Hr, "Descriptor Heap SRV creation failed!");
 
 	LOG_DEBUG("Descriptor heaps created...");
@@ -226,26 +230,65 @@ bool DXRenderDevice::CreateDescriptorHeap()
 bool DXRenderDevice::CreateRenderTargetView()
 {
 	// Query vendor-specific size of single descriptor
-	m_uiDescriptorSizeRTV = m_pD3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_uiDescriptorSizeRenderTargetView = m_pD3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_uiDescriptorSizeDepthStencilView = m_pD3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
 	// Get handle to first descriptor
-	D3D12_CPU_DESCRIPTOR_HANDLE descHandle = m_pD3DDescriptorHeapRTV->GetCPUDescriptorHandleForHeapStart();
+	D3D12_CPU_DESCRIPTOR_HANDLE descHandle = m_pD3DDescriptorHeapRenderTargetView->GetCPUDescriptorHandleForHeapStart();
 
-	m_pListD3DRenderTargets.reserve(UT::Globals::GBackbufferCount);
+	m_pListD3DRenderTargetBuffers.reserve(UT::Globals::GBackbufferCount);
+
+	// DepthStencil buffer setup
+	D3D12_CLEAR_VALUE depthClearValue = {};
+	depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+	depthClearValue.DepthStencil.Depth = 1.0f;
+	depthClearValue.DepthStencil.Stencil = 0;
+
+	D3D12_HEAP_PROPERTIES depthStencilHeapProps = {};
+	depthStencilHeapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+	DXGI_SAMPLE_DESC depthStencilSampleDesc = {};
+	depthStencilSampleDesc.Count = 1;
+	depthStencilSampleDesc.Quality = 0;
+
+	D3D12_RESOURCE_DESC depthStencilResourceDesc = {};
+	depthStencilResourceDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	depthStencilResourceDesc.Width = UT::Globals::GWindowWidth;
+	depthStencilResourceDesc.Height = UT::Globals::GWindowHeight;
+	depthStencilResourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+	depthStencilResourceDesc.Alignment = 0;
+	depthStencilResourceDesc.MipLevels = 1;
+	depthStencilResourceDesc.DepthOrArraySize = 1;
+	depthStencilResourceDesc.SampleDesc = depthStencilSampleDesc;
+	depthStencilResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
 
 	for(uint16_t i = 0 ; i < UT::Globals::GBackbufferCount ; ++i)
 	{
+		// Render target buffers...
 		ID3D12Resource* backBuffer;
 		if(SUCCEEDED(m_pSwapchain->GetBuffer(i, IID_PPV_ARGS(&backBuffer))))
 		{
 			m_pD3DDevice->CreateRenderTargetView(backBuffer, nullptr, descHandle);
-			m_pListD3DRenderTargets.emplace_back(backBuffer);
+			m_pListD3DRenderTargetBuffers.emplace_back(backBuffer);
 
-			descHandle.ptr += (1 * m_uiDescriptorSizeRTV);
+			descHandle.ptr += (1 * m_uiDescriptorSizeRenderTargetView);
 		}
 	}
 
-	LOG_DEBUG("RenderTargetViews created...");
+	LOG_DEBUG("RenderTarget views created...");
+
+	// Depth stencil buffers...
+	UT_ASSERT_HRESULT(m_pD3DDevice->CreateCommittedResource(&depthStencilHeapProps, D3D12_HEAP_FLAG_NONE, &depthStencilResourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &depthClearValue, IID_PPV_ARGS(&m_pD3DDepthStencilBuffer)));
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc = {};
+	depthStencilViewDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	depthStencilViewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	depthStencilViewDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+	m_pD3DDevice->CreateDepthStencilView(m_pD3DDepthStencilBuffer.Get(), &depthStencilViewDesc, m_pD3DDescriptorHeapDepthStencilView->GetCPUDescriptorHandleForHeapStart());
+	LOG_DEBUG("DepthStencil view created...");
+
 	return true;
 }
 
