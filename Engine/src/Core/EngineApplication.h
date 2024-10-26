@@ -15,7 +15,7 @@ public:
 	virtual ~EngineApplication();
 
 	bool					Initialize(const std::string& name, uint16_t width, uint16_t height);
-	void					Run() const;
+	void					Run();
 	virtual void			Cleanup();
 
 	//-- EVENTS

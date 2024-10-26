@@ -52,7 +52,7 @@ bool EngineApplication::Initialize(const std::string& name, uint16_t width, uint
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void EngineApplication::Run() const
+void EngineApplication::Run()
 {
 	while (!glfwWindowShouldClose(m_pGLFWWindow))
 	{
@@ -61,6 +61,7 @@ void EngineApplication::Run() const
 		static double lastTime = 0.0f;
 		const double now = glfwGetTime();
 		const double dt = now - lastTime;
+
 		lastTime = now;
 
 		if(m_bAppInitialized)
@@ -68,7 +69,6 @@ void EngineApplication::Run() const
 			m_pD3DApp->Update(dt);
 			m_pD3DApp->Render();
 		}
-		
 	}
 }
 

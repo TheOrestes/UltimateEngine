@@ -1,5 +1,6 @@
 #include "UltimateEnginePCH.h"
 #include "UIRenderer.h"
+#include "D3D12Renderer/D3DGlobals.h"
 
 #include "D3D12Renderer/DXRenderDevice.h"
 
@@ -49,21 +50,59 @@ void UIRenderer::Render(const DXRenderDevice* pDXRenderDevice, ComPtr<ID3D12Grap
 
 	ImVec4 ClearColor = ImVec4(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
 
-	ImGui::Begin("Globals");
-
-	if (ImGui::ColorEdit3("clear color", (float*)&ClearColor))
+	if (ImGui::Begin("Menu"));
+	
+	if(ImGui::CollapsingHeader("Scene Settings"))
 	{
-		clearColor.x = ClearColor.x;
-		clearColor.y = ClearColor.y;
-		clearColor.z = ClearColor.z;
-		clearColor.w = ClearColor.w;
+		if (ImGui::ColorEdit3("clear color", (float*)&ClearColor))
+		{
+			clearColor.x = ClearColor.x;
+			clearColor.y = ClearColor.y;
+			clearColor.z = ClearColor.z;
+			clearColor.w = ClearColor.w;
+		}
 	}
 
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+	if(ImGui::CollapsingHeader("Debug Info"))
+	{
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+		static float fps_values[30] = {};
+		static int fps_values_offset = 0;
+
+		static double refresh_time = 0.0;
+		float MAX_FPS_CAP = 1000.0f;
+		if (refresh_time == 0.0)
+			refresh_time = ImGui::GetTime();
+
+		while (refresh_time < ImGui::GetTime()) // Create data at fixed 60 Hz rate for the demo
+		{
+			fps_values[fps_values_offset] = io.Framerate / MAX_FPS_CAP;
+			fps_values_offset = (fps_values_offset + 1) % IM_ARRAYSIZE(fps_values);
+
+			refresh_time += 1.0f / 30.0f;
+		}
+
+		// Plots can display overlay texts
+		// (in this example, we will display an average value)
+		{
+			float average_fps = 0.0f;
+			for (int n = 0; n < IM_ARRAYSIZE(fps_values); n++)
+				average_fps += fps_values[n] * MAX_FPS_CAP;
+
+			average_fps /= (float)IM_ARRAYSIZE(fps_values);
+
+
+			char overlay[32];
+			sprintf(overlay, "Avg FPS = %f", average_fps);
+			ImGui::PlotLines("FPS", fps_values, IM_ARRAYSIZE(fps_values), fps_values_offset, overlay, 0.0f, 1.0f, ImVec2(0, 120.0f));
+			ImGui::PlotHistogram("FPS", fps_values, IM_ARRAYSIZE(fps_values), fps_values_offset, overlay, 0.0f, 1.0f, ImVec2(0, 120.0f));
+		}
+	}
 
 	ImGui::End();
-
+	
 	ImGui::Render();
 
 	pGraphicsCommandList->SetDescriptorHeaps(1, pDXRenderDevice->GetDescriptorHeapShaderResourceView().GetAddressOf());
