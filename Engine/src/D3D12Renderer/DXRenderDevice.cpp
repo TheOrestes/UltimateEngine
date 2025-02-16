@@ -72,21 +72,22 @@ void DXRenderDevice::RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeigh
 bool DXRenderDevice::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ComPtr<ID3D12CommandAllocator>& pOutCmdAllocator)
 {
 	const HRESULT Hr = m_pD3DDevice->CreateCommandAllocator(cmdListType, IID_PPV_ARGS(&pOutCmdAllocator));
-	return UT_CHECK_HRESULT(Hr, "Command Allocator creation failed!");
+	return UT_CHECK_HRESULT(Hr, "CreateCommandAllocator", magic_enum::enum_name(cmdListType));
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 bool DXRenderDevice::CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, const ComPtr<ID3D12CommandAllocator>& pCmdAllocator, ComPtr<ID3D12GraphicsCommandList>& pOutCmdList)
 {
 	const HRESULT Hr = m_pD3DDevice->CreateCommandList(0, cmdListType, pCmdAllocator.Get(), nullptr, IID_PPV_ARGS(&pOutCmdList));
-	return UT_CHECK_HRESULT(Hr, "Cannot create command list!");
+	
+	return UT_CHECK_HRESULT(Hr, "CreateCommandList", magic_enum::enum_name(cmdListType));
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 bool DXRenderDevice::CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ComPtr<ID3D12Fence>& pOutFence)
 {
 	const HRESULT Hr = m_pD3DDevice->CreateFence(initialValue, fenceFlags, IID_PPV_ARGS(&pOutFence));
-	return UT_CHECK_HRESULT(Hr, "Failed to create Fence!");
+	return UT_CHECK_HRESULT(Hr, "CreateFence", magic_enum::enum_name(fenceFlags));
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -138,13 +139,13 @@ bool DXRenderDevice::CreateDevice(const ComPtr<IDXGIFactory6>& pFactory)
 		LOG_INFO("Device Chosen = {0}", description);
 
 		// check if adapter supports D3D12
-		if (SUCCEEDED(D3D12CreateDevice(pD3DAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_pD3DDevice))))
+		if(SUCCEEDED(D3D12CreateDevice(pD3DAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_pD3DDevice))))
 		{
 			break;
 		}
 	}
 
-	LOG_DEBUG("D3D Device created...");
+	LOG_INFO("D3D Device created...");
 	return true;
 }
 
@@ -158,9 +159,8 @@ bool DXRenderDevice::CreateCommandQueue()
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
 	const HRESULT Hr = m_pD3DDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pD3DCommandQueue));
-	UT_CHECK_HRESULT(Hr, "Command Queue creation failed!");
+	UT_CHECK_HRESULT(Hr, "CreateCommandQueue", magic_enum::enum_name(queueDesc.Type));
 
-	LOG_DEBUG("Command Queue created...");
 	return true;
 }
 
@@ -181,12 +181,12 @@ bool DXRenderDevice::CreateSwapchain(HWND hwnd, const ComPtr<IDXGIFactory6>& pFa
 
 	IDXGISwapChain1* pTempSwapchain;
 	const HRESULT Hr = pFactory->CreateSwapChainForHwnd(m_pD3DCommandQueue.Get(), hwnd, &swapchainDesc, nullptr, nullptr, &pTempSwapchain);
-	UT_CHECK_HRESULT(Hr, "Swapchain creation failed!");
+	UT_CHECK_HRESULT(Hr, "CreateSwapChain",magic_enum::enum_name(swapchainDesc.Format));
 
 	if(SUCCEEDED(pTempSwapchain->QueryInterface(__uuidof(IDXGISwapChain4), (void**)&m_pSwapchain)))
 	{
 		m_pSwapchain = static_cast<IDXGISwapChain4*>(pTempSwapchain);
-		LOG_DEBUG("Swapchain Created...");
+		LOG_INFO("Swapchain Created...");
 	}
 
 	return true;
@@ -201,8 +201,8 @@ bool DXRenderDevice::CreateDescriptorHeap()
 	descRTV.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	descRTV.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
-	HRESULT Hr = m_pD3DDevice->CreateDescriptorHeap(&descRTV, IID_PPV_ARGS(&m_pD3DDescriptorHeapRenderTargetView));
-	UT_CHECK_HRESULT(Hr, "Descriptor Heap RTV creation failed!");
+	HRESULT Hr = m_pD3DDevice->CreateDescriptorHeap(&descRTV, IID_PPV_ARGS(&m_pD3DDescriptorHeapRTV));
+	UT_CHECK_HRESULT(Hr, "CreateDescriptorHeap", magic_enum::enum_name(descRTV.Type));
 
 	// Descriptor heap for DepthStencilView
 	D3D12_DESCRIPTOR_HEAP_DESC depthStencilViewDesc = {};
@@ -210,8 +210,8 @@ bool DXRenderDevice::CreateDescriptorHeap()
 	depthStencilViewDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	depthStencilViewDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
-	Hr = m_pD3DDevice->CreateDescriptorHeap(&depthStencilViewDesc, IID_PPV_ARGS(&m_pD3DDescriptorHeapDepthStencilView));
-	UT_CHECK_HRESULT(Hr, "Descriptor Heap creation for Depth Stencil View failed!");
+	Hr = m_pD3DDevice->CreateDescriptorHeap(&depthStencilViewDesc, IID_PPV_ARGS(&m_pD3DDescriptorHeapDSV));
+	UT_CHECK_HRESULT(Hr, "CreateDescriptorHeap", magic_enum::enum_name(depthStencilViewDesc.Type));
 
 	// Descriptor heap for Shader Resource view, Unordered Access view & Constant Buffer view...
 	D3D12_DESCRIPTOR_HEAP_DESC descSRV = {};
@@ -219,10 +219,10 @@ bool DXRenderDevice::CreateDescriptorHeap()
 	descSRV.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	descSRV.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-	Hr = m_pD3DDevice->CreateDescriptorHeap(&descSRV, IID_PPV_ARGS(&m_pD3DDescriptorHeapShaderResourceView));
-	UT_CHECK_HRESULT(Hr, "Descriptor Heap SRV creation failed!");
+	Hr = m_pD3DDevice->CreateDescriptorHeap(&descSRV, IID_PPV_ARGS(&m_pD3DDescriptorHeapUI));
+	UT_CHECK_HRESULT(Hr, "CreateDescriptorHeap", magic_enum::enum_name(descSRV.Type));
 
-	LOG_DEBUG("Descriptor heaps created...");
+	LOG_INFO("Descriptor heaps created...");
 	return true;
 }
 
@@ -230,11 +230,11 @@ bool DXRenderDevice::CreateDescriptorHeap()
 bool DXRenderDevice::CreateRenderTargetView()
 {
 	// Query vendor-specific size of single descriptor
-	m_uiDescriptorSizeRenderTargetView = m_pD3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	m_uiDescriptorSizeDepthStencilView = m_pD3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	m_uiDescriptorSizeRTV = m_pD3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_uiDescriptorSizeDSV = m_pD3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
 	// Get handle to first descriptor
-	D3D12_CPU_DESCRIPTOR_HANDLE descHandle = m_pD3DDescriptorHeapRenderTargetView->GetCPUDescriptorHandleForHeapStart();
+	D3D12_CPU_DESCRIPTOR_HANDLE descHandle = m_pD3DDescriptorHeapRTV->GetCPUDescriptorHandleForHeapStart();
 
 	m_pListD3DRenderTargetBuffers.reserve(UT::Globals::GBackbufferCount);
 
@@ -272,11 +272,11 @@ bool DXRenderDevice::CreateRenderTargetView()
 			m_pD3DDevice->CreateRenderTargetView(backBuffer, nullptr, descHandle);
 			m_pListD3DRenderTargetBuffers.emplace_back(backBuffer);
 
-			descHandle.ptr += (1 * m_uiDescriptorSizeRenderTargetView);
+			descHandle.ptr += (1 * m_uiDescriptorSizeRTV);
 		}
 	}
 
-	LOG_DEBUG("RenderTarget views created...");
+	LOG_INFO("RenderTarget views created...");
 
 	// Depth stencil buffers...
 	UT_ASSERT_HRESULT(m_pD3DDevice->CreateCommittedResource(&depthStencilHeapProps, D3D12_HEAP_FLAG_NONE, &depthStencilResourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &depthClearValue, IID_PPV_ARGS(&m_pD3DDepthStencilBuffer)));
@@ -286,8 +286,8 @@ bool DXRenderDevice::CreateRenderTargetView()
 	depthStencilViewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	depthStencilViewDesc.Flags = D3D12_DSV_FLAG_NONE;
 
-	m_pD3DDevice->CreateDepthStencilView(m_pD3DDepthStencilBuffer.Get(), &depthStencilViewDesc, m_pD3DDescriptorHeapDepthStencilView->GetCPUDescriptorHandleForHeapStart());
-	LOG_DEBUG("DepthStencil view created...");
+	m_pD3DDevice->CreateDepthStencilView(m_pD3DDepthStencilBuffer.Get(), &depthStencilViewDesc, m_pD3DDescriptorHeapDSV->GetCPUDescriptorHandleForHeapStart());
+	LOG_INFO("DepthStencil view created...");
 
 	return true;
 }

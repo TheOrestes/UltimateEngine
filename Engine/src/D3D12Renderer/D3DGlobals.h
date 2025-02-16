@@ -77,22 +77,11 @@ namespace UT
 			const std::wstring sTemp = std::wstring(vsFile.begin(), vsFile.end());
 			const LPCWSTR ws = sTemp.c_str();
 
-			UT_CHECK_HRESULT(D3DCompileFromFile(ws,
-												nullptr,
-												nullptr,
-												"main",
-												"vs_5_0",
-												D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
-												0,
-												&vsBlob,
-												&errorBlob),
-							"{0} shader compilation failed", vsFile.c_str());
+			HRESULT Hr = D3DCompileFromFile(ws, nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0, &vsBlob, &errorBlob);
+
+			UT_CHECK_HRESULT(Hr, "CreateVertexShader", vsFile.c_str());
 
 			return vsBlob;
-
-			// Fill out shader bytecode
-			//outVS_ByteCode->BytecodeLength = vsBlob->GetBufferSize();
-			//outVS_ByteCode->pShaderBytecode = vsBlob->GetBufferPointer();
 		}
 
 		//-------------------------------------------------------------------------------------------------------------------
@@ -104,22 +93,11 @@ namespace UT
 			const std::wstring sTemp = std::wstring(fsFile.begin(), fsFile.end());
 			const LPCWSTR ws = sTemp.c_str();
 
-			UT_CHECK_HRESULT(D3DCompileFromFile(ws,
-												nullptr,
-												nullptr,
-												"main",
-												"ps_5_0",
-												D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
-												0,
-												&fsBlob,
-												&errorBlob),
-												"{0} shader compilation failed", fsFile.c_str());
+			HRESULT Hr = D3DCompileFromFile(ws, nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0, &fsBlob, &errorBlob);
+
+			UT_CHECK_HRESULT(Hr, "CreateFragmentShader", fsFile.c_str());
 
 			return fsBlob;
-
-			// Fill out shader bytecode
-			//outFS_ByteCode->BytecodeLength = fsBlob->GetBufferSize();
-			//outFS_ByteCode->pShaderBytecode = fsBlob->GetBufferPointer();
 		}
 
 		//-------------------------------------------------------------------------------------------------------------------

@@ -46,17 +46,17 @@ public:
 	inline ComPtr<ID3D12Resource>			GetRenderTarget(uint32_t index) const				{ return m_pListD3DRenderTargetBuffers.at(index); }
 	inline uint32_t							GetCurrentBackbufferIndex() const					{ return m_pSwapchain->GetCurrentBackBufferIndex(); }
 
-	inline uint32_t							GetRTVDescriptorSize() const						{ return m_uiDescriptorSizeRenderTargetView; }
-	inline ComPtr<ID3D12DescriptorHeap>		GetDescriptorHeapRenderTargetView() const			{ return m_pD3DDescriptorHeapRenderTargetView; }
-	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleRenderTargetView() const		{ return m_pD3DDescriptorHeapRenderTargetView->GetCPUDescriptorHandleForHeapStart(); }
+	inline uint32_t							GetRTVDescriptorSize() const						{ return m_uiDescriptorSizeRTV; }
+	inline ComPtr<ID3D12DescriptorHeap>		GetDescriptorHeapRTV() const						{ return m_pD3DDescriptorHeapRTV; }
+	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleRTV() const					{ return m_pD3DDescriptorHeapRTV->GetCPUDescriptorHandleForHeapStart(); }
 
-	inline uint32_t							GetDSVDescriptorSize() const						{ return m_uiDescriptorSizeDepthStencilView; }
-	inline ComPtr<ID3D12DescriptorHeap>		GetDescriptorHeapDepthStencilView() const			{ return m_pD3DDescriptorHeapDepthStencilView; }
-	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleDepthStencilView() const		{ return m_pD3DDescriptorHeapDepthStencilView->GetCPUDescriptorHandleForHeapStart(); }
+	inline uint32_t							GetDSVDescriptorSize() const						{ return m_uiDescriptorSizeDSV; }
+	inline ComPtr<ID3D12DescriptorHeap>		GetDescriptorHeapDSV() const						{ return m_pD3DDescriptorHeapDSV; }
+	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleDSV() const					{ return m_pD3DDescriptorHeapDSV->GetCPUDescriptorHandleForHeapStart(); }
 		   
-	inline ComPtr<ID3D12DescriptorHeap>		GetDescriptorHeapShaderResourceView() const			{ return m_pD3DDescriptorHeapShaderResourceView; }
-	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleShaderResourceView() const	{ return m_pD3DDescriptorHeapShaderResourceView->GetCPUDescriptorHandleForHeapStart(); }
-	inline D3D12_GPU_DESCRIPTOR_HANDLE		GetGPUDescriptorHandleShaderResourceView() const	{ return m_pD3DDescriptorHeapShaderResourceView->GetGPUDescriptorHandleForHeapStart(); }
+	inline ComPtr<ID3D12DescriptorHeap>		GetDescriptorHeapUI() const							{ return m_pD3DDescriptorHeapUI; }
+	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleUI() const					{ return m_pD3DDescriptorHeapUI->GetCPUDescriptorHandleForHeapStart(); }
+	inline D3D12_GPU_DESCRIPTOR_HANDLE		GetGPUDescriptorHandleUI() const					{ return m_pD3DDescriptorHeapUI->GetGPUDescriptorHandleForHeapStart(); }
 
 	inline ComPtr<ID3D12CommandQueue>		GetCommandQueue() const								{ return m_pD3DCommandQueue; }
 
@@ -64,22 +64,22 @@ private:
 	std::string								m_strGPUName;
 
 	ComPtr<ID3D12Device>					m_pD3DDevice;
-
-
 	ComPtr<ID3D12DebugDevice>				m_pD3DDebugDevice;
-
 	ComPtr<IDXGISwapChain4>					m_pSwapchain;
-	ComPtr<ID3D12DescriptorHeap>			m_pD3DDescriptorHeapRenderTargetView;
-	uint32_t								m_uiDescriptorSizeRenderTargetView;
+	ComPtr<ID3D12CommandQueue>				m_pD3DCommandQueue;
 
-	ComPtr<ID3D12DescriptorHeap>			m_pD3DDescriptorHeapShaderResourceView;
+	// Descriptor setup RTV
+	ComPtr<ID3D12DescriptorHeap>			m_pD3DDescriptorHeapRTV;
+	uint32_t								m_uiDescriptorSizeRTV;
 	std::vector<ComPtr<ID3D12Resource>>		m_pListD3DRenderTargetBuffers;
-	uint32_t								m_uiDescriptorSizeDepthStencilView;
 
-	ComPtr<ID3D12DescriptorHeap>			m_pD3DDescriptorHeapDepthStencilView;
+	// Descriptor setup DSV
+	ComPtr<ID3D12DescriptorHeap>			m_pD3DDescriptorHeapDSV;
+	uint32_t								m_uiDescriptorSizeDSV;
 	ComPtr<ID3D12Resource>					m_pD3DDepthStencilBuffer;
 
-	ComPtr<ID3D12CommandQueue>				m_pD3DCommandQueue;
+	// Descriptor setup CBV | SRV | UAV
+	ComPtr<ID3D12DescriptorHeap>			m_pD3DDescriptorHeapUI;
 };
 
 

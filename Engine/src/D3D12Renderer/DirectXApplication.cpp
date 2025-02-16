@@ -49,7 +49,9 @@ bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 	dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
-	UT_CHECK_HRESULT(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_pDXGIFactory)));
+	HRESULT Hr = CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_pDXGIFactory));
+
+	UT_CHECK_HRESULT(Hr, "CreateDXGIFactory2", "DXGI_CREATE_FACTORY_DEBUG");
 
 	m_pDXRenderer = new DXRenderer();
 	UT_CHECK_BOOL(m_pDXRenderer->Initialize(pWindow, m_pDXGIFactory));

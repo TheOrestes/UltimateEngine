@@ -26,9 +26,9 @@ bool UIRenderer::Initialize(const GLFWwindow* pWindow, const DXRenderDevice* pDX
 	UT_CHECK_BOOL(ImGui_ImplDX12_Init(	pDXRenderDevice->GetD3DDevice().Get(),
 										UT::Globals::GBackbufferCount,
 										DXGI_FORMAT_R8G8B8A8_UNORM,
-										pDXRenderDevice->GetDescriptorHeapShaderResourceView().Get(),
-										pDXRenderDevice->GetCPUDescriptorHandleShaderResourceView(),
-										pDXRenderDevice->GetGPUDescriptorHandleShaderResourceView()),
+										pDXRenderDevice->GetDescriptorHeapUI().Get(),
+										pDXRenderDevice->GetCPUDescriptorHandleUI(),
+										pDXRenderDevice->GetGPUDescriptorHandleUI()),
 		"ImGui_ImplDX12_Init() FAILED!");
 
 	return true;
@@ -105,7 +105,7 @@ void UIRenderer::Render(const DXRenderDevice* pDXRenderDevice, ComPtr<ID3D12Grap
 	
 	ImGui::Render();
 
-	pGraphicsCommandList->SetDescriptorHeaps(1, pDXRenderDevice->GetDescriptorHeapShaderResourceView().GetAddressOf());
+	pGraphicsCommandList->SetDescriptorHeaps(1, pDXRenderDevice->GetDescriptorHeapUI().GetAddressOf());
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pGraphicsCommandList.Get());
 }
 

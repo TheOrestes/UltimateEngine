@@ -2,6 +2,7 @@
 
 #include "Core/EngineApplication.h"
 #include "Core/Logger.h"
+#include "magic_enum.hpp"
 
 //---------------------------------------------------------------------------------------------------------------------
 #define LOG_CRITICAL(...)	Logger::getInstance().GetLogger()->critical(__VA_ARGS__)
@@ -64,13 +65,20 @@ template<typename T, typename... Types> bool UT_CHECK_BOOL(T a, Types... args)
 //---------------------------------------------------------------------------------------------------------------------
 template<typename T, typename... Types> bool UT_CHECK_HRESULT(T a, Types... args)
 {
+	bool status = false;
+
 	if(FAILED(a))
 	{
-		LOG_ERROR("HRESULT FAILED:{0}", args...);
-		return false;
+		LOG_ERROR("FAILED => {0} | {1}", args...);
+		status = false;
+	}
+	else
+	{
+		LOG_DEBUG("SUCCESS => {0} | {1}", args...);
+		status = true;
 	}
 
-	return true;
+	return status;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -101,7 +109,7 @@ template<typename T> void SAFE_DELETE(T*& a)
 		delete a;
 		a = nullptr;
 
-		LOG_DEBUG("{0} instance deleted!", typeid(T).name());
+		LOG_INFO("{0} instance deleted!", typeid(T).name());
 	}
 }
 
