@@ -82,7 +82,7 @@ void EngineApplication::Cleanup()
 void EngineApplication::WindowClosedCallback(GLFWwindow* pWindow)
 {
 	glfwSetWindowShouldClose(pWindow, true);
-	LOG_DEBUG("Window Closed!");
+	LOG_INFO("Window Closed!");
 }
 
 //---------------------------------------------------------------------------------------------------------------------

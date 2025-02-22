@@ -9,6 +9,7 @@ DirectXApplication::DirectXApplication()
 	m_uiAppWidth = 0;
 	m_uiAppHeight = 0;
 
+	m_pDXGIDebug = nullptr;
 	m_pD3DDebug = nullptr;
 	m_pDXGIFactory = nullptr;
 
@@ -25,7 +26,14 @@ DirectXApplication::~DirectXApplication()
 void DirectXApplication::Cleanup()
 {
 	SAFE_DELETE(m_pDXRenderer);
+
+	SAFE_RELEASE(m_pD3DDebug);
+
+	SAFE_RELEASE(m_pDXGIFactory);
+
 	DisableDebug();
+
+	SAFE_RELEASE(m_pDXGIDebug);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -49,9 +57,8 @@ bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 	dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
-	HRESULT Hr = CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_pDXGIFactory));
-
-	UT_CHECK_HRESULT(Hr, "CreateDXGIFactory2", "DXGI_CREATE_FACTORY_DEBUG");
+	const HRESULT Hr = CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_pDXGIFactory));
+	UT_ASSERT_HRESULT(Hr, "CreateDXGIFactory2");
 
 	m_pDXRenderer = new DXRenderer();
 	UT_CHECK_BOOL(m_pDXRenderer->Initialize(pWindow, m_pDXGIFactory));
@@ -63,8 +70,12 @@ bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 void DirectXApplication::EnableDebug()
 {
 #if _DEBUG
-	DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_pDXGIDebug));
-	D3D12GetDebugInterface(IID_PPV_ARGS(&m_pD3DDebug));
+	HRESULT Hr = 0;
+	Hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_pDXGIDebug));
+	UT_ASSERT_HRESULT(Hr, "DXGIGetDebugInterface1");
+
+	Hr = D3D12GetDebugInterface(IID_PPV_ARGS(&m_pD3DDebug));
+	UT_ASSERT_HRESULT(Hr, "D3D12GetDebugInterface");
 
 	m_pD3DDebug->EnableDebugLayer();
 	m_pD3DDebug->SetEnableGPUBasedValidation(true);
@@ -87,7 +98,7 @@ void DirectXApplication::Update(double dt)
 //---------------------------------------------------------------------------------------------------------------------
 void DirectXApplication::Render()
 {
-	UT_ASSERT_NULL(m_pDXRenderer, "DXRenderDevice is null!");
+	UT_ASSERT_NULL(m_pDXRenderer, "DXRenderDevice NULL!");
 
 	m_pDXRenderer->Render();
 }

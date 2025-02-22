@@ -16,17 +16,21 @@
 #include "UI/UIRenderer.h"
 
 //---------------------------------------------------------------------------------------------------------------------
-DXRenderer::DXRenderer()
+DXRenderer::DXRenderer() :
+	m_pD3DGraphicsCommandList(nullptr),
+	m_pPSO(nullptr),
+	m_pRootSignature(nullptr),
+	m_pVBuffer(nullptr),
+	m_pIBuffer(nullptr),
+	m_pDXRenderDevice(nullptr),
+	m_pUIRenderer(nullptr),
+	m_uiCurrentFrameIndex(0),
+	m_handleFenceEvent(0),
+	m_bIsCurrentFrameRunning(false)
 {
 	m_pListFences.clear();
 	m_pListFenceValue.clear();
-
-	m_uiCurrentFrameIndex = 0;
-	m_handleFenceEvent = 0;
-	m_bIsCurrentFrameRunning = false;
-
-	m_pDXRenderDevice = nullptr;
-	m_pUIRenderer = nullptr;
+	m_pListD3DCommandAllocator.clear();
 
 	m_colorClear = DirectX::XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
 }
@@ -38,7 +42,7 @@ DXRenderer::~DXRenderer()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFactory)
+bool DXRenderer::Initialize(const GLFWwindow* pWindow, const IDXGIFactory6* pFactory)
 {
 	HRESULT Hr = 0;
 
@@ -68,42 +72,43 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	rootSignDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
 	rootSignDesc.Desc_1_1 = rootSignatureDesc;
 
-	ComPtr<ID3DBlob> pSignature;
-	ComPtr<ID3DBlob> pError;
+	ID3DBlob* pSignature;
+	ID3DBlob* pError;
 	
-	Hr = D3DX12SerializeVersionedRootSignature(&rootSignDesc, D3D_ROOT_SIGNATURE_VERSION_1_1, pSignature.GetAddressOf(), pError.GetAddressOf());
+	Hr = D3DX12SerializeVersionedRootSignature(&rootSignDesc, D3D_ROOT_SIGNATURE_VERSION_1_1, &pSignature, &pError);
 
 	if(FAILED(Hr))
 	{
-		if(pError.Get())
+		if(pError)
 		{
-			const char* ErrorMsg = static_cast<const char*>(pError.Get()->GetBufferPointer());
+			const char* ErrorMsg = static_cast<const char*>(pError->GetBufferPointer());
 			OutputDebugStringA(ErrorMsg);
 		}
 	}
 
-	Hr = m_pDXRenderDevice->GetD3DDevice().Get()->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&m_pRootSignature));
+	Hr = m_pDXRenderDevice->GetD3DDevice()->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&m_pRootSignature));
 	UT_CHECK_HRESULT(Hr, "CreateRootSignature", "D3D_ROOT_SIGNATURE_VERSION_1_1");
 
 	// 2. Create Vertex & Fragment shaders
-	ComPtr<ID3DBlob> vertexShader = UT::HelperFunc::CreateVertexShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicVS.hlsl");
-	ComPtr<ID3DBlob> pixelShader = UT::HelperFunc::CreateFragmentShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicFS.hlsl");
+	ID3DBlob* vertexShader;
+	UT::HelperFunc::CreateVertexShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicVS.hlsl", &vertexShader);
+
+	ID3DBlob* pixelShader;
+	UT::HelperFunc::CreateFragmentShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicFS.hlsl", &pixelShader);
 
 	D3D12_SHADER_BYTECODE vsByteCode = {};
-	vsByteCode.BytecodeLength = vertexShader.Get()->GetBufferSize();
-	vsByteCode.pShaderBytecode = vertexShader.Get()->GetBufferPointer();
+	vsByteCode.BytecodeLength = vertexShader->GetBufferSize();
+	vsByteCode.pShaderBytecode = vertexShader->GetBufferPointer();
 
 	D3D12_SHADER_BYTECODE psByteCode = {};
-	psByteCode.BytecodeLength = pixelShader.Get()->GetBufferSize();
-	psByteCode.pShaderBytecode = pixelShader.Get()->GetBufferPointer();
+	psByteCode.BytecodeLength = pixelShader->GetBufferSize();
+	psByteCode.pShaderBytecode = pixelShader->GetBufferPointer();
 
 	//D3D12_SHADER_BYTECODE vsByteCode = {};
 	//UT::HelperFunc::CreateVertexShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicVS.hlsl", &vsByteCode);
 	//
 	//D3D12_SHADER_BYTECODE fsByteCode = {};
 	//UT::HelperFunc::CreateFragmentShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicFS.hlsl", &fsByteCode);
-
-
 
 	// 3. Create Input layout
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] =
@@ -142,7 +147,7 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	// 4. Create PSO
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.InputLayout = inputLayoutDesc;										// structure describing our input layout.
-	psoDesc.pRootSignature = m_pRootSignature.Get();							// input data that this pso needs
+	psoDesc.pRootSignature = m_pRootSignature;									// input data that this pso needs
 	psoDesc.VS = vsByteCode;													// struct describing where to find vs bytecode & how large it is.
 	psoDesc.PS = psByteCode;													// struct describing where to find fs bytecode & how large it is.
 	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;		// topology we are drawing
@@ -159,8 +164,10 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	Hr = m_pDXRenderDevice->GetD3DDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPSO));
 	UT_ASSERT_HRESULT(Hr, "CreateGraphicsPipelineState Failed!!!");
 
+	LOG_INFO("Graphics PSO created...");
+
 	// 5. Create Vertex Buffer & transfer the data to GPU!
-	DirectX::ResourceUploadBatch vbResourceUpload(m_pDXRenderDevice->GetD3DDevice().Get());
+	DirectX::ResourceUploadBatch vbResourceUpload(m_pDXRenderDevice->GetD3DDevice());
 	vbResourceUpload.Begin();
 
 	// vertex data...
@@ -172,13 +179,14 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	vertices[2] = { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(0,0,1,1) };
 	vertices[3] = { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(1,0,1,1) };
 
-	DirectX::CreateStaticBuffer(m_pDXRenderDevice->GetD3DDevice().Get(), vbResourceUpload, vertices, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pVBuffer);
+	Hr = DirectX::CreateStaticBuffer(m_pDXRenderDevice->GetD3DDevice(), vbResourceUpload, vertices, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pVBuffer);
+	UT_CHECK_HRESULT(Hr, "Vertex Buffer Created", "D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER");
 
-	auto vbUploadResourcesFinished = vbResourceUpload.End(m_pDXRenderDevice->GetCommandQueue().Get());
+	auto vbUploadResourcesFinished = vbResourceUpload.End(m_pDXRenderDevice->GetCommandQueue());
 	vbUploadResourcesFinished.wait();
 
 	// 6. Create Indices data & transfer the data to GPU!
-	DirectX::ResourceUploadBatch ibResourceUpload(m_pDXRenderDevice->GetD3DDevice().Get());
+	DirectX::ResourceUploadBatch ibResourceUpload(m_pDXRenderDevice->GetD3DDevice());
 	ibResourceUpload.Begin();
 
 	// index data...
@@ -187,9 +195,10 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 	indices[0] = 0;		indices[1] = 1;		indices[2] = 2;
 	indices[3] = 0,		indices[4] = 3;		indices[5] = 1;
 
-	DirectX::CreateStaticBuffer(m_pDXRenderDevice->GetD3DDevice().Get(), ibResourceUpload, indices, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pIBuffer);
+	DirectX::CreateStaticBuffer(m_pDXRenderDevice->GetD3DDevice(), ibResourceUpload, indices, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pIBuffer);
+	UT_CHECK_HRESULT(Hr, "Index Buffer Created", "D3D12_RESOURCE_STATE_INDEX_BUFFER");
 
-	auto ibUploadResourcesFinished = ibResourceUpload.End(m_pDXRenderDevice->GetCommandQueue().Get());
+	auto ibUploadResourcesFinished = ibResourceUpload.End(m_pDXRenderDevice->GetCommandQueue());
 	ibUploadResourcesFinished.wait();
 
 	// // Create a default heap. This will be created on the GPU & only GPU will have access to this.
@@ -249,6 +258,12 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFa
 
 	//---- TRIANGLE RENDERING END
 
+	SAFE_RELEASE(pError);
+	SAFE_RELEASE(pSignature);
+
+	SAFE_RELEASE(vertexShader);
+	SAFE_RELEASE(pixelShader);
+
 	return true;
 }
 
@@ -269,18 +284,23 @@ void DXRenderer::Cleanup()
 	m_pDXRenderDevice->SignalFence(m_pListFences.at(currRenderTargetIndex), m_pListFenceValue.at(currRenderTargetIndex));
 
 	SAFE_DELETE(m_pUIRenderer);
-	SAFE_DELETE(m_pDXRenderDevice);
-	//SAFE_RELEASE(m_pD3DGraphicsCommandList);
-	//
-	//for (uint16_t i = 0; i < UT::Globals::GBackbufferCount; ++i)
-	//{
-	//	SAFE_RELEASE(m_pListFences.at(i));
-	//	SAFE_RELEASE(m_pListD3DCommandAllocator.at(i));
-	//}
+	SAFE_RELEASE(m_pPSO);
+	SAFE_RELEASE(m_pRootSignature);
+	SAFE_RELEASE(m_pVBuffer);
+	SAFE_RELEASE(m_pIBuffer);
+	
+	for (uint16_t i = 0; i < UT::Globals::GBackbufferCount; ++i)
+	{
+		SAFE_RELEASE(m_pListFences.at(i));
+		SAFE_RELEASE(m_pListD3DCommandAllocator.at(i));
+	}
 
-	//m_pListFences.clear();
-	//m_pListFenceValue.clear();
-	//m_pListD3DCommandAllocator.clear();
+	m_pListFences.clear();
+	m_pListFenceValue.clear();
+	m_pListD3DCommandAllocator.clear();
+
+	SAFE_DELETE(m_pDXRenderDevice);
+	SAFE_RELEASE(m_pD3DGraphicsCommandList);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -323,7 +343,7 @@ void DXRenderer::EndFrame(uint32_t currFrameIndex)
 	HRESULT Hr = 0;
 
 	// create an array of command lists (only one command list here)
-	const std::vector<ComPtr<ID3D12CommandList>> vecCommandList = { m_pD3DGraphicsCommandList };
+	const std::vector<ID3D12CommandList*> vecCommandList = { m_pD3DGraphicsCommandList };
 
 	// execute the array of command lists
 	m_pDXRenderDevice->ExecuteCommandLists(vecCommandList);
@@ -339,7 +359,7 @@ void DXRenderer::EndFrame(uint32_t currFrameIndex)
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderer::DrawCommands()
 {
-	m_pD3DGraphicsCommandList->SetGraphicsRootSignature(m_pRootSignature.Get());
+	m_pD3DGraphicsCommandList->SetGraphicsRootSignature(m_pRootSignature);
 
 	m_pD3DGraphicsCommandList->RSSetViewports(1, &m_Viewport);
 	m_pD3DGraphicsCommandList->RSSetScissorRects(1, &m_ScissorRect);
@@ -363,14 +383,14 @@ void DXRenderer::RecordCommands(uint32_t currFrameIndex)
 	ResetCommandList(currFrameIndex);
 
 	// Get cuurent Render Target
-	const ComPtr<ID3D12Resource> pRenderTarget = m_pDXRenderDevice->GetRenderTarget(currFrameIndex);
+	ID3D12Resource* pRenderTarget = m_pDXRenderDevice->GetRenderTarget(currFrameIndex);
 	UT_ASSERT_NULL(pRenderTarget, "Current RenderTarget is NULL!");
 
 	//-- Start recording commands into command list
 	D3D12_RESOURCE_BARRIER rtBarrier = {};
 	rtBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	rtBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	rtBarrier.Transition.pResource = pRenderTarget.Get();
+	rtBarrier.Transition.pResource = pRenderTarget;
 	rtBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	rtBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	rtBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -393,7 +413,7 @@ void DXRenderer::RecordCommands(uint32_t currFrameIndex)
 	D3D12_RESOURCE_BARRIER presentBarrier = {};
 	presentBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	presentBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	presentBarrier.Transition.pResource = pRenderTarget.Get();
+	presentBarrier.Transition.pResource = pRenderTarget;
 	presentBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	presentBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 	presentBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -410,8 +430,8 @@ bool DXRenderer::CreateCommandAllocator()
 {
 	for (uint16_t i = 0; i < UT::Globals::GBackbufferCount; ++i)
 	{
-		ComPtr<ID3D12CommandAllocator> pCmdAllocator;
-		m_pDXRenderDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, pCmdAllocator);
+		ID3D12CommandAllocator* pCmdAllocator;
+		m_pDXRenderDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, &pCmdAllocator);
 
 		//HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&pCmdAllocator));
 		//UT_CHECK_HRESULT(Hr, "Command Allocator creation failed!");
@@ -427,7 +447,7 @@ bool DXRenderer::CreateCommandAllocator()
 bool DXRenderer::CreateCommandList()
 {
 	// create the command list with the first allocator
-	m_pDXRenderDevice->CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE_DIRECT, m_pListD3DCommandAllocator.at(0), m_pD3DGraphicsCommandList);
+	m_pDXRenderDevice->CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE_DIRECT, m_pListD3DCommandAllocator.at(0), &m_pD3DGraphicsCommandList);
 
 	// Command lists are created in "Recording" state. We do not want to record the command list yet, so we close it. 
 	HRESULT Hr = m_pD3DGraphicsCommandList->Close();
@@ -447,11 +467,11 @@ void DXRenderer::ResetCommandAllocator(uint32_t renderTargetID) const
 void DXRenderer::ResetCommandList(uint32_t renderTargetID) const
 {
 	HRESULT	Hr = 0;
-	const ComPtr<ID3D12CommandAllocator> pCmdAllocator = m_pListD3DCommandAllocator.at(renderTargetID);
+	ID3D12CommandAllocator* pCmdAllocator = m_pListD3DCommandAllocator.at(renderTargetID);
 
 	UT_ASSERT_NULL(pCmdAllocator, ": Command Allocator");
 
-	Hr = m_pD3DGraphicsCommandList->Reset(pCmdAllocator.Get(), m_pPSO.Get());
+	Hr = m_pD3DGraphicsCommandList->Reset(pCmdAllocator, m_pPSO);
 	UT_ASSERT_HRESULT(Hr, "CommandList Reset FAILED!");
 }
 
@@ -464,13 +484,13 @@ bool DXRenderer::CreateFences()
 	// Create the fences...
 	for (uint16_t i = 0; i < UT::Globals::GBackbufferCount; ++i)
 	{
-		ComPtr<ID3D12Fence> pFence;
+		ID3D12Fence* pFence;
 		uint64_t uiFenceValue = 0;
 
 		//HRESULT Hr = m_pDXRenderDevice->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence));
 		//UT_CHECK_HRESULT(Hr, "Failed to create Fence!");
 
-		m_pDXRenderDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, pFence);
+		m_pDXRenderDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, &pFence);
 
 		m_pListFences.emplace_back(pFence);
 		m_pListFenceValue.emplace_back(uiFenceValue);	// Initialize with zero. 
@@ -493,8 +513,8 @@ uint32_t DXRenderer::WaitForPreviousFrame()
 	const uint32_t uiCurrentFrameIndex = m_pDXRenderDevice->GetCurrentBackbufferIndex();
 
 	// Acquire pointers for code readibility!
-	const ComPtr<ID3D12Fence>	pFence	= m_pListFences.at(uiCurrentFrameIndex);
-	const uint64_t	uiFenceValue		= m_pListFenceValue.at(uiCurrentFrameIndex);
+	ID3D12Fence*	pFence			= m_pListFences.at(uiCurrentFrameIndex);
+	uint64_t	uiFenceValue		= m_pListFenceValue.at(uiCurrentFrameIndex);
 
 	// if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
 	// the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command

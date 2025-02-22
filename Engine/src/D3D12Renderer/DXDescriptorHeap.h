@@ -15,14 +15,14 @@ public:
 	constexpr  D3D12_DESCRIPTOR_HEAP_TYPE	GetType()			const { return m_HeapType; }
 	constexpr  D3D12_CPU_DESCRIPTOR_HANDLE	GetCPUStartAddr()	const { return m_hCPUStartAddr; }
 	constexpr  D3D12_GPU_DESCRIPTOR_HANDLE	GetGPUStartAddr()	const { return m_hGPUStartAddr; }
-	ComPtr<ID3D12DescriptorHeap>			GetHeapComPtr()		const { return m_pHeap.Get(); }
+	ID3D12DescriptorHeap*					GetHeapPtr()		const { return m_pHeap; }
 
 	constexpr uint32_t						GetCapacity()		const { return m_uiCapacity; }
 	constexpr uint32_t						GetNumDescriptors() const { return m_uiSize; }
 	constexpr uint32_t						GetDescriptorSize() const { return m_uiDescriptorSize; }
 
 private:
-	ComPtr<ID3D12DescriptorHeap>			m_pHeap;
+	ID3D12DescriptorHeap*					m_pHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE				m_hCPUStartAddr;
 	D3D12_GPU_DESCRIPTOR_HANDLE				m_hGPUStartAddr;
 

@@ -69,35 +69,51 @@ namespace UT
 	//-------------------------------------------------------------------------------------------------------------------
 	namespace HelperFunc
 	{
-		inline ComPtr<ID3DBlob> CreateVertexShader(const std::string& vsFile)
+		inline void CreateVertexShader(const std::string& vsFile, ID3DBlob** vertexShaderBlob)
 		{
-			ComPtr<ID3DBlob> vsBlob;
-			ComPtr<ID3DBlob> errorBlob;
+			//UT_ASSERT_NULL(vertexShaderBlob);
+
+			ID3DBlob* errorBlob;
 
 			const std::wstring sTemp = std::wstring(vsFile.begin(), vsFile.end());
 			const LPCWSTR ws = sTemp.c_str();
 
-			HRESULT Hr = D3DCompileFromFile(ws, nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0, &vsBlob, &errorBlob);
+			HRESULT Hr = D3DCompileFromFile(ws, nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0, vertexShaderBlob, &errorBlob);
 
-			UT_CHECK_HRESULT(Hr, "CreateVertexShader", vsFile.c_str());
+			if (FAILED(Hr) && errorBlob != nullptr)
+			{
+				const char* ErrorMsg = static_cast<const char*>(errorBlob->GetBufferPointer());
+				UT_ASSERT_HRESULT(Hr, "CreateVertexShader", ErrorMsg);
+			}
 
-			return vsBlob;
+			// Extract the shader name getting compiled...
+			std::size_t pos = vsFile.find_last_of("/");
+			std::string shaderName = vsFile.substr(++pos);
+			LOG_DEBUG("{0} => Vertex Shader Compiled", shaderName);
 		}
 
 		//-------------------------------------------------------------------------------------------------------------------
-		inline ComPtr<ID3DBlob> CreateFragmentShader(const std::string& fsFile)
+		inline void CreateFragmentShader(const std::string& fsFile, ID3DBlob** fragmentShaderBlob)
 		{
-			ComPtr<ID3DBlob> fsBlob;
-			ComPtr<ID3DBlob> errorBlob;
+			//UT_ASSERT_NULL(fragmentShaderBlob);
+
+			ID3DBlob* errorBlob;
 
 			const std::wstring sTemp = std::wstring(fsFile.begin(), fsFile.end());
 			const LPCWSTR ws = sTemp.c_str();
 
-			HRESULT Hr = D3DCompileFromFile(ws, nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0, &fsBlob, &errorBlob);
+			HRESULT Hr = D3DCompileFromFile(ws, nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0, fragmentShaderBlob, &errorBlob);
 
-			UT_CHECK_HRESULT(Hr, "CreateFragmentShader", fsFile.c_str());
+			if (FAILED(Hr) && errorBlob != nullptr)
+			{
+				const char* ErrorMsg = static_cast<const char*>(errorBlob->GetBufferPointer());
+				UT_ASSERT_HRESULT(Hr, "CreateFragmentShader", ErrorMsg);
+			}
 
-			return fsBlob;
+			// Extract the shader name getting compiled...
+			std::size_t pos = fsFile.find_last_of("/");
+			std::string shaderName = fsFile.substr(++pos);
+			LOG_DEBUG("{0} => Fragment Shader Compiled", shaderName);
 		}
 
 		//-------------------------------------------------------------------------------------------------------------------

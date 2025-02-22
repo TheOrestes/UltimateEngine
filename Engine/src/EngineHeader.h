@@ -86,7 +86,7 @@ template<typename T, typename... Types> void UT_ASSERT_NULL(T a, Types... args)
 {
 	if (a == nullptr)
 	{
-		LOG_CRITICAL("Assertion Failed:{0}", args...);
+		LOG_CRITICAL("!! ASSERT !! => {0}", args...);
 		__debugbreak();
 	}
 }
@@ -96,7 +96,7 @@ template<typename T, typename... Types> void UT_ASSERT_HRESULT(T a, Types... arg
 {
 	if(FAILED(a))
 	{
-		LOG_CRITICAL("Assertion Failed:{0}", args...);
+		LOG_CRITICAL("!! ASSERT !! => {0} | {1}", args...);
 		__debugbreak();
 	}
 }
@@ -121,7 +121,7 @@ template<typename T> void SAFE_RELEASE(T*& a)
 		(a)->Release();
 		(a) = nullptr;
 
-		LOG_DEBUG("{0} instance released!", typeid(T).name());
+		LOG_WARNING("{0} instance released!", typeid(T).name());
 	}
 }
 

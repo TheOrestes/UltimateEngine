@@ -7,7 +7,15 @@
 #include "EngineHeader.h"
 
 //---------------------------------------------------------------------------------------------------------------------
-DXRenderDevice::DXRenderDevice()
+DXRenderDevice::DXRenderDevice() :
+	m_pD3DDevice(nullptr),
+	m_pD3DDebugDevice(nullptr),
+	m_pSwapchain(nullptr),
+	m_pD3DCommandQueue(nullptr),
+	m_pD3DDescriptorHeapRTV(nullptr),
+	m_pD3DDescriptorHeapDSV(nullptr),
+	m_pD3DDepthStencilBuffer(nullptr),
+	m_pD3DDescriptorHeapUI(nullptr)
 {
 	m_pListD3DRenderTargetBuffers.clear();
 }
@@ -31,7 +39,7 @@ const char* DXRenderDevice::GetGPUName()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::Initialize(HWND hwnd, ComPtr<IDXGIFactory6>& pFactory)
+bool DXRenderDevice::Initialize(HWND hwnd, const IDXGIFactory6* pFactory)
 {
 	UT_CHECK_BOOL(CreateDevice(pFactory), "D3D Device creation failed!");
 	UT_CHECK_BOOL(CreateCommandQueue(), "D3D Command Queue creation failed!");
@@ -52,13 +60,41 @@ void DXRenderDevice::Cleanup()
 		m_pSwapchain->SetFullscreenState(false, nullptr);
 	}
 
+	for (auto element : m_pListD3DRenderTargetBuffers)
+	{
+		SAFE_RELEASE(element);
+	}
+
 	m_pListD3DRenderTargetBuffers.clear();
+
+	SAFE_RELEASE(m_pD3DDescriptorHeapUI);
+	SAFE_RELEASE(m_pD3DDepthStencilBuffer);
+	SAFE_RELEASE(m_pD3DDescriptorHeapDSV);
+	SAFE_RELEASE(m_pD3DDescriptorHeapRTV);
+	SAFE_RELEASE(m_pD3DCommandQueue);
+	SAFE_RELEASE(m_pSwapchain);
+	SAFE_RELEASE(m_pD3DDebugDevice);
+	SAFE_RELEASE(m_pD3DDevice);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderDevice::CleanupOnWindowResize()
 {
+	for (auto element : m_pListD3DRenderTargetBuffers)
+	{
+		SAFE_RELEASE(element);
+	}
+
 	m_pListD3DRenderTargetBuffers.clear();
+
+	SAFE_RELEASE(m_pD3DDescriptorHeapUI);
+	SAFE_RELEASE(m_pD3DDepthStencilBuffer);
+	SAFE_RELEASE(m_pD3DDescriptorHeapDSV);
+	SAFE_RELEASE(m_pD3DDescriptorHeapRTV);
+	SAFE_RELEASE(m_pD3DCommandQueue);
+	SAFE_RELEASE(m_pSwapchain);
+	SAFE_RELEASE(m_pD3DDebugDevice);
+	SAFE_RELEASE(m_pD3DDevice);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -69,24 +105,24 @@ void DXRenderDevice::RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeigh
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ComPtr<ID3D12CommandAllocator>& pOutCmdAllocator)
+bool DXRenderDevice::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ID3D12CommandAllocator** pOutCmdAllocator)
 {
-	const HRESULT Hr = m_pD3DDevice->CreateCommandAllocator(cmdListType, IID_PPV_ARGS(&pOutCmdAllocator));
+	const HRESULT Hr = m_pD3DDevice->CreateCommandAllocator(cmdListType, IID_PPV_ARGS(pOutCmdAllocator));
 	return UT_CHECK_HRESULT(Hr, "CreateCommandAllocator", magic_enum::enum_name(cmdListType));
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, const ComPtr<ID3D12CommandAllocator>& pCmdAllocator, ComPtr<ID3D12GraphicsCommandList>& pOutCmdList)
+bool DXRenderDevice::CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, ID3D12CommandAllocator* pCmdAllocator, ID3D12GraphicsCommandList** pOutCmdList)
 {
-	const HRESULT Hr = m_pD3DDevice->CreateCommandList(0, cmdListType, pCmdAllocator.Get(), nullptr, IID_PPV_ARGS(&pOutCmdList));
+	const HRESULT Hr = m_pD3DDevice->CreateCommandList(0, cmdListType, pCmdAllocator, nullptr, IID_PPV_ARGS(pOutCmdList));
 	
 	return UT_CHECK_HRESULT(Hr, "CreateCommandList", magic_enum::enum_name(cmdListType));
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ComPtr<ID3D12Fence>& pOutFence)
+bool DXRenderDevice::CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ID3D12Fence** pOutFence)
 {
-	const HRESULT Hr = m_pD3DDevice->CreateFence(initialValue, fenceFlags, IID_PPV_ARGS(&pOutFence));
+	const HRESULT Hr = m_pD3DDevice->CreateFence(initialValue, fenceFlags, IID_PPV_ARGS(pOutFence));
 	return UT_CHECK_HRESULT(Hr, "CreateFence", magic_enum::enum_name(fenceFlags));
 }
 
@@ -101,9 +137,9 @@ bool DXRenderDevice::CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceF
 //}
 
 //---------------------------------------------------------------------------------------------------------------------
-void DXRenderDevice::SignalFence(const ComPtr<ID3D12Fence>& pFence, uint64_t uiFenceValue) const
+void DXRenderDevice::SignalFence(ID3D12Fence* pFence, uint64_t uiFenceValue) const
 {
-	HRESULT Hr = m_pD3DCommandQueue->Signal(pFence.Get(), uiFenceValue);
+	HRESULT Hr = m_pD3DCommandQueue->Signal(pFence, uiFenceValue);
 	UT_ASSERT_HRESULT(Hr, "Signalling fence FAILED!");
 }
 
@@ -115,20 +151,20 @@ void DXRenderDevice::Present() const
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void DXRenderDevice::ExecuteCommandLists(const std::vector<ComPtr<ID3D12CommandList>>& vecCommandList)
+void DXRenderDevice::ExecuteCommandLists(std::vector<ID3D12CommandList*> vecCommandList)
 {
-	ID3D12CommandList* listCommandLists[] = { vecCommandList.data()->Get() };
+	ID3D12CommandList* listCommandLists[] = { vecCommandList[0]};
 
 	// execute the array of command lists
-	m_pD3DCommandQueue->ExecuteCommandLists(vecCommandList.size(), listCommandLists);
+	m_pD3DCommandQueue->ExecuteCommandLists(static_cast<UINT>(vecCommandList.size()), listCommandLists);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::CreateDevice(const ComPtr<IDXGIFactory6>& pFactory)
+bool DXRenderDevice::CreateDevice(const IDXGIFactory6* pFactory)
 {
 	// Create Adapter
-	ComPtr<IDXGIAdapter1> pD3DAdapter;
-	for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pFactory->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&pD3DAdapter)); ++i)
+	IDXGIAdapter1* pD3DAdapter;
+	for (UINT i = 0; DXGI_ERROR_NOT_FOUND != const_cast<IDXGIFactory6*>(pFactory)->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&pD3DAdapter)); ++i)
 	{
 		DXGI_ADAPTER_DESC1 desc;
 		pD3DAdapter->GetDesc1(&desc);
@@ -139,11 +175,13 @@ bool DXRenderDevice::CreateDevice(const ComPtr<IDXGIFactory6>& pFactory)
 		LOG_INFO("Device Chosen = {0}", description);
 
 		// check if adapter supports D3D12
-		if(SUCCEEDED(D3D12CreateDevice(pD3DAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_pD3DDevice))))
+		if(SUCCEEDED(D3D12CreateDevice(pD3DAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_pD3DDevice))))
 		{
 			break;
 		}
 	}
+
+	SAFE_RELEASE(pD3DAdapter);
 
 	LOG_INFO("D3D Device created...");
 	return true;
@@ -152,7 +190,7 @@ bool DXRenderDevice::CreateDevice(const ComPtr<IDXGIFactory6>& pFactory)
 //---------------------------------------------------------------------------------------------------------------------
 bool DXRenderDevice::CreateCommandQueue()
 {
-	UT_CHECK_NULL(m_pD3DDevice.Get(), "ID3DDevice pointer");
+	UT_CHECK_NULL(m_pD3DDevice, "ID3DDevice pointer");
 
 	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -165,7 +203,7 @@ bool DXRenderDevice::CreateCommandQueue()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::CreateSwapchain(HWND hwnd, const ComPtr<IDXGIFactory6>& pFactory)
+bool DXRenderDevice::CreateSwapchain(HWND hwnd, const IDXGIFactory6* pFactory)
 {
 	DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
 	swapchainDesc.Width = UT::Globals::GWindowWidth;
@@ -180,7 +218,7 @@ bool DXRenderDevice::CreateSwapchain(HWND hwnd, const ComPtr<IDXGIFactory6>& pFa
 	swapchainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
 
 	IDXGISwapChain1* pTempSwapchain;
-	const HRESULT Hr = pFactory->CreateSwapChainForHwnd(m_pD3DCommandQueue.Get(), hwnd, &swapchainDesc, nullptr, nullptr, &pTempSwapchain);
+	const HRESULT Hr = const_cast<IDXGIFactory6*>(pFactory)->CreateSwapChainForHwnd(m_pD3DCommandQueue, hwnd, &swapchainDesc, nullptr, nullptr, &pTempSwapchain);
 	UT_CHECK_HRESULT(Hr, "CreateSwapChain",magic_enum::enum_name(swapchainDesc.Format));
 
 	if(SUCCEEDED(pTempSwapchain->QueryInterface(__uuidof(IDXGISwapChain4), (void**)&m_pSwapchain)))
@@ -188,6 +226,8 @@ bool DXRenderDevice::CreateSwapchain(HWND hwnd, const ComPtr<IDXGIFactory6>& pFa
 		m_pSwapchain = static_cast<IDXGISwapChain4*>(pTempSwapchain);
 		LOG_INFO("Swapchain Created...");
 	}
+
+	SAFE_RELEASE(pTempSwapchain);
 
 	return true;
 }
@@ -286,7 +326,7 @@ bool DXRenderDevice::CreateRenderTargetView()
 	depthStencilViewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	depthStencilViewDesc.Flags = D3D12_DSV_FLAG_NONE;
 
-	m_pD3DDevice->CreateDepthStencilView(m_pD3DDepthStencilBuffer.Get(), &depthStencilViewDesc, m_pD3DDescriptorHeapDSV->GetCPUDescriptorHandleForHeapStart());
+	m_pD3DDevice->CreateDepthStencilView(m_pD3DDepthStencilBuffer, &depthStencilViewDesc, m_pD3DDescriptorHeapDSV->GetCPUDescriptorHandleForHeapStart());
 	LOG_INFO("DepthStencil view created...");
 
 	return true;

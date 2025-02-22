@@ -23,10 +23,10 @@ bool UIRenderer::Initialize(const GLFWwindow* pWindow, const DXRenderDevice* pDX
 	ImGui::StyleColorsDark();
 
 	UT_CHECK_BOOL(ImGui_ImplGlfw_InitForOther(const_cast<GLFWwindow*>(pWindow), true), "ImGui_ImplGlfw_InitForOther() failed!");
-	UT_CHECK_BOOL(ImGui_ImplDX12_Init(	pDXRenderDevice->GetD3DDevice().Get(),
+	UT_CHECK_BOOL(ImGui_ImplDX12_Init(	pDXRenderDevice->GetD3DDevice(),
 										UT::Globals::GBackbufferCount,
 										DXGI_FORMAT_R8G8B8A8_UNORM,
-										pDXRenderDevice->GetDescriptorHeapUI().Get(),
+										pDXRenderDevice->GetDescriptorHeapUI(),
 										pDXRenderDevice->GetCPUDescriptorHandleUI(),
 										pDXRenderDevice->GetGPUDescriptorHandleUI()),
 		"ImGui_ImplDX12_Init() FAILED!");
@@ -43,7 +43,7 @@ void UIRenderer::Begin()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void UIRenderer::Render(const DXRenderDevice* pDXRenderDevice, ComPtr<ID3D12GraphicsCommandList> pGraphicsCommandList, DirectX::XMFLOAT4& clearColor )
+void UIRenderer::Render(const DXRenderDevice* pDXRenderDevice, ID3D12GraphicsCommandList* pGraphicsCommandList, DirectX::XMFLOAT4& clearColor )
 {
 	bool show = true;
 	//ImGui::ShowDemoWindow(&show);
@@ -105,12 +105,14 @@ void UIRenderer::Render(const DXRenderDevice* pDXRenderDevice, ComPtr<ID3D12Grap
 	
 	ImGui::Render();
 
-	pGraphicsCommandList->SetDescriptorHeaps(1, pDXRenderDevice->GetDescriptorHeapUI().GetAddressOf());
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pGraphicsCommandList.Get());
+	const std::array<ID3D12DescriptorHeap*, 1> arrDescriptorHeaps = { pDXRenderDevice->GetDescriptorHeapUI() };
+	pGraphicsCommandList->SetDescriptorHeaps(static_cast<uint32_t>(arrDescriptorHeaps.size()), arrDescriptorHeaps.data());
+
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pGraphicsCommandList);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void UIRenderer::End(ComPtr<ID3D12GraphicsCommandList> pGraphicsCommandList)
+void UIRenderer::End(ID3D12GraphicsCommandList* pGraphicsCommandList)
 {
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 
@@ -118,7 +120,7 @@ void UIRenderer::End(ComPtr<ID3D12GraphicsCommandList> pGraphicsCommandList)
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 	{
 		ImGui::UpdatePlatformWindows();
-		ImGui::RenderPlatformWindowsDefault(nullptr, (void*)pGraphicsCommandList.Get());
+		ImGui::RenderPlatformWindowsDefault(nullptr, (void*)pGraphicsCommandList);
 	}
 }
 

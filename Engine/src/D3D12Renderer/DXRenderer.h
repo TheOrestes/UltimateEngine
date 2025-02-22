@@ -17,7 +17,7 @@ public:
 	DXRenderer();
 	virtual ~DXRenderer();
 
-	bool										Initialize(const GLFWwindow* pWindow, ComPtr<IDXGIFactory6> pFactory);
+	bool										Initialize(const GLFWwindow* pWindow, const IDXGIFactory6* pFactory);
 	void										Render();
 	void										Cleanup();
 
@@ -39,28 +39,28 @@ private:
 	void										ResetCommandList(uint32_t renderTargetID) const;
 
 private:
-	std::vector<ComPtr<ID3D12CommandAllocator>>	m_pListD3DCommandAllocator;
-	ComPtr<ID3D12GraphicsCommandList>			m_pD3DGraphicsCommandList;
+	std::vector<ID3D12CommandAllocator*>		m_pListD3DCommandAllocator;
+	ID3D12GraphicsCommandList*					m_pD3DGraphicsCommandList;
 
-	std::vector<ComPtr<ID3D12Fence>>			m_pListFences;
+	std::vector<ID3D12Fence*>					m_pListFences;
 	std::vector<uint64_t>						m_pListFenceValue;
 	HANDLE										m_handleFenceEvent;
 
 	uint32_t									m_uiCurrentFrameIndex;
 	bool										m_bIsCurrentFrameRunning;
 
-	DXRenderDevice*								m_pDXRenderDevice;
-	UIRenderer*									m_pUIRenderer;
-
 	DirectX::XMFLOAT4							m_colorClear;
 
-	ComPtr<ID3D12PipelineState>					m_pPSO;
-	ComPtr<ID3D12RootSignature>					m_pRootSignature;
+	ID3D12PipelineState*						m_pPSO;
+	ID3D12RootSignature*						m_pRootSignature;
 	D3D12_VIEWPORT								m_Viewport;
 	D3D12_RECT									m_ScissorRect;
-	ComPtr<ID3D12Resource>						m_pVBuffer;
-	ComPtr<ID3D12Resource>						m_pIBuffer;
+	ID3D12Resource*								m_pVBuffer;
+	ID3D12Resource*								m_pIBuffer;
 	D3D12_VERTEX_BUFFER_VIEW					m_VBView;
 	D3D12_INDEX_BUFFER_VIEW						m_IBView;
+
+	DXRenderDevice*								m_pDXRenderDevice;
+	UIRenderer*									m_pUIRenderer;
 };
 
