@@ -9,7 +9,7 @@
 #include "CommonStates.h"
 #include "ResourceUploadBatch.h"
 #include "VertexTypes.h"
-
+#include "D3DGlobals.h"
 #include "DXRenderDevice.h"
 #include "EngineHeader.h"
 #include "../../ThirdParty/DirectXTK12/Src/d3dx12.h"
@@ -42,23 +42,25 @@ DXRenderer::~DXRenderer()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderer::Initialize(const GLFWwindow* pWindow, const IDXGIFactory6* pFactory)
+bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 {
 	HRESULT Hr = 0;
+
+	IDXGIFactory6* const pFactory = UT::D3D12::CORE::GetFactory();
+	ID3D12Device* const pDevice = UT::D3D12::CORE::GetDevice();
 
 	m_pDXRenderDevice = new DXRenderDevice();
 	UT_CHECK_NULL(m_pDXRenderDevice, ": DXRenderDevice object");
 
 	const HWND hwnd = glfwGetWin32Window(const_cast<GLFWwindow*>(pWindow));
 
-	UT_CHECK_BOOL(m_pDXRenderDevice->Initialize(hwnd, pFactory), "DXRenderDevice Initialization failed!");
+	UT_CHECK_BOOL(m_pDXRenderDevice->Initialize(hwnd), "DXRenderDevice Initialization failed!");
 	UT_CHECK_BOOL(CreateCommandAllocator(), "D3D Command Allocator creation failed!");
 	UT_CHECK_BOOL(CreateCommandList(), "D3D Command List creation failed!");
 	UT_CHECK_BOOL(CreateFences(), "D3D Fence creation failed!");
 
 	m_pUIRenderer = new UIRenderer();
 	UT_CHECK_BOOL(m_pUIRenderer->Initialize(pWindow, m_pDXRenderDevice));
-
 
 	//---- TRIANGLE RENDERING START
 	D3D12_ROOT_SIGNATURE_DESC1 rootSignatureDesc = {};
@@ -86,15 +88,16 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, const IDXGIFactory6* pFac
 		}
 	}
 
-	Hr = m_pDXRenderDevice->GetD3DDevice()->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&m_pRootSignature));
+	Hr = pDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&m_pRootSignature));
 	UT_CHECK_HRESULT(Hr, "CreateRootSignature", "D3D_ROOT_SIGNATURE_VERSION_1_1");
+	UT_NAME_D3D_OBJECT(m_pRootSignature, "Root Signature");
 
 	// 2. Create Vertex & Fragment shaders
 	ID3DBlob* vertexShader;
-	UT::HelperFunc::CreateVertexShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicVS.hlsl", &vertexShader);
+	UT::D3D12::HelperFunc::CreateVertexShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicVS.hlsl", &vertexShader);
 
 	ID3DBlob* pixelShader;
-	UT::HelperFunc::CreateFragmentShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicFS.hlsl", &pixelShader);
+	UT::D3D12::HelperFunc::CreateFragmentShader("D:/Development/UltimateEngine/Game/Assets/Shaders/BasicFS.hlsl", &pixelShader);
 
 	D3D12_SHADER_BYTECODE vsByteCode = {};
 	vsByteCode.BytecodeLength = vertexShader->GetBufferSize();
@@ -161,17 +164,16 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, const IDXGIFactory6* pFac
 	psoDesc.NumRenderTargets = 1;												// we are binding only one render target
 
 
-	Hr = m_pDXRenderDevice->GetD3DDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPSO));
+	Hr = pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPSO));
 	UT_ASSERT_HRESULT(Hr, "CreateGraphicsPipelineState Failed!!!");
-
-	LOG_INFO("Graphics PSO created...");
+	UT_NAME_D3D_OBJECT(m_pPSO, "Graphics Pipeline");
 
 	// 5. Create Vertex Buffer & transfer the data to GPU!
-	DirectX::ResourceUploadBatch vbResourceUpload(m_pDXRenderDevice->GetD3DDevice());
+	DirectX::ResourceUploadBatch vbResourceUpload(pDevice);
 	vbResourceUpload.Begin();
 
 	// vertex data...
-	std::array<UT::DAS::VertexPC, 4> vertices;
+	std::array<UT::D3D12::DAS::VertexPC, 4> vertices;
 
 	// first quad
 	vertices[0] = { XMFLOAT3(-0.5f,  0.5f, 0.5f), XMFLOAT4(1,0,0,1) };
@@ -179,14 +181,15 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, const IDXGIFactory6* pFac
 	vertices[2] = { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(0,0,1,1) };
 	vertices[3] = { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(1,0,1,1) };
 
-	Hr = DirectX::CreateStaticBuffer(m_pDXRenderDevice->GetD3DDevice(), vbResourceUpload, vertices, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pVBuffer);
-	UT_CHECK_HRESULT(Hr, "Vertex Buffer Created", "D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER");
+	Hr = DirectX::CreateStaticBuffer(pDevice, vbResourceUpload, vertices, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pVBuffer);
+	UT_CHECK_HRESULT(Hr, "Vertex Buffer", "D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER");
+	UT_NAME_D3D_OBJECT(m_pVBuffer, "Vertex Buffer");
 
 	auto vbUploadResourcesFinished = vbResourceUpload.End(m_pDXRenderDevice->GetCommandQueue());
 	vbUploadResourcesFinished.wait();
 
 	// 6. Create Indices data & transfer the data to GPU!
-	DirectX::ResourceUploadBatch ibResourceUpload(m_pDXRenderDevice->GetD3DDevice());
+	DirectX::ResourceUploadBatch ibResourceUpload(pDevice);
 	ibResourceUpload.Begin();
 
 	// index data...
@@ -195,8 +198,9 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, const IDXGIFactory6* pFac
 	indices[0] = 0;		indices[1] = 1;		indices[2] = 2;
 	indices[3] = 0,		indices[4] = 3;		indices[5] = 1;
 
-	DirectX::CreateStaticBuffer(m_pDXRenderDevice->GetD3DDevice(), ibResourceUpload, indices, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pIBuffer);
+	DirectX::CreateStaticBuffer(pDevice, ibResourceUpload, indices, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pIBuffer);
 	UT_CHECK_HRESULT(Hr, "Index Buffer Created", "D3D12_RESOURCE_STATE_INDEX_BUFFER");
+	UT_NAME_D3D_OBJECT(m_pIBuffer, "Index Buffer");
 
 	auto ibUploadResourcesFinished = ibResourceUpload.End(m_pDXRenderDevice->GetCommandQueue());
 	ibUploadResourcesFinished.wait();
@@ -234,8 +238,8 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow, const IDXGIFactory6* pFac
 
 	// create vertex buffer view for the quad
 	m_VBView.BufferLocation = m_pVBuffer->GetGPUVirtualAddress();
-	m_VBView.StrideInBytes = sizeof(UT::DAS::VertexPC);
-	m_VBView.SizeInBytes = vertices.size() * sizeof(UT::DAS::VertexPC);
+	m_VBView.StrideInBytes = sizeof(UT::D3D12::DAS::VertexPC);
+	m_VBView.SizeInBytes = vertices.size() * sizeof(UT::D3D12::DAS::VertexPC);
 
 	// create index buffer view for the quad
 	m_IBView.BufferLocation = m_pIBuffer->GetGPUVirtualAddress();
@@ -437,6 +441,7 @@ bool DXRenderer::CreateCommandAllocator()
 		//UT_CHECK_HRESULT(Hr, "Command Allocator creation failed!");
 
 		m_pListD3DCommandAllocator.emplace_back(pCmdAllocator);
+		UT_NAME_D3D_OBJECT_INDEXED(m_pListD3DCommandAllocator[i], i, "Command Allocator");
 	}
 
 	LOG_INFO("Command Allocator created...");
@@ -452,6 +457,8 @@ bool DXRenderer::CreateCommandList()
 	// Command lists are created in "Recording" state. We do not want to record the command list yet, so we close it. 
 	HRESULT Hr = m_pD3DGraphicsCommandList->Close();
 	UT_ASSERT_HRESULT(Hr, "Command List Close() failed!");
+
+	UT_NAME_D3D_OBJECT(m_pD3DGraphicsCommandList, "Graphics Command-List");
 
 	return true;
 }
@@ -493,7 +500,9 @@ bool DXRenderer::CreateFences()
 		m_pDXRenderDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, &pFence);
 
 		m_pListFences.emplace_back(pFence);
-		m_pListFenceValue.emplace_back(uiFenceValue);	// Initialize with zero. 
+		m_pListFenceValue.emplace_back(uiFenceValue);	// Initialize with zero.
+
+		UT_NAME_D3D_OBJECT_INDEXED(pFence, i, "Fence");
 	}
 
 	// create a handle to a fence event...

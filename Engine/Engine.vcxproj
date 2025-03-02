@@ -123,6 +123,7 @@
     <ClInclude Include="src\UI\UIRenderer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\D3D12Renderer\D3DGlobals.cpp" />
     <ClCompile Include="src\D3D12Renderer\DXDescriptorHeap.cpp" />
     <ClCompile Include="src\D3D12Renderer\DXRenderer.cpp" />
     <ClCompile Include="src\D3D12Renderer\DXRenderDevice.cpp" />

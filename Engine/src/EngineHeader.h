@@ -38,6 +38,29 @@
 //	}																					\
 //}
 
+//#ifdef _DEBUG
+//#define UT_NAME_D3D_OBJECT(obj, name) std::wstring wstrName; std::string strName; wstrName = name; obj->SetName(wstrName.c_str()); strName = std::string(wstrName.begin(), wstrName.end()); LOG_DEBUG("D3D Object Created => {0}", strName);
+//#else
+//#define UT_NAME_D3D_OBJECT(obj, name)
+//#endif
+
+//---------------------------------------------------------------------------------------------------------------------
+template <typename T> void UT_NAME_D3D_OBJECT(T type, std::string name)
+{
+	std::wstring wStr(name.begin(), name.end());
+	type->SetName(wStr.c_str());
+	LOG_INFO("D3D Object Created => {0}", name);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+template <typename T> void UT_NAME_D3D_OBJECT_INDEXED(T type, int n, std::string name)
+{
+	name += std::to_string(n);
+	std::wstring wStr(name.begin(), name.end());
+	type->SetName(wStr.c_str());
+	LOG_INFO("D3D Object Created => {0}", name);
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 template<typename T, typename... Types> bool UT_CHECK_NULL(T a, Types... args)
 {
@@ -74,7 +97,7 @@ template<typename T, typename... Types> bool UT_CHECK_HRESULT(T a, Types... args
 	}
 	else
 	{
-		LOG_DEBUG("SUCCESS => {0} | {1}", args...);
+		//LOG_DEBUG("SUCCESS => {0} | {1}", args...);
 		status = true;
 	}
 
@@ -109,7 +132,7 @@ template<typename T> void SAFE_DELETE(T*& a)
 		delete a;
 		a = nullptr;
 
-		LOG_INFO("{0} instance deleted!", typeid(T).name());
+		LOG_INFO("{0} object deleted!", typeid(T).name());
 	}
 }
 
@@ -121,7 +144,7 @@ template<typename T> void SAFE_RELEASE(T*& a)
 		(a)->Release();
 		(a) = nullptr;
 
-		LOG_WARNING("{0} instance released!", typeid(T).name());
+		LOG_WARNING("{0} object released!", typeid(T).name());
 	}
 }
 

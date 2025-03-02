@@ -128,5 +128,8 @@
     <ClCompile Include="src\D3D12Renderer\DXDescriptorHeap.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\D3D12Renderer\D3DGlobals.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

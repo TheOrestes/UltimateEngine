@@ -22,8 +22,10 @@ bool UIRenderer::Initialize(const GLFWwindow* pWindow, const DXRenderDevice* pDX
 
 	ImGui::StyleColorsDark();
 
+	ID3D12Device* const pDevice = UT::D3D12::CORE::GetDevice();
+
 	UT_CHECK_BOOL(ImGui_ImplGlfw_InitForOther(const_cast<GLFWwindow*>(pWindow), true), "ImGui_ImplGlfw_InitForOther() failed!");
-	UT_CHECK_BOOL(ImGui_ImplDX12_Init(	pDXRenderDevice->GetD3DDevice(),
+	UT_CHECK_BOOL(ImGui_ImplDX12_Init(	pDevice,
 										UT::Globals::GBackbufferCount,
 										DXGI_FORMAT_R8G8B8A8_UNORM,
 										pDXRenderDevice->GetDescriptorHeapUI(),

@@ -17,7 +17,7 @@ public:
 	DXRenderer();
 	virtual ~DXRenderer();
 
-	bool										Initialize(const GLFWwindow* pWindow, const IDXGIFactory6* pFactory);
+	bool										Initialize(const GLFWwindow* pWindow);
 	void										Render();
 	void										Cleanup();
 

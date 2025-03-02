@@ -44,7 +44,6 @@ private:
 	HWND									m_hwnd;
 	std::string								m_strGPUName;
 
-	IDXGIFactory6*							m_pDXGIFactory;
 	ID3D12Debug1*							m_pD3DDebug;
 	IDXGIDebug1*							m_pDXGIDebug;
 

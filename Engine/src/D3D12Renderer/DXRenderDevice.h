@@ -17,22 +17,22 @@ public:
 	const char*								GetAPIName() override;
 	const char*								GetGPUName() override;
 
-	bool									Initialize(HWND hwnd, const IDXGIFactory6* pFactory);
+	bool									Initialize(HWND hwnd);
 	void									Cleanup();
 	void									CleanupOnWindowResize();
 	void									RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeight);
 
-	bool									CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ID3D12CommandAllocator** pOutCmdAllocator);
-	bool									CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, ID3D12CommandAllocator* pCmdAllocator, ID3D12GraphicsCommandList** pOutCmdList);
-	bool									CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ID3D12Fence** pOutFence);
+	void CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ID3D12CommandAllocator** pOutCmdAllocator);
+	void CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, ID3D12CommandAllocator* pCmdAllocator,
+	                               ID3D12GraphicsCommandList** pOutCmdList);
+	void CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ID3D12Fence** pOutFence);
 
 	void									SignalFence(ID3D12Fence* pFence, uint64_t uiFenceValue) const;
 	void									Present() const;
 	void									ExecuteCommandLists(const std::vector<ID3D12CommandList*> vecCommandList);
 
 private:
-	bool									CreateDevice(const IDXGIFactory6* pFactory);
-	bool									CreateSwapchain(HWND hwnd, const IDXGIFactory6* pFactory);
+	bool									CreateSwapchain(HWND hwnd);
 	bool									CreateDescriptorHeap();
 	bool									CreateCommandQueue();
 	bool									CreateRenderTargetView();
@@ -41,7 +41,6 @@ private:
 
 public:
 	inline std::string						GetGPUAdapterName() const							{ return m_strGPUName; }
-	inline ID3D12Device*					GetD3DDevice() const								{ return m_pD3DDevice; };
 	inline IDXGISwapChain4*					GetD3DSwapChain() const								{ return m_pSwapchain; }
 	inline ID3D12Resource*					GetRenderTarget(uint32_t index) const				{ return m_pListD3DRenderTargetBuffers.at(index); }
 	inline uint32_t							GetCurrentBackbufferIndex() const					{ return m_pSwapchain->GetCurrentBackBufferIndex(); }
@@ -61,9 +60,10 @@ public:
 	inline ID3D12CommandQueue*				GetCommandQueue() const								{ return m_pD3DCommandQueue; }
 
 private:
+
 	std::string								m_strGPUName;
 
-	ID3D12Device*							m_pD3DDevice;
+	
 	ID3D12DebugDevice*						m_pD3DDebugDevice;
 	IDXGISwapChain4*						m_pSwapchain;
 	ID3D12CommandQueue*						m_pD3DCommandQueue;

@@ -11,7 +11,6 @@ DirectXApplication::DirectXApplication()
 
 	m_pDXGIDebug = nullptr;
 	m_pD3DDebug = nullptr;
-	m_pDXGIFactory = nullptr;
 
 	m_pDXRenderer = nullptr;
 }
@@ -26,10 +25,9 @@ DirectXApplication::~DirectXApplication()
 void DirectXApplication::Cleanup()
 {
 	SAFE_DELETE(m_pDXRenderer);
-
 	SAFE_RELEASE(m_pD3DDebug);
 
-	SAFE_RELEASE(m_pDXGIFactory);
+	UT::D3D12::CORE::Cleanup();
 
 	DisableDebug();
 
@@ -50,18 +48,10 @@ bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 
 	EnableDebug();
 
-	// Create factory
-	UINT dxgiFactoryFlags = 0;
-
-#if defined _DEBUG
-	dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-#endif
-
-	const HRESULT Hr = CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_pDXGIFactory));
-	UT_ASSERT_HRESULT(Hr, "CreateDXGIFactory2");
+	UT::D3D12::CORE::Initialize();
 
 	m_pDXRenderer = new DXRenderer();
-	UT_CHECK_BOOL(m_pDXRenderer->Initialize(pWindow, m_pDXGIFactory));
+	UT_CHECK_BOOL(m_pDXRenderer->Initialize(pWindow));
 
 	return true;
 }
