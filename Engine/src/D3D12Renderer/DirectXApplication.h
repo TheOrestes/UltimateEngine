@@ -38,9 +38,6 @@ private:
 	void									CleanupOnWindowResize();
 	void									RecreateOnWindowResize(const GLFWwindow* pWindow);
 
-	uint16_t								m_uiAppWidth;
-	uint16_t								m_uiAppHeight;
-
 	HWND									m_hwnd;
 	std::string								m_strGPUName;
 

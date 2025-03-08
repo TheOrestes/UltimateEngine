@@ -81,8 +81,9 @@ namespace UT
 	//-------------------------------------------------------------------------------------------------------------------
 	namespace Globals
 	{
-		inline uint16_t GWindowWidth = 960;
-		inline uint16_t GWindowHeight = 540;
+		inline uint16_t GWindowWidth = 0;
+		inline uint16_t GWindowHeight = 0;
+		inline double	GDeltaTime = 0.0f;
 
 		inline constexpr uint16_t GBackbufferCount = 3;
 	}

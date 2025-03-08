@@ -14,7 +14,8 @@ DXRenderDevice::DXRenderDevice() :
 	m_pD3DDescriptorHeapRTV(nullptr),
 	m_pD3DDescriptorHeapDSV(nullptr),
 	m_pD3DDepthStencilBuffer(nullptr),
-	m_pD3DDescriptorHeapUI(nullptr)
+	m_pD3DDescriptorHeapUI(nullptr),
+	m_pD3DDescriptorHeapGlobal(nullptr)
 {
 	m_pListD3DRenderTargetBuffers.clear();
 }
@@ -42,7 +43,7 @@ bool DXRenderDevice::Initialize(HWND hwnd)
 {
 	UT_CHECK_BOOL(CreateCommandQueue(), "D3D Command Queue creation failed!");
 	UT_CHECK_BOOL(CreateSwapchain(hwnd), "D3D Swapchain creation failed!");
-	UT_CHECK_BOOL(CreateDescriptorHeap(), "D3D Descriptor Heap creation failed!");
+	UT_CHECK_BOOL(CreateDescriptorHeaps(), "D3D Descriptor Heap creation failed!");
 	UT_CHECK_BOOL(CreateRenderTargetView(), "D3D Render Target View creation failed!");
 
 	return true;
@@ -65,6 +66,7 @@ void DXRenderDevice::Cleanup()
 
 	m_pListD3DRenderTargetBuffers.clear();
 
+	SAFE_RELEASE(m_pD3DDescriptorHeapGlobal);
 	SAFE_RELEASE(m_pD3DDescriptorHeapUI);
 	SAFE_RELEASE(m_pD3DDepthStencilBuffer);
 	SAFE_RELEASE(m_pD3DDescriptorHeapDSV);
@@ -212,7 +214,7 @@ bool DXRenderDevice::CreateSwapchain(HWND hwnd)
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::CreateDescriptorHeap()
+bool DXRenderDevice::CreateDescriptorHeaps()
 {
 	// Descriptor heap for RTV...
 	D3D12_DESCRIPTOR_HEAP_DESC descRTV = {};
@@ -245,6 +247,15 @@ bool DXRenderDevice::CreateDescriptorHeap()
 	Hr = pDevice->CreateDescriptorHeap(&descSRV, IID_PPV_ARGS(&m_pD3DDescriptorHeapUI));
 	UT_CHECK_HRESULT(Hr, "CreateDescriptorHeap", magic_enum::enum_name(descSRV.Type));
 	UT_NAME_D3D_OBJECT(m_pD3DDescriptorHeapUI, "UI Heap");
+
+	// Global Descriptor Heap
+	D3D12_DESCRIPTOR_HEAP_DESC descGlobal = {};
+	descGlobal.NumDescriptors = 1;
+	descGlobal.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	descGlobal.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	Hr = pDevice->CreateDescriptorHeap(&descGlobal, IID_PPV_ARGS(&m_pD3DDescriptorHeapGlobal));
+	UT_CHECK_HRESULT(Hr, "CreateDescriptorHeap", magic_enum::enum_name(descGlobal.Type));
+	UT_NAME_D3D_OBJECT(m_pD3DDescriptorHeapUI, "Global Heap");
 
 	LOG_INFO("Descriptor heaps created...");
 	return true;

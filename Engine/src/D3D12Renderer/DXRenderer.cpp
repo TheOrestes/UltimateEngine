@@ -63,11 +63,22 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	UT_CHECK_BOOL(m_pUIRenderer->Initialize(pWindow, m_pDXRenderDevice));
 
 	//---- TRIANGLE RENDERING START
+
+	D3D12_ROOT_CONSTANTS rootConstants = {};
+	rootConstants.Num32BitValues = 4;	// RGB + Delta-Time
+	rootConstants.RegisterSpace = 0;
+	rootConstants.ShaderRegister = 0;
+
+	D3D12_ROOT_PARAMETER1 rootParam = {};
+	rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	rootParam.Constants = rootConstants;
+	rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
 	D3D12_ROOT_SIGNATURE_DESC1 rootSignatureDesc = {};
-	rootSignatureDesc.NumParameters = 0;
+	rootSignatureDesc.NumParameters = 1;
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 	rootSignatureDesc.NumStaticSamplers = 0;
-	rootSignatureDesc.pParameters = nullptr;
+	rootSignatureDesc.pParameters = &rootParam;
 	rootSignatureDesc.pStaticSamplers = nullptr;
 
 	D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignDesc = {};
@@ -364,6 +375,11 @@ void DXRenderer::EndFrame(uint32_t currFrameIndex)
 void DXRenderer::DrawCommands()
 {
 	m_pD3DGraphicsCommandList->SetGraphicsRootSignature(m_pRootSignature);
+
+	// Set root constant value!
+	float gameDelta = static_cast<float>(UT::Globals::GDeltaTime);
+	float rootConstantsData[4] = { 1.0f, 1.0f, 0.0f, gameDelta };
+	m_pD3DGraphicsCommandList->SetGraphicsRoot32BitConstants(0, 4, rootConstantsData, 0);
 
 	m_pD3DGraphicsCommandList->RSSetViewports(1, &m_Viewport);
 	m_pD3DGraphicsCommandList->RSSetScissorRects(1, &m_ScissorRect);

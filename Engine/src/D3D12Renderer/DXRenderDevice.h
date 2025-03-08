@@ -22,10 +22,10 @@ public:
 	void									CleanupOnWindowResize();
 	void									RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeight);
 
-	void CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ID3D12CommandAllocator** pOutCmdAllocator);
-	void CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, ID3D12CommandAllocator* pCmdAllocator,
-	                               ID3D12GraphicsCommandList** pOutCmdList);
-	void CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ID3D12Fence** pOutFence);
+	void									CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE cmdListType, ID3D12CommandAllocator** pOutCmdAllocator);
+	void									CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE cmdListType, ID3D12CommandAllocator* pCmdAllocator,
+																		ID3D12GraphicsCommandList** pOutCmdList);
+	void									CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceFlags, ID3D12Fence** pOutFence);
 
 	void									SignalFence(ID3D12Fence* pFence, uint64_t uiFenceValue) const;
 	void									Present() const;
@@ -33,7 +33,7 @@ public:
 
 private:
 	bool									CreateSwapchain(HWND hwnd);
-	bool									CreateDescriptorHeap();
+	bool									CreateDescriptorHeaps();
 	bool									CreateCommandQueue();
 	bool									CreateRenderTargetView();
 
@@ -78,8 +78,10 @@ private:
 	uint32_t								m_uiDescriptorSizeDSV;
 	ID3D12Resource*							m_pD3DDepthStencilBuffer;
 
-	// Descriptor setup CBV | SRV | UAV
+	// DescriptorHeap for ImGUI
 	ID3D12DescriptorHeap*					m_pD3DDescriptorHeapUI;
+
+	ID3D12DescriptorHeap*					m_pD3DDescriptorHeapGlobal;
 };
 
 

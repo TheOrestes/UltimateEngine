@@ -6,9 +6,6 @@
 //---------------------------------------------------------------------------------------------------------------------
 DirectXApplication::DirectXApplication()
 {
-	m_uiAppWidth = 0;
-	m_uiAppHeight = 0;
-
 	m_pDXGIDebug = nullptr;
 	m_pD3DDebug = nullptr;
 
@@ -38,13 +35,6 @@ void DirectXApplication::Cleanup()
 bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 {
 	UT_CHECK_NULL(pWindow, "GLFW Windows pointer");
-
-	int width, height = 0;
-	glfwGetWindowSize(const_cast<GLFWwindow*>(pWindow), &width, &height);
-
-	// Store windows width & height for future usage!
-	m_uiAppWidth = static_cast<uint16_t>(width);
-	m_uiAppHeight = static_cast<uint16_t>(height);
 
 	EnableDebug();
 
@@ -83,6 +73,8 @@ void DirectXApplication::DisableDebug()
 //---------------------------------------------------------------------------------------------------------------------
 void DirectXApplication::Update(double dt)
 {
+	// Save it for the use within Renderer!
+	UT::Globals::GDeltaTime = dt;
 }
 
 //---------------------------------------------------------------------------------------------------------------------

@@ -28,6 +28,10 @@ bool EngineApplication::Initialize(const std::string& name, uint16_t width, uint
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
+	// Set globals
+	UT::Globals::GWindowWidth = width;
+	UT::Globals::GWindowHeight = height;
+
 	m_pGLFWWindow = glfwCreateWindow(width, height, name.c_str(), nullptr, nullptr);
 	UT_CHECK_NULL(m_pGLFWWindow, "GLTF Window Pointer!");
 
@@ -43,10 +47,6 @@ bool EngineApplication::Initialize(const std::string& name, uint16_t width, uint
 	m_bAppInitialized = m_pD3DApp->Initialize(m_pGLFWWindow);
 
 	glfwSetWindowUserPointer(m_pGLFWWindow, m_pD3DApp);
-
-	// Set globals
-	UT::Globals::GWindowWidth = width;
-	UT::Globals::GWindowHeight = height;
 
 	return m_bAppInitialized;
 }

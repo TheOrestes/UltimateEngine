@@ -100,7 +100,6 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\D3D12Renderer\DXDescriptorHeap.h" />
     <ClInclude Include="src\D3D12Renderer\DXRenderer.h" />
     <ClInclude Include="src\D3D12Renderer\D3DGlobals.h" />
     <ClInclude Include="src\D3D12Renderer\DXRenderDevice.h" />
@@ -124,7 +123,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\D3D12Renderer\D3DGlobals.cpp" />
-    <ClCompile Include="src\D3D12Renderer\DXDescriptorHeap.cpp" />
     <ClCompile Include="src\D3D12Renderer\DXRenderer.cpp" />
     <ClCompile Include="src\D3D12Renderer\DXRenderDevice.cpp" />
     <ClCompile Include="src\D3D12Renderer\DirectXApplication.cpp" />
