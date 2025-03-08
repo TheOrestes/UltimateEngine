@@ -62,5 +62,7 @@ private:
 
 	DXRenderDevice*								m_pDXRenderDevice;
 	UIRenderer*									m_pUIRenderer;
+
+	ID3D12Resource*								m_pConstantBuffer;
 };
 

@@ -26,7 +26,8 @@ DXRenderer::DXRenderer() :
 	m_pUIRenderer(nullptr),
 	m_uiCurrentFrameIndex(0),
 	m_handleFenceEvent(0),
-	m_bIsCurrentFrameRunning(false)
+	m_bIsCurrentFrameRunning(false),
+	m_pConstantBuffer(nullptr)
 {
 	m_pListFences.clear();
 	m_pListFenceValue.clear();
@@ -62,23 +63,70 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	m_pUIRenderer = new UIRenderer();
 	UT_CHECK_BOOL(m_pUIRenderer->Initialize(pWindow, m_pDXRenderDevice));
 
+	//---- Copy Constant Buffer data onto ID3D12Resource
+	UT::D3D12::DAS::ConstantBuffer cbData = { XMFLOAT4(1,-1,1,1) };
+
+	D3D12_HEAP_PROPERTIES heapProperties = {};
+	heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+
+	D3D12_RESOURCE_DESC resourceDesc = {};
+	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	resourceDesc.Alignment = 0;
+	resourceDesc.Width = (sizeof(UT::D3D12::DAS::ConstantBuffer) + 255) & ~255;		// 256-bit alignment!
+	resourceDesc.Height = 1;
+	resourceDesc.DepthOrArraySize = 1;
+	resourceDesc.MipLevels = 1;
+	resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+	resourceDesc.SampleDesc.Count = 1;
+	resourceDesc.SampleDesc.Quality = 0;
+	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	Hr = pDevice->CreateCommittedResource(
+		&heapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&resourceDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&m_pConstantBuffer));
+
+	UT_CHECK_HRESULT(Hr, "CreateCommittedResource", "Constant Buffer");
+	UT_NAME_D3D_OBJECT(m_pConstantBuffer, "Constant Buffer");
+
+	void* mappedbuffer;
+	D3D12_RANGE readRange = {};
+	m_pConstantBuffer->Map(0, &readRange, &mappedbuffer);
+	memcpy(mappedbuffer, &cbData, sizeof(UT::D3D12::DAS::ConstantBuffer));
+	m_pConstantBuffer->Unmap(0, nullptr);
+
 	//---- TRIANGLE RENDERING START
 
 	D3D12_ROOT_CONSTANTS rootConstants = {};
 	rootConstants.Num32BitValues = 4;	// RGB + Delta-Time
-	rootConstants.RegisterSpace = 0;
 	rootConstants.ShaderRegister = 0;
+	rootConstants.RegisterSpace = 0;
 
-	D3D12_ROOT_PARAMETER1 rootParam = {};
-	rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-	rootParam.Constants = rootConstants;
-	rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	D3D12_ROOT_DESCRIPTOR1 rootDescriptor = {};
+	rootDescriptor.ShaderRegister = 1;
+	rootDescriptor.RegisterSpace = 0;
+
+	std::array<D3D12_ROOT_PARAMETER1, 2> rootParams;
+	
+	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	rootParams[0].Constants = rootConstants;
+	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	rootParams[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParams[1].Descriptor = rootDescriptor;
+	rootParams[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	D3D12_ROOT_SIGNATURE_DESC1 rootSignatureDesc = {};
-	rootSignatureDesc.NumParameters = 1;
+	rootSignatureDesc.NumParameters = static_cast<uint32_t>(rootParams.size());
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 	rootSignatureDesc.NumStaticSamplers = 0;
-	rootSignatureDesc.pParameters = &rootParam;
+	rootSignatureDesc.pParameters = rootParams.data();
 	rootSignatureDesc.pStaticSamplers = nullptr;
 
 	D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignDesc = {};
@@ -299,6 +347,7 @@ void DXRenderer::Cleanup()
 	m_pDXRenderDevice->SignalFence(m_pListFences.at(currRenderTargetIndex), m_pListFenceValue.at(currRenderTargetIndex));
 
 	SAFE_DELETE(m_pUIRenderer);
+	SAFE_RELEASE(m_pConstantBuffer);
 	SAFE_RELEASE(m_pPSO);
 	SAFE_RELEASE(m_pRootSignature);
 	SAFE_RELEASE(m_pVBuffer);
@@ -380,6 +429,9 @@ void DXRenderer::DrawCommands()
 	float gameDelta = static_cast<float>(UT::Globals::GDeltaTime);
 	float rootConstantsData[4] = { 1.0f, 1.0f, 0.0f, gameDelta };
 	m_pD3DGraphicsCommandList->SetGraphicsRoot32BitConstants(0, 4, rootConstantsData, 0);
+
+	D3D12_GPU_VIRTUAL_ADDRESS cbvAddress = m_pConstantBuffer->GetGPUVirtualAddress();
+	m_pD3DGraphicsCommandList->SetGraphicsRootConstantBufferView(1, cbvAddress);
 
 	m_pD3DGraphicsCommandList->RSSetViewports(1, &m_Viewport);
 	m_pD3DGraphicsCommandList->RSSetScissorRects(1, &m_ScissorRect);

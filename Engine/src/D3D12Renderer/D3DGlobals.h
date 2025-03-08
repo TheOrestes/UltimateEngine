@@ -67,6 +67,11 @@ namespace UT
 				XMFLOAT3 Position;
 				XMFLOAT4 Color;
 			};
+
+			struct ConstantBuffer
+			{
+				XMFLOAT4 offset;
+			};
 		}
 
 		//-------------------------------------------------------------------------------------------------------------------
