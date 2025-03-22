@@ -1,6 +1,9 @@
 ﻿#include "UltimateEnginePCH.h"
 #include "D3DGlobals.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 namespace UT
 {
 	namespace D3D12
@@ -62,6 +65,26 @@ namespace UT
 		//-------------------------------------------------------------------------------------------------------------------
 		namespace HelperFunc
 		{
+			std::string GetExecutablePath()
+			{
+				std::string returnPath{};
+
+				WCHAR ownPath[MAX_PATH];
+
+#ifdef UT_PLATFORM_WINDOWS
+				const HMODULE hModule = GetModuleHandle(0);
+				if(hModule != nullptr)
+				{
+					GetModuleFileNameW(hModule, ownPath, (sizeof(ownPath)));
+					std::wstring tempW(&ownPath[0]);
+					returnPath = std::string(tempW.begin(), tempW.end());
+				}
+
+				return returnPath;
+#endif
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
 			void CreateVertexShader(const std::string& vsFile, ID3DBlob** vertexShaderBlob)
 			{
 				//UT_ASSERT_NULL(vertexShaderBlob);
@@ -120,6 +143,42 @@ namespace UT
 				// fill out an input layout description structure
 				outLayoutDesc.NumElements = sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC);
 				outLayoutDesc.pInputElementDescs = inputLayout;
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			unsigned char* Load_STB_Image(const std::string& fileName, int& width, int& height, int& channels)
+			{
+				const std::string gamePath = GetExecutablePath();
+				int pos = gamePath.find_last_of("\\");
+				std::string imgPath = gamePath.substr(0, pos+1) + fileName;
+				unsigned char* data = stbi_load(fileName.c_str(), &width, &height, &channels, 4);
+
+				UT_ASSERT_NULL(data);
+
+				// unsigned char* rgbaData = static_cast<unsigned char*>(malloc(width * height * 4 * sizeof(unsigned char)));
+
+				//if(channels == 3)
+				//{
+				//	// convert RGB to RGBA
+				//	for (uint16_t j = 0 ; j < height ; ++j)
+				//	{
+				//		for(uint16_t i = 0 ; i < width ; ++i)
+				//		{
+				//			const int index = (j * width + i) * channels;
+				//
+				//			// Read pixel data
+				//			rgbaData[index] = data[index];
+				//			rgbaData[index + 1] = data[index + 1];
+				//			rgbaData[index + 2] = data[index + 2];
+				//			rgbaData[index + 3] = 255;
+				//		}
+				//	}
+				//}
+
+
+				// UT_ASSERT_NULL(rgbaData);
+
+				return data;
 			}
 		}
 	}

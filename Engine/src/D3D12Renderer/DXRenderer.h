@@ -38,6 +38,10 @@ private:
 	void										ResetCommandAllocator(uint32_t renderTargetID) const;
 	void										ResetCommandList(uint32_t renderTargetID) const;
 
+	void										CreateRootConstants();
+	void										CreateRootDescriptorCBV();
+	void										CreateRootDescriptorSRV();
+
 private:
 	std::vector<ID3D12CommandAllocator*>		m_pListD3DCommandAllocator;
 	ID3D12GraphicsCommandList*					m_pD3DGraphicsCommandList;
@@ -64,5 +68,6 @@ private:
 	UIRenderer*									m_pUIRenderer;
 
 	ID3D12Resource*								m_pConstantBuffer;
+	ID3D12Resource*								m_pImageTexture;
 };
 

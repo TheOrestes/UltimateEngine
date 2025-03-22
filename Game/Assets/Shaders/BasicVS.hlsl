@@ -14,14 +14,14 @@ cbuffer ConstantBuffer : register(b1)
 struct VS_INPUT
 {
 	float3 Position : POSITION;
-	float4 Color : COLOR;
+	float2 Texcoord : TEXCOORD;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
 struct VS_OUTPUT
 {
 	float4 Position : SV_POSITION;
-	float4 Color : COLOR;
+	float2 Texcoord : TEXCOORD;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -29,8 +29,8 @@ VS_OUTPUT main( VS_INPUT In)
 {
 	VS_OUTPUT Out;
 
-	Out.Position = float4(In.Position, 1.0f) + Offset;
-	Out.Color = In.Color;
+	Out.Position = float4(In.Position, 1.0f);// + Offset;
+	Out.Texcoord = In.Texcoord;
 
 	return Out;
 }

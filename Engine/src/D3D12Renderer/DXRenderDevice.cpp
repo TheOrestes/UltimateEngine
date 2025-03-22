@@ -255,7 +255,7 @@ bool DXRenderDevice::CreateDescriptorHeaps()
 	descGlobal.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	Hr = pDevice->CreateDescriptorHeap(&descGlobal, IID_PPV_ARGS(&m_pD3DDescriptorHeapGlobal));
 	UT_CHECK_HRESULT(Hr, "CreateDescriptorHeap", magic_enum::enum_name(descGlobal.Type));
-	UT_NAME_D3D_OBJECT(m_pD3DDescriptorHeapUI, "Global Heap");
+	UT_NAME_D3D_OBJECT(m_pD3DDescriptorHeapGlobal, "Global Heap");
 
 	LOG_INFO("Descriptor heaps created...");
 	return true;

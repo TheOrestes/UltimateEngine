@@ -57,6 +57,10 @@ public:
 	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleUI() const					{ return m_pD3DDescriptorHeapUI->GetCPUDescriptorHandleForHeapStart(); }
 	inline D3D12_GPU_DESCRIPTOR_HANDLE		GetGPUDescriptorHandleUI() const					{ return m_pD3DDescriptorHeapUI->GetGPUDescriptorHandleForHeapStart(); }
 
+	inline ID3D12DescriptorHeap*			GetDescriptorHeapGlobal() const						{ return m_pD3DDescriptorHeapGlobal; }
+	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleGlobal() const				{ return m_pD3DDescriptorHeapGlobal->GetCPUDescriptorHandleForHeapStart(); }
+	inline D3D12_GPU_DESCRIPTOR_HANDLE		GetGPUDescriptorHandleGlobal() const				{ return m_pD3DDescriptorHeapGlobal->GetGPUDescriptorHandleForHeapStart(); }
+
 	inline ID3D12CommandQueue*				GetCommandQueue() const								{ return m_pD3DCommandQueue; }
 
 private:

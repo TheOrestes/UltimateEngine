@@ -19,8 +19,4 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Assets\Shaders\BasicVS.hlsl" />
-    <FxCompile Include="Assets\Shaders\BasicFS.hlsl" />
-  </ItemGroup>
 </Project>

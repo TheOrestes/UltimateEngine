@@ -12,6 +12,7 @@
 #include "D3DGlobals.h"
 #include "DXRenderDevice.h"
 #include "EngineHeader.h"
+#include "stb_image.h"
 #include "../../ThirdParty/DirectXTK12/Src/d3dx12.h"
 #include "UI/UIRenderer.h"
 
@@ -33,7 +34,7 @@ DXRenderer::DXRenderer() :
 	m_pListFenceValue.clear();
 	m_pListD3DCommandAllocator.clear();
 
-	m_colorClear = DirectX::XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+	m_colorClear = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -101,6 +102,116 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	memcpy(mappedbuffer, &cbData, sizeof(UT::D3D12::DAS::ConstantBuffer));
 	m_pConstantBuffer->Unmap(0, nullptr);
 
+	//---- Load Image as texture
+	int imgWidth, imgHeight, imgChannels = 0;
+	unsigned char* imgData = UT::D3D12::HelperFunc::Load_STB_Image("Assets\\Textures\\Debug_Purple.png", imgWidth, imgHeight, imgChannels);
+
+	// Create the texture resource
+	D3D12_RESOURCE_DESC textureDesc = {};
+	textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	textureDesc.Alignment = 0;
+	textureDesc.Width = imgWidth;
+	textureDesc.Height = imgHeight;
+	textureDesc.DepthOrArraySize = 1;
+	textureDesc.MipLevels = 1;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	D3D12_HEAP_PROPERTIES texHeapProperties = {};
+	texHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+	texHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	texHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+
+	Hr = pDevice->CreateCommittedResource(
+		&texHeapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&textureDesc,
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		nullptr,
+		IID_PPV_ARGS(&m_pImageTexture));
+
+	UT_CHECK_HRESULT(Hr, "CreateCommittedResource", "Texture Resource");
+	UT_NAME_D3D_OBJECT(m_pImageTexture, "Texture Resource");
+
+	// Create an upload heap for texture data
+	ID3D12Resource* textureUploadHeap;
+	UINT64 textureUploadBufferSize;
+	pDevice->GetCopyableFootprints(&textureDesc, 0, 1, 0, nullptr, nullptr, nullptr, &textureUploadBufferSize);
+
+	D3D12_HEAP_PROPERTIES uploadHeapProperties = {};
+	uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+	D3D12_RESOURCE_DESC uploadResourceDescription = {};
+	uploadResourceDescription.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	uploadResourceDescription.Alignment = 0;
+	uploadResourceDescription.Width = textureUploadBufferSize;
+	uploadResourceDescription.Height = 1;
+	uploadResourceDescription.DepthOrArraySize = 1;
+	uploadResourceDescription.MipLevels = 1;
+	uploadResourceDescription.Format = DXGI_FORMAT_UNKNOWN;
+	uploadResourceDescription.SampleDesc.Count = 1;
+	uploadResourceDescription.SampleDesc.Quality = 0;
+	uploadResourceDescription.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	uploadResourceDescription.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	Hr = pDevice->CreateCommittedResource(
+		&uploadHeapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&uploadResourceDescription,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&textureUploadHeap));
+
+	UT_CHECK_HRESULT(Hr, "CreateCommittedResource", "Texture Upload Heap");
+	UT_NAME_D3D_OBJECT(textureUploadHeap, "Texture Upload Heap");
+
+	// Upload the texture data
+	void* mappedTextureData;
+
+	textureUploadHeap->Map(0, nullptr, &mappedTextureData);
+	memcpy(mappedTextureData, imgData, imgWidth * imgHeight * 4);
+	textureUploadHeap->Unmap(0, nullptr);
+
+	// Free stb-image allocated memory!
+	stbi_image_free(imgData);
+
+	D3D12_TEXTURE_COPY_LOCATION dst = {};
+	dst.pResource = m_pImageTexture;
+	dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+	dst.SubresourceIndex = 0;
+
+	D3D12_TEXTURE_COPY_LOCATION src = {};
+	src.pResource = textureUploadHeap;
+	src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+	pDevice->GetCopyableFootprints(&textureDesc, 0, 1, 0, &src.PlacedFootprint, nullptr, nullptr, nullptr);
+
+	ID3D12CommandAllocator* cmdAllocator;
+	m_pDXRenderDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, &cmdAllocator);
+
+	ID3D12GraphicsCommandList* cmdList;
+	m_pDXRenderDevice->CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAllocator, &cmdList);
+
+	cmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+
+	// Transition the texture to the PIXEL_SHADER_RESOURCE state
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = m_pImageTexture;
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+	cmdList->ResourceBarrier(1, &barrier);
+	cmdList->Close();
+
+	// Execute command list
+	std::vector<ID3D12CommandList*> cmdLists = { cmdList };
+	m_pDXRenderDevice->ExecuteCommandLists(cmdLists);
+
 	//---- TRIANGLE RENDERING START
 
 	D3D12_ROOT_CONSTANTS rootConstants = {};
@@ -108,26 +219,48 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	rootConstants.ShaderRegister = 0;
 	rootConstants.RegisterSpace = 0;
 
-	D3D12_ROOT_DESCRIPTOR1 rootDescriptor = {};
-	rootDescriptor.ShaderRegister = 1;
-	rootDescriptor.RegisterSpace = 0;
+	D3D12_ROOT_DESCRIPTOR1 cbvDescriptor = {};
+	cbvDescriptor.ShaderRegister = 1;
+	cbvDescriptor.RegisterSpace = 0;
 
-	std::array<D3D12_ROOT_PARAMETER1, 2> rootParams;
+	D3D12_DESCRIPTOR_RANGE1 srvRange = {};
+	srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // Shader Resource View range
+	srvRange.NumDescriptors = 1;                         // Single descriptor for the texture
+	srvRange.BaseShaderRegister = 0;                     // t0 in the shader
+	srvRange.RegisterSpace = 0;
+	srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	std::array<D3D12_ROOT_PARAMETER1, 3> rootParams;
 	
 	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 	rootParams[0].Constants = rootConstants;
 	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	rootParams[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	rootParams[1].Descriptor = rootDescriptor;
+	rootParams[1].Descriptor = cbvDescriptor;
 	rootParams[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	rootParams[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParams[2].DescriptorTable.NumDescriptorRanges = 1;
+	rootParams[2].DescriptorTable.pDescriptorRanges = &srvRange;
+	rootParams[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	// Static sampler
+	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc.ShaderRegister = 0; // Matches the shader's s0 register
+	samplerDesc.RegisterSpace = 0;
+	samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	D3D12_ROOT_SIGNATURE_DESC1 rootSignatureDesc = {};
 	rootSignatureDesc.NumParameters = static_cast<uint32_t>(rootParams.size());
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rootSignatureDesc.NumStaticSamplers = 0;
+	rootSignatureDesc.NumStaticSamplers = 1;
 	rootSignatureDesc.pParameters = rootParams.data();
-	rootSignatureDesc.pStaticSamplers = nullptr;
+	rootSignatureDesc.pStaticSamplers = &samplerDesc;
 
 	D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignDesc = {};
 	rootSignDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -175,8 +308,8 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	// 3. Create Input layout
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 	};
 
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
@@ -203,6 +336,7 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 
 	depthStencilDesc.FrontFace = depthStencilOpDesc;
 	depthStencilDesc.BackFace = depthStencilOpDesc;
+
 
 	//UT::HelperFunc::CreateVertexInputLayoutDesc(inputLayoutDesc);
 
@@ -232,13 +366,13 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	vbResourceUpload.Begin();
 
 	// vertex data...
-	std::array<UT::D3D12::DAS::VertexPC, 4> vertices;
+	std::array<UT::D3D12::DAS::VertexPT, 4> vertices;
 
 	// first quad
-	vertices[0] = { XMFLOAT3(-0.5f,  0.5f, 0.5f), XMFLOAT4(1,0,0,1) };
-	vertices[1] = { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT4(0,1,0,1) };
-	vertices[2] = { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(0,0,1,1) };
-	vertices[3] = { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(1,0,1,1) };
+	vertices[0] = { XMFLOAT3(-0.5f,  0.5f, 0.5f), XMFLOAT2(0,0) };
+	vertices[1] = { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT2(1,1) };
+	vertices[2] = { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT2(0,1) };
+	vertices[3] = { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT2(1,0) };
 
 	Hr = DirectX::CreateStaticBuffer(pDevice, vbResourceUpload, vertices, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pVBuffer);
 	UT_CHECK_HRESULT(Hr, "Vertex Buffer", "D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER");
@@ -297,8 +431,8 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 
 	// create vertex buffer view for the quad
 	m_VBView.BufferLocation = m_pVBuffer->GetGPUVirtualAddress();
-	m_VBView.StrideInBytes = sizeof(UT::D3D12::DAS::VertexPC);
-	m_VBView.SizeInBytes = vertices.size() * sizeof(UT::D3D12::DAS::VertexPC);
+	m_VBView.StrideInBytes = sizeof(UT::D3D12::DAS::VertexPT);
+	m_VBView.SizeInBytes = vertices.size() * sizeof(UT::D3D12::DAS::VertexPT);
 
 	// create index buffer view for the quad
 	m_IBView.BufferLocation = m_pIBuffer->GetGPUVirtualAddress();
@@ -319,6 +453,16 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	m_ScissorRect.right = UT::Globals::GWindowWidth;
 	m_ScissorRect.bottom = UT::Globals::GWindowHeight;
 
+	// Create the SRV for the texture
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	pDevice->CreateShaderResourceView(m_pImageTexture, &srvDesc, m_pDXRenderDevice->GetCPUDescriptorHandleGlobal());
+
 	//---- TRIANGLE RENDERING END
 
 	SAFE_RELEASE(pError);
@@ -327,7 +471,25 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	SAFE_RELEASE(vertexShader);
 	SAFE_RELEASE(pixelShader);
 
+	SAFE_RELEASE(cmdList);
+	SAFE_RELEASE(cmdAllocator);
+
 	return true;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DXRenderer::CreateRootConstants()
+{
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DXRenderer::CreateRootDescriptorCBV()
+{
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DXRenderer::CreateRootDescriptorSRV()
+{
 }
 
 
@@ -347,6 +509,7 @@ void DXRenderer::Cleanup()
 	m_pDXRenderDevice->SignalFence(m_pListFences.at(currRenderTargetIndex), m_pListFenceValue.at(currRenderTargetIndex));
 
 	SAFE_DELETE(m_pUIRenderer);
+	SAFE_RELEASE(m_pImageTexture);
 	SAFE_RELEASE(m_pConstantBuffer);
 	SAFE_RELEASE(m_pPSO);
 	SAFE_RELEASE(m_pRootSignature);
@@ -432,6 +595,12 @@ void DXRenderer::DrawCommands()
 
 	D3D12_GPU_VIRTUAL_ADDRESS cbvAddress = m_pConstantBuffer->GetGPUVirtualAddress();
 	m_pD3DGraphicsCommandList->SetGraphicsRootConstantBufferView(1, cbvAddress);
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_pDXRenderDevice->GetDescriptorHeapGlobal() };
+	m_pD3DGraphicsCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = m_pDXRenderDevice->GetGPUDescriptorHandleGlobal();
+	m_pD3DGraphicsCommandList->SetGraphicsRootDescriptorTable(2, srvGpuHandle);
 
 	m_pD3DGraphicsCommandList->RSSetViewports(1, &m_Viewport);
 	m_pD3DGraphicsCommandList->RSSetScissorRects(1, &m_ScissorRect);
