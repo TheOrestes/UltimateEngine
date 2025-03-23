@@ -50,6 +50,7 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 
 	IDXGIFactory6* const pFactory = UT::D3D12::CORE::GetFactory();
 	ID3D12Device* const pDevice = UT::D3D12::CORE::GetDevice();
+	ID3D12CommandQueue* const pCmdQueue = UT::D3D12::CORE::GetCommandQueue();
 
 	m_pDXRenderDevice = new DXRenderDevice();
 	UT_CHECK_NULL(m_pDXRenderDevice, ": DXRenderDevice object");
@@ -103,114 +104,7 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	m_pConstantBuffer->Unmap(0, nullptr);
 
 	//---- Load Image as texture
-	int imgWidth, imgHeight, imgChannels = 0;
-	unsigned char* imgData = UT::D3D12::HelperFunc::Load_STB_Image("Assets\\Textures\\Debug_Purple.png", imgWidth, imgHeight, imgChannels);
-
-	// Create the texture resource
-	D3D12_RESOURCE_DESC textureDesc = {};
-	textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	textureDesc.Alignment = 0;
-	textureDesc.Width = imgWidth;
-	textureDesc.Height = imgHeight;
-	textureDesc.DepthOrArraySize = 1;
-	textureDesc.MipLevels = 1;
-	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	textureDesc.SampleDesc.Count = 1;
-	textureDesc.SampleDesc.Quality = 0;
-	textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-	D3D12_HEAP_PROPERTIES texHeapProperties = {};
-	texHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-	texHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	texHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-
-	Hr = pDevice->CreateCommittedResource(
-		&texHeapProperties,
-		D3D12_HEAP_FLAG_NONE,
-		&textureDesc,
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		nullptr,
-		IID_PPV_ARGS(&m_pImageTexture));
-
-	UT_CHECK_HRESULT(Hr, "CreateCommittedResource", "Texture Resource");
-	UT_NAME_D3D_OBJECT(m_pImageTexture, "Texture Resource");
-
-	// Create an upload heap for texture data
-	ID3D12Resource* textureUploadHeap;
-	UINT64 textureUploadBufferSize;
-	pDevice->GetCopyableFootprints(&textureDesc, 0, 1, 0, nullptr, nullptr, nullptr, &textureUploadBufferSize);
-
-	D3D12_HEAP_PROPERTIES uploadHeapProperties = {};
-	uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
-
-	D3D12_RESOURCE_DESC uploadResourceDescription = {};
-	uploadResourceDescription.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	uploadResourceDescription.Alignment = 0;
-	uploadResourceDescription.Width = textureUploadBufferSize;
-	uploadResourceDescription.Height = 1;
-	uploadResourceDescription.DepthOrArraySize = 1;
-	uploadResourceDescription.MipLevels = 1;
-	uploadResourceDescription.Format = DXGI_FORMAT_UNKNOWN;
-	uploadResourceDescription.SampleDesc.Count = 1;
-	uploadResourceDescription.SampleDesc.Quality = 0;
-	uploadResourceDescription.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	uploadResourceDescription.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-	Hr = pDevice->CreateCommittedResource(
-		&uploadHeapProperties,
-		D3D12_HEAP_FLAG_NONE,
-		&uploadResourceDescription,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&textureUploadHeap));
-
-	UT_CHECK_HRESULT(Hr, "CreateCommittedResource", "Texture Upload Heap");
-	UT_NAME_D3D_OBJECT(textureUploadHeap, "Texture Upload Heap");
-
-	// Upload the texture data
-	void* mappedTextureData;
-
-	textureUploadHeap->Map(0, nullptr, &mappedTextureData);
-	memcpy(mappedTextureData, imgData, imgWidth * imgHeight * 4);
-	textureUploadHeap->Unmap(0, nullptr);
-
-	// Free stb-image allocated memory!
-	stbi_image_free(imgData);
-
-	D3D12_TEXTURE_COPY_LOCATION dst = {};
-	dst.pResource = m_pImageTexture;
-	dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-	dst.SubresourceIndex = 0;
-
-	D3D12_TEXTURE_COPY_LOCATION src = {};
-	src.pResource = textureUploadHeap;
-	src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-	pDevice->GetCopyableFootprints(&textureDesc, 0, 1, 0, &src.PlacedFootprint, nullptr, nullptr, nullptr);
-
-	ID3D12CommandAllocator* cmdAllocator;
-	m_pDXRenderDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, &cmdAllocator);
-
-	ID3D12GraphicsCommandList* cmdList;
-	m_pDXRenderDevice->CreateGraphicsCommandList(D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAllocator, &cmdList);
-
-	cmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
-
-	// Transition the texture to the PIXEL_SHADER_RESOURCE state
-	D3D12_RESOURCE_BARRIER barrier = {};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = m_pImageTexture;
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
-	cmdList->ResourceBarrier(1, &barrier);
-	cmdList->Close();
-
-	// Execute command list
-	std::vector<ID3D12CommandList*> cmdLists = { cmdList };
-	m_pDXRenderDevice->ExecuteCommandLists(cmdLists);
+	UT::D3D12::HelperFunc::CreateTexture2D("Assets\\Textures\\Debug_Purple.png", &m_pImageTexture);
 
 	//---- TRIANGLE RENDERING START
 
@@ -378,7 +272,7 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	UT_CHECK_HRESULT(Hr, "Vertex Buffer", "D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER");
 	UT_NAME_D3D_OBJECT(m_pVBuffer, "Vertex Buffer");
 
-	auto vbUploadResourcesFinished = vbResourceUpload.End(m_pDXRenderDevice->GetCommandQueue());
+	auto vbUploadResourcesFinished = vbResourceUpload.End(pCmdQueue);
 	vbUploadResourcesFinished.wait();
 
 	// 6. Create Indices data & transfer the data to GPU!
@@ -395,7 +289,7 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	UT_CHECK_HRESULT(Hr, "Index Buffer Created", "D3D12_RESOURCE_STATE_INDEX_BUFFER");
 	UT_NAME_D3D_OBJECT(m_pIBuffer, "Index Buffer");
 
-	auto ibUploadResourcesFinished = ibResourceUpload.End(m_pDXRenderDevice->GetCommandQueue());
+	auto ibUploadResourcesFinished = ibResourceUpload.End(pCmdQueue);
 	ibUploadResourcesFinished.wait();
 
 	// // Create a default heap. This will be created on the GPU & only GPU will have access to this.
@@ -470,9 +364,6 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 
 	SAFE_RELEASE(vertexShader);
 	SAFE_RELEASE(pixelShader);
-
-	SAFE_RELEASE(cmdList);
-	SAFE_RELEASE(cmdAllocator);
 
 	return true;
 }

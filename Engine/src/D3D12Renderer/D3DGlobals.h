@@ -22,7 +22,8 @@ namespace UT
 		{
 			extern constexpr ID3D12Device* const GetDevice();
 			extern constexpr IDXGIFactory6* const GetFactory();
-
+			extern constexpr ID3D12CommandQueue* const GetCommandQueue();
+				
 			bool Initialize();
 			void Cleanup();
 		}
@@ -102,6 +103,7 @@ namespace UT
 			void			CreateFragmentShader(const std::string& fsFile, ID3DBlob** fragmentShaderBlob);
 			void			CreateVertexInputLayoutDesc(D3D12_INPUT_LAYOUT_DESC& outLayoutDesc);
 			unsigned char*	Load_STB_Image(const std::string& fileName, int& width, int& height, int& channels);
+			void			CreateTexture2D(const std::string& fileName, ID3D12Resource** pTexture);
 		}
 	}
 

@@ -10,7 +10,6 @@
 DXRenderDevice::DXRenderDevice() :
 	m_pD3DDebugDevice(nullptr),
 	m_pSwapchain(nullptr),
-	m_pD3DCommandQueue(nullptr),
 	m_pD3DDescriptorHeapRTV(nullptr),
 	m_pD3DDescriptorHeapDSV(nullptr),
 	m_pD3DDepthStencilBuffer(nullptr),
@@ -41,7 +40,6 @@ const char* DXRenderDevice::GetGPUName()
 //---------------------------------------------------------------------------------------------------------------------
 bool DXRenderDevice::Initialize(HWND hwnd)
 {
-	UT_CHECK_BOOL(CreateCommandQueue(), "D3D Command Queue creation failed!");
 	UT_CHECK_BOOL(CreateSwapchain(hwnd), "D3D Swapchain creation failed!");
 	UT_CHECK_BOOL(CreateDescriptorHeaps(), "D3D Descriptor Heap creation failed!");
 	UT_CHECK_BOOL(CreateRenderTargetView(), "D3D Render Target View creation failed!");
@@ -71,7 +69,6 @@ void DXRenderDevice::Cleanup()
 	SAFE_RELEASE(m_pD3DDepthStencilBuffer);
 	SAFE_RELEASE(m_pD3DDescriptorHeapDSV);
 	SAFE_RELEASE(m_pD3DDescriptorHeapRTV);
-	SAFE_RELEASE(m_pD3DCommandQueue);
 	SAFE_RELEASE(m_pSwapchain);
 	SAFE_RELEASE(m_pD3DDebugDevice);
 }
@@ -90,7 +87,6 @@ void DXRenderDevice::CleanupOnWindowResize()
 	SAFE_RELEASE(m_pD3DDepthStencilBuffer);
 	SAFE_RELEASE(m_pD3DDescriptorHeapDSV);
 	SAFE_RELEASE(m_pD3DDescriptorHeapRTV);
-	SAFE_RELEASE(m_pD3DCommandQueue);
 	SAFE_RELEASE(m_pSwapchain);
 	SAFE_RELEASE(m_pD3DDebugDevice);
 }
@@ -145,7 +141,9 @@ void DXRenderDevice::CreateFence(uint64_t initialValue, D3D12_FENCE_FLAGS fenceF
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderDevice::SignalFence(ID3D12Fence* pFence, uint64_t uiFenceValue) const
 {
-	HRESULT Hr = m_pD3DCommandQueue->Signal(pFence, uiFenceValue);
+	ID3D12CommandQueue* const pCmdQueue = UT::D3D12::CORE::GetCommandQueue();
+	HRESULT Hr = pCmdQueue->Signal(pFence, uiFenceValue);
+
 	UT_ASSERT_HRESULT(Hr, "Signalling fence FAILED!");
 }
 
@@ -159,32 +157,19 @@ void DXRenderDevice::Present() const
 //---------------------------------------------------------------------------------------------------------------------
 void DXRenderDevice::ExecuteCommandLists(std::vector<ID3D12CommandList*> vecCommandList)
 {
+	ID3D12CommandQueue* const pCmdQueue = UT::D3D12::CORE::GetCommandQueue();
+
 	ID3D12CommandList* listCommandLists[] = { vecCommandList[0]};
 
 	// execute the array of command lists
-	m_pD3DCommandQueue->ExecuteCommandLists(static_cast<UINT>(vecCommandList.size()), listCommandLists);
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-bool DXRenderDevice::CreateCommandQueue()
-{
-	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-
-	ID3D12Device* const pDevice = UT::D3D12::CORE::GetDevice();
-	const HRESULT Hr = pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pD3DCommandQueue));
-
-	UT_CHECK_HRESULT(Hr, "CreateCommandQueue", magic_enum::enum_name(queueDesc.Type));
-	UT_NAME_D3D_OBJECT(m_pD3DCommandQueue, "Command Queue");
-
-	return true;
+	pCmdQueue->ExecuteCommandLists(static_cast<UINT>(vecCommandList.size()), listCommandLists);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 bool DXRenderDevice::CreateSwapchain(HWND hwnd)
 {
 	IDXGIFactory6* const pFactory = UT::D3D12::CORE::GetFactory();
+	ID3D12CommandQueue* const pCmdQueue = UT::D3D12::CORE::GetCommandQueue();
 
 	DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
 	swapchainDesc.Width = UT::Globals::GWindowWidth;
@@ -199,7 +184,7 @@ bool DXRenderDevice::CreateSwapchain(HWND hwnd)
 	swapchainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
 
 	IDXGISwapChain1* pTempSwapchain;
-	HRESULT Hr = pFactory->CreateSwapChainForHwnd(m_pD3DCommandQueue, hwnd, &swapchainDesc, nullptr, nullptr, &pTempSwapchain);
+	HRESULT Hr = pFactory->CreateSwapChainForHwnd(pCmdQueue, hwnd, &swapchainDesc, nullptr, nullptr, &pTempSwapchain);
 	UT_CHECK_HRESULT(Hr, "CreateSwapChain",magic_enum::enum_name(swapchainDesc.Format));
 
 	if(SUCCEEDED(pTempSwapchain->QueryInterface(__uuidof(IDXGISwapChain4), (void**)&m_pSwapchain)))

@@ -34,7 +34,6 @@ public:
 private:
 	bool									CreateSwapchain(HWND hwnd);
 	bool									CreateDescriptorHeaps();
-	bool									CreateCommandQueue();
 	bool									CreateRenderTargetView();
 
 	
@@ -61,16 +60,12 @@ public:
 	inline D3D12_CPU_DESCRIPTOR_HANDLE		GetCPUDescriptorHandleGlobal() const				{ return m_pD3DDescriptorHeapGlobal->GetCPUDescriptorHandleForHeapStart(); }
 	inline D3D12_GPU_DESCRIPTOR_HANDLE		GetGPUDescriptorHandleGlobal() const				{ return m_pD3DDescriptorHeapGlobal->GetGPUDescriptorHandleForHeapStart(); }
 
-	inline ID3D12CommandQueue*				GetCommandQueue() const								{ return m_pD3DCommandQueue; }
-
 private:
 
 	std::string								m_strGPUName;
 
-	
 	ID3D12DebugDevice*						m_pD3DDebugDevice;
 	IDXGISwapChain4*						m_pSwapchain;
-	ID3D12CommandQueue*						m_pD3DCommandQueue;
 
 	// Descriptor setup RTV
 	ID3D12DescriptorHeap*					m_pD3DDescriptorHeapRTV;
