@@ -15,6 +15,7 @@
 #include "stb_image.h"
 #include "../../ThirdParty/DirectXTK12/Src/d3dx12.h"
 #include "UI/UIRenderer.h"
+#include "World/FreeCamera.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 DXRenderer::DXRenderer() :
@@ -28,7 +29,9 @@ DXRenderer::DXRenderer() :
 	m_uiCurrentFrameIndex(0),
 	m_handleFenceEvent(0),
 	m_bIsCurrentFrameRunning(false),
-	m_pConstantBuffer(nullptr)
+	m_pConstantBuffer(nullptr),
+	m_pCamera(nullptr),
+	m_pConstBufferData(nullptr)
 {
 	m_pListFences.clear();
 	m_pListFenceValue.clear();
@@ -66,7 +69,12 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	UT_CHECK_BOOL(m_pUIRenderer->Initialize(pWindow, m_pDXRenderDevice));
 
 	//---- Copy Constant Buffer data onto ID3D12Resource
-	UT::D3D12::DAS::ConstantBuffer cbData = { XMFLOAT4(1,-1,1,1) };
+	// Transpose matrices before storing them in the buffer, as HLSL expects row - major format :
+	m_pCamera = new FreeCamera();
+	m_pCamera->SetPosition(0.0f, 2.0f, 10.0f);
+	m_pCamera->SetRotation(0.0f, 0.0f, 0.0f);
+
+  //XMMatrixTranspose(FreeCamera::getInstance().m_matProjection);
 
 	D3D12_HEAP_PROPERTIES heapProperties = {};
 	heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -97,47 +105,81 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	UT_CHECK_HRESULT(Hr, "CreateCommittedResource", "Constant Buffer");
 	UT_NAME_D3D_OBJECT(m_pConstantBuffer, "Constant Buffer");
 
-	void* mappedbuffer;
-	D3D12_RANGE readRange = {};
-	m_pConstantBuffer->Map(0, &readRange, &mappedbuffer);
-	memcpy(mappedbuffer, &cbData, sizeof(UT::D3D12::DAS::ConstantBuffer));
-	m_pConstantBuffer->Unmap(0, nullptr);
+	//m_pConstBufferData = new UT::D3D12::DAS::ConstantBuffer();
+	Hr = m_pConstantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_pConstBufferData));
+	if(SUCCEEDED(Hr))
+	{
+
+		XMMATRIX worldMatrix = XMMatrixIdentity(); // No transformation (for testing)
+		XMMATRIX viewMatrix = XMMatrixLookAtLH(
+			XMVectorSet(0.0f, 0.0f, -10.0f, 0.0f), // Camera position
+			XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),  // Look-at point
+			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)   // Up vector
+		);
+		XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(
+			XM_PIDIV4, // 45-degree field of view
+			UT::Globals::GWindowWidth / UT::Globals::GWindowHeight,
+			0.1f,      // Near plane
+			1000.0f    // Far plane
+		);
+
+		//m_pConstBufferData->matWorld = XMMatrixTranspose(worldMatrix);
+		//m_pConstBufferData->matView = XMMatrixTranspose(viewMatrix); //XMMatrixTranspose(m_pCamera->GetViewMatrix());
+		//m_pConstBufferData->matProjection = XMMatrixTranspose(projectionMatrix); //XMMatrixTranspose(m_pCamera->GetProjectionMatrix(UT::Globals::GWindowWidth, UT::Globals::GWindowHeight, 0.1f, 1000.0f));
+		m_pConstBufferData->matWVP = XMMatrixTranspose(worldMatrix * viewMatrix * projectionMatrix);
+		m_pConstBufferData->ambientColor = XMFLOAT4(1, 0, 0, 1);
+
+		//m_pConstantBuffer->Unmap(0, nullptr);
+	}
+	else
+	{
+		LOG_CRITICAL("Failed to map constant buffer!");
+	}
+	
+	
 
 	//---- Load Image as texture
 	UT::D3D12::HelperFunc::CreateTexture2D("Assets\\Textures\\Debug_Purple.png", &m_pImageTexture);
 
 	//---- TRIANGLE RENDERING START
 
+	// ---- 3 ROOT PARAMETERS ----
+	std::array<D3D12_ROOT_PARAMETER1, 2> rootParams;
+
+	// -- 1. Root constants --
 	D3D12_ROOT_CONSTANTS rootConstants = {};
 	rootConstants.Num32BitValues = 4;	// RGB + Delta-Time
 	rootConstants.ShaderRegister = 0;
 	rootConstants.RegisterSpace = 0;
-
-	D3D12_ROOT_DESCRIPTOR1 cbvDescriptor = {};
-	cbvDescriptor.ShaderRegister = 1;
-	cbvDescriptor.RegisterSpace = 0;
-
-	D3D12_DESCRIPTOR_RANGE1 srvRange = {};
-	srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // Shader Resource View range
-	srvRange.NumDescriptors = 1;                         // Single descriptor for the texture
-	srvRange.BaseShaderRegister = 0;                     // t0 in the shader
-	srvRange.RegisterSpace = 0;
-	srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-	std::array<D3D12_ROOT_PARAMETER1, 3> rootParams;
 	
 	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 	rootParams[0].Constants = rootConstants;
 	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	rootParams[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	rootParams[1].Descriptor = cbvDescriptor;
-	rootParams[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	// -- 2. Descriptor Table --
+	std::array<D3D12_DESCRIPTOR_RANGE1, 2> descriptorRanges;
 
-	rootParams[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParams[2].DescriptorTable.NumDescriptorRanges = 1;
-	rootParams[2].DescriptorTable.pDescriptorRanges = &srvRange;
-	rootParams[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	descriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;	// Shader Resource View range
+	descriptorRanges[0].NumDescriptors = 1;								// Single descriptor for the texture
+	descriptorRanges[0].BaseShaderRegister = 0;							// t0 in the shader
+	descriptorRanges[0].RegisterSpace = 0;
+	descriptorRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	descriptorRanges[0].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+
+	descriptorRanges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	descriptorRanges[1].NumDescriptors = 1;
+	descriptorRanges[1].BaseShaderRegister = 1;
+	descriptorRanges[1].RegisterSpace = 0;
+	descriptorRanges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	descriptorRanges[1].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+
+	D3D12_ROOT_DESCRIPTOR_TABLE1 descriptorTable = {};
+	descriptorTable.NumDescriptorRanges = static_cast<uint32_t>(descriptorRanges.size());
+	descriptorTable.pDescriptorRanges = descriptorRanges.data();
+
+	rootParams[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParams[1].DescriptorTable = descriptorTable;
+	rootParams[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	// Static sampler
 	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
@@ -260,13 +302,17 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	vbResourceUpload.Begin();
 
 	// vertex data...
-	std::array<UT::D3D12::DAS::VertexPT, 4> vertices;
+	std::array<UT::D3D12::DAS::VertexPT, 8> vertices;
 
 	// first quad
-	vertices[0] = { XMFLOAT3(-0.5f,  0.5f, 0.5f), XMFLOAT2(0,0) };
-	vertices[1] = { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT2(1,1) };
-	vertices[2] = { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT2(0,1) };
-	vertices[3] = { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT2(1,0) };
+	vertices[0] = { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT2(0,0) };
+	vertices[1] = { XMFLOAT3( 1.0f, -1.0f, -1.0f), XMFLOAT2(1,0) };
+	vertices[2] = { XMFLOAT3( 1.0f,  1.0f, -1.0f), XMFLOAT2(1,1) };
+	vertices[3] = { XMFLOAT3(-1.0f,  1.0f, -1.0f), XMFLOAT2(0,1) };
+	vertices[4] = { XMFLOAT3(-1.0f, -1.0f,  1.0f), XMFLOAT2(0,0) };
+	vertices[5] = { XMFLOAT3( 1.0f, -1.0f,  1.0f), XMFLOAT2(1,0) };
+	vertices[6] = { XMFLOAT3( 1.0f,  1.0f,  1.0f), XMFLOAT2(1,1) };
+	vertices[7] = { XMFLOAT3(-1.0f,  1.0f,  1.0f), XMFLOAT2(0,1) };
 
 	Hr = DirectX::CreateStaticBuffer(pDevice, vbResourceUpload, vertices, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pVBuffer);
 	UT_CHECK_HRESULT(Hr, "Vertex Buffer", "D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER");
@@ -280,10 +326,14 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	ibResourceUpload.Begin();
 
 	// index data...
-	std::array<uint16_t, 6> indices;
+	std::array<uint16_t, 36> indices;
 	
-	indices[0] = 0;		indices[1] = 1;		indices[2] = 2;
-	indices[3] = 0,		indices[4] = 3;		indices[5] = 1;
+	indices[0] = 0;		indices[1] = 1;		indices[2] = 2;		indices[3] = 0,		indices[4] = 2;		indices[5] = 3;
+	indices[6] = 5;		indices[7] = 4;		indices[8] = 7;		indices[9] = 5,		indices[10] = 7;	indices[11] = 6;
+	indices[12] = 4;	indices[13] = 0;	indices[14] = 3;	indices[15] = 4,	indices[16] = 3;	indices[17] = 7;
+	indices[18] = 1;	indices[19] = 5;	indices[20] = 6;	indices[21] = 1,	indices[22] = 6;	indices[23] = 2;
+	indices[24] = 3;	indices[25] = 2;	indices[26] = 6;	indices[27] = 3,	indices[28] = 6;	indices[29] = 7;
+	indices[30] = 2;	indices[31] = 5;	indices[32] = 1;	indices[33] = 4,	indices[34] = 1;	indices[35] = 0;
 
 	DirectX::CreateStaticBuffer(pDevice, ibResourceUpload, indices, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pIBuffer);
 	UT_CHECK_HRESULT(Hr, "Index Buffer Created", "D3D12_RESOURCE_STATE_INDEX_BUFFER");
@@ -355,7 +405,17 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.MipLevels = 1;
 
-	pDevice->CreateShaderResourceView(m_pImageTexture, &srvDesc, m_pDXRenderDevice->GetCPUDescriptorHandleGlobal());
+	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = m_pDXRenderDevice->GetCPUDescriptorHandleGlobal();
+	pDevice->CreateShaderResourceView(m_pImageTexture, &srvDesc, srvHandle);
+
+	// Create CBV
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = m_pConstantBuffer->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = (sizeof(UT::D3D12::DAS::ConstantBuffer) + 255) & ~255;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE cbvHandle = m_pDXRenderDevice->GetCPUDescriptorHandleGlobal();
+	cbvHandle.ptr += pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	pDevice->CreateConstantBufferView(&cbvDesc, cbvHandle);
 
 	//---- TRIANGLE RENDERING END
 
@@ -366,6 +426,51 @@ bool DXRenderer::Initialize(const GLFWwindow* pWindow)
 	SAFE_RELEASE(pixelShader);
 
 	return true;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DXRenderer::Update(double dt)
+{
+	// Update the World matrix (rotate the cube over time)
+	static float angle = 0.0f;								// Rotation angle
+	angle += dt * XM_PI / 4;								// Increment angle (speed = pi/4 radians/sec)
+	XMMATRIX worldMatrix = XMMatrixRotationY(angle);		// Rotate the cube around
+
+	// Update the View matrix (camera setup)
+	XMMATRIX viewMatrix = m_pCamera->GetViewMatrix();
+	XMMATRIX projMatrix = m_pCamera->GetProjectionMatrix(UT::Globals::GWindowWidth, UT::Globals::GWindowHeight, 0.1f, 1000.0f);
+
+	HRESULT Hr = m_pConstantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_pConstBufferData));
+	if (SUCCEEDED(Hr))
+	{
+		XMMATRIX worldMatrix = XMMatrixIdentity(); // No transformation (for testing)
+		XMMATRIX viewMatrix = XMMatrixLookAtLH(
+			XMVectorSet(0.0f, 0.0f, -10.0f, 0.0f), // Camera position
+			XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),  // Look-at point
+			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)   // Up vector
+		);
+		XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(
+			XM_PIDIV4, // 45-degree field of view
+			UT::Globals::GWindowWidth / UT::Globals::GWindowHeight,
+			0.1f,      // Near plane
+			1000.0f    // Far plane
+		);
+
+		//m_pConstBufferData->matWorld = XMMatrixTranspose(worldMatrix);
+		//m_pConstBufferData->matView = XMMatrixTranspose(viewMatrix); //XMMatrixTranspose(m_pCamera->GetViewMatrix());
+		//m_pConstBufferData->matProjection = XMMatrixTranspose(projectionMatrix); //XMMatrixTranspose(m_pCamera->GetProjectionMatrix(UT::Globals::GWindowWidth, UT::Globals::GWindowHeight, 0.1f, 1000.0f));
+		m_pConstBufferData->matWVP = XMMatrixTranspose(worldMatrix * viewMatrix * projectionMatrix);
+		m_pConstBufferData->ambientColor = XMFLOAT4(1, 0, 0, 1);
+
+		//m_pConstBufferData->matWorld = XMMatrixTranspose(XMMatrixIdentity()); //XMMatrixTranspose(worldMatrix);
+		//m_pConstBufferData->matView = XMMatrixTranspose(XMMatrixIdentity()); //XMMatrixTranspose(viewMatrix);
+		//m_pConstBufferData->matProjection = XMMatrixTranspose(XMMatrixIdentity()); //XMMatrixTranspose(projMatrix);
+		//m_pConstBufferData->ambientColor = XMFLOAT4(1, 0, 0, 1);
+	}
+	else
+	{
+		LOG_CRITICAL("Failed to map constant buffer!");
+	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -399,6 +504,7 @@ void DXRenderer::Cleanup()
 	const uint32_t currRenderTargetIndex = WaitForPreviousFrame();
 	m_pDXRenderDevice->SignalFence(m_pListFences.at(currRenderTargetIndex), m_pListFenceValue.at(currRenderTargetIndex));
 
+	SAFE_DELETE(m_pCamera);
 	SAFE_DELETE(m_pUIRenderer);
 	SAFE_RELEASE(m_pImageTexture);
 	SAFE_RELEASE(m_pConstantBuffer);
@@ -419,6 +525,12 @@ void DXRenderer::Cleanup()
 
 	SAFE_DELETE(m_pDXRenderDevice);
 	SAFE_RELEASE(m_pD3DGraphicsCommandList);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DXRenderer::HandleInput(const GLFWwindow* pWindow, UT::Globals::InputAction action, float mousePosX, float mousePosY, bool isMouseClicked) const
+{
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -484,21 +596,18 @@ void DXRenderer::DrawCommands()
 	float rootConstantsData[4] = { 1.0f, 1.0f, 0.0f, gameDelta };
 	m_pD3DGraphicsCommandList->SetGraphicsRoot32BitConstants(0, 4, rootConstantsData, 0);
 
-	D3D12_GPU_VIRTUAL_ADDRESS cbvAddress = m_pConstantBuffer->GetGPUVirtualAddress();
-	m_pD3DGraphicsCommandList->SetGraphicsRootConstantBufferView(1, cbvAddress);
-
 	ID3D12DescriptorHeap* descriptorHeaps[] = { m_pDXRenderDevice->GetDescriptorHeapGlobal() };
 	m_pD3DGraphicsCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = m_pDXRenderDevice->GetGPUDescriptorHandleGlobal();
-	m_pD3DGraphicsCommandList->SetGraphicsRootDescriptorTable(2, srvGpuHandle);
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = m_pDXRenderDevice->GetGPUDescriptorHandleGlobal();
+	m_pD3DGraphicsCommandList->SetGraphicsRootDescriptorTable(1, gpuHandle);
 
 	m_pD3DGraphicsCommandList->RSSetViewports(1, &m_Viewport);
 	m_pD3DGraphicsCommandList->RSSetScissorRects(1, &m_ScissorRect);
 	m_pD3DGraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_pD3DGraphicsCommandList->IASetVertexBuffers(0, 1, &m_VBView);
 	m_pD3DGraphicsCommandList->IASetIndexBuffer(& m_IBView);
-	m_pD3DGraphicsCommandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+	m_pD3DGraphicsCommandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 
 	m_pUIRenderer->Render(m_pDXRenderDevice, m_pD3DGraphicsCommandList, m_colorClear);
 }

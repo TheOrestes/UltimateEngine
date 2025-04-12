@@ -75,6 +75,8 @@ void DirectXApplication::Update(double dt)
 {
 	// Save it for the use within Renderer!
 	UT::Globals::GDeltaTime = dt;
+
+	m_pDXRenderer->Update(dt);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -86,8 +88,9 @@ void DirectXApplication::Render()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void DirectXApplication::HandleSceneInput(const GLFWwindow* pWindow, CameraAction direction, float mousePosX, float mousePosY, bool isMouseClicked) const
+void DirectXApplication::HandleSceneInput(const GLFWwindow* pWindow, UT::Globals::InputAction action, float mousePosX, float mousePosY, bool isMouseClicked) const
 {
+	m_pDXRenderer->HandleInput(pWindow, action, mousePosX, mousePosY, isMouseClicked);
 }
 
 //---------------------------------------------------------------------------------------------------------------------

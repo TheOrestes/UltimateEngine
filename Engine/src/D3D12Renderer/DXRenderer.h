@@ -10,6 +10,7 @@
 
 class DXRenderDevice;
 class UIRenderer;
+class FreeCamera;
 
 class DXRenderer
 {
@@ -18,8 +19,11 @@ public:
 	virtual ~DXRenderer();
 
 	bool										Initialize(const GLFWwindow* pWindow);
+	void										Update(double dt);
 	void										Render();
 	void										Cleanup();
+
+	void										HandleInput(const GLFWwindow* pWindow, UT::Globals::InputAction action, float mousePosX, float mousePosY, bool isMouseClicked) const;
 
 	void										CleanupOnWindowResize();
 	void										RecreateOnWindowResize(uint32_t newWidth, uint32_t newHeight);
@@ -69,5 +73,8 @@ private:
 
 	ID3D12Resource*								m_pConstantBuffer;
 	ID3D12Resource*								m_pImageTexture;
+
+	FreeCamera*									m_pCamera;
+	UT::D3D12::DAS::ConstantBuffer*				m_pConstBufferData;
 };
 

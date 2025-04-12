@@ -7,7 +7,7 @@
 
 #include <dxgi1_6.h>
 
-#include "../Core/Core.h"
+#include "D3DGlobals.h"
 #include "../EngineHeader.h"
 
 class DXRenderer;
@@ -28,7 +28,7 @@ public:
 	void									EnableDebug();
 	void									DisableDebug();
 
-	void									HandleSceneInput(const GLFWwindow* pWindow, CameraAction direction, float mousePosX = 0.0f, float mousePosY = 0.0f, bool isMouseClicked = false) const;
+	void									HandleSceneInput(const GLFWwindow* pWindow, UT::Globals::InputAction action, float mousePosX = 0.0f, float mousePosY = 0.0f, bool isMouseClicked = false) const;
 	void									HandleWindowResizeCallback(const GLFWwindow* pWindow);
 
 private:

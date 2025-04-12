@@ -105,25 +105,25 @@ void EngineApplication::KeyHandlerCallback(GLFWwindow* pWindow, int key, int sca
 		{
 			case GLFW_KEY_W:
 			{
-				//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_FORWARD);
+				pApp->HandleSceneInput(pWindow, UT::Globals::InputAction::FORWARD);
 				break;
 			}
 
 			case GLFW_KEY_S:
 			{
-				//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_BACK);
+				pApp->HandleSceneInput(pWindow, UT::Globals::InputAction::BACK);
 				break;
 			}
 
 			case GLFW_KEY_A:
 			{
-				//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_LEFT);
+				pApp->HandleSceneInput(pWindow, UT::Globals::InputAction::LEFT);
 				break;
 			}
 
 			case GLFW_KEY_D:
 			{
-				//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_RIGHT);
+				pApp->HandleSceneInput(pWindow, UT::Globals::InputAction::RIGHT);
 				break;
 			}
 
@@ -147,16 +147,16 @@ void EngineApplication::KeyHandlerCallback(GLFWwindow* pWindow, int key, int sca
 //---------------------------------------------------------------------------------------------------------------------
 void EngineApplication::MousePositionCallback(GLFWwindow* pWindow, double xPos, double yPos)
 {
-	//VulkanApplication* pApp = static_cast<VulkanApplication*>(glfwGetWindowUserPointer(pWindow));
+	DirectXApplication* pApp = static_cast<DirectXApplication*>(glfwGetWindowUserPointer(pWindow));
 
 	// Rotate only when RIGHT CLICK is down!
 	if (glfwGetMouseButton(pWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 	{
-		//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_PAN_2D, static_cast<float>(xPos), static_cast<float>(yPos), true);
+		pApp->HandleSceneInput(pWindow, UT::Globals::InputAction::MOUSE_MOVE, static_cast<float>(xPos), static_cast<float>(yPos), true);
 	}
 	else
 	{
-		//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_PAN_2D, static_cast<float>(xPos), static_cast<float>(yPos), false);
+		pApp->HandleSceneInput(pWindow, UT::Globals::InputAction::MOUSE_MOVE, static_cast<float>(xPos), static_cast<float>(yPos), false);
 	}
 
 	//LOG_INFO("Mouse Position = [{0}, {1}]", xPos, yPos);

@@ -100,6 +100,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\World\Scene.h" />
     <ClInclude Include="src\D3D12Renderer\DXRenderer.h" />
     <ClInclude Include="src\D3D12Renderer\D3DGlobals.h" />
     <ClInclude Include="src\D3D12Renderer\DXRenderDevice.h" />
@@ -120,9 +121,11 @@
     <ClInclude Include="src\UI\imstb_truetype.h" />
     <ClInclude Include="src\UltimateEnginePCH.h" />
     <ClInclude Include="src\UI\UIRenderer.h" />
+    <ClInclude Include="src\World\FreeCamera.h" />
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\World\Scene.cpp" />
     <ClCompile Include="src\D3D12Renderer\D3DGlobals.cpp" />
     <ClCompile Include="src\D3D12Renderer\DXRenderer.cpp" />
     <ClCompile Include="src\D3D12Renderer\DXRenderDevice.cpp" />
@@ -142,6 +145,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\UI\UIRenderer.cpp" />
+    <ClCompile Include="src\World\FreeCamera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="ThirdParty\DirectXTK12\DirectXTK_Desktop_2022_Win10.vcxproj">

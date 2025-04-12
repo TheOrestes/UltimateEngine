@@ -12,39 +12,6 @@
 #define LOG_DEBUG(...)		Logger::getInstance().GetLogger()->debug(__VA_ARGS__)
 
 //---------------------------------------------------------------------------------------------------------------------
-//#define UT_CHECK_NULL(x,...){if((x == nullptr)){LOG_ERROR("Null Ptr:{0}",__VA_ARGS__);return false;}}
-//---------------------------------------------------------------------------------------------------------------------
-//#define UT_CHECK_BOOL(x,...){if((!x)){LOG_ERROR("Bool False",__VA_ARGS__);return false;}}
-//---------------------------------------------------------------------------------------------------------------------
-//#define UT_CHECK_HRESULT(x,...){if(FAILED(x)){LOG_ERROR("HRESULT FAILED : {0}",__VA_ARGS__);return false;}}
-
-////---------------------------------------------------------------------------------------------------------------------
-//#define UT_ASSERT_NULL(x,...)															\
-//{																						\
-//	if (x == nullptr)																	\
-//	{																					\
-//		LOG_CRITICAL("Assertion Failed:{0}", __VA_ARGS__)								\
-//		__debugbreak();																	\
-//	}																					\
-//}																						\
-
-//---------------------------------------------------------------------------------------------------------------------
-//#define UT_ASSERT_HRESULT(x,...)														\
-//{																						\
-//	if (FAILED(x))																		\
-//	{																					\
-//		LOG_CRITICAL("Assertion Failed:{0}", __VA_ARGS__);								\
-//		__debugbreak();																	\
-//	}																					\
-//}
-
-//#ifdef _DEBUG
-//#define UT_NAME_D3D_OBJECT(obj, name) std::wstring wstrName; std::string strName; wstrName = name; obj->SetName(wstrName.c_str()); strName = std::string(wstrName.begin(), wstrName.end()); LOG_DEBUG("D3D Object Created => {0}", strName);
-//#else
-//#define UT_NAME_D3D_OBJECT(obj, name)
-//#endif
-
-//---------------------------------------------------------------------------------------------------------------------
 template <typename T> void UT_NAME_D3D_OBJECT(T type, std::string name)
 {
 	std::wstring wStr(name.begin(), name.end());

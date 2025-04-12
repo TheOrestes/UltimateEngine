@@ -7,7 +7,10 @@ cbuffer RootConstants : register(b0)
 
 cbuffer ConstantBuffer : register(b1)
 {
-	float4 Offset;
+	float4x4 worldMVP;
+	//float4x4 viewMatrix;
+	//float4x4 projectionMatrix;
+	float4 ambientColor;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -29,7 +32,10 @@ VS_OUTPUT main( VS_INPUT In)
 {
 	VS_OUTPUT Out;
 
-	Out.Position = float4(In.Position, 1.0f);// + Offset;
+	//float4 worldPos = mul(In.Position, worldMatrix);
+	//float4 viewPos = mul(worldPos, viewMatrix);
+
+	Out.Position = mul(In.Position, worldMVP);
 	Out.Texcoord = In.Texcoord;
 
 	return Out;

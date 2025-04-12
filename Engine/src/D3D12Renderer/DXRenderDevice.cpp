@@ -235,7 +235,7 @@ bool DXRenderDevice::CreateDescriptorHeaps()
 
 	// Global Descriptor Heap
 	D3D12_DESCRIPTOR_HEAP_DESC descGlobal = {};
-	descGlobal.NumDescriptors = 1;
+	descGlobal.NumDescriptors = 2;
 	descGlobal.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	descGlobal.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	Hr = pDevice->CreateDescriptorHeap(&descGlobal, IID_PPV_ARGS(&m_pD3DDescriptorHeapGlobal));

@@ -91,7 +91,10 @@ namespace UT
 
 			struct ConstantBuffer
 			{
-				XMFLOAT4 offset;
+				XMMATRIX matWVP;
+				//XMMATRIX matView;
+				//XMMATRIX matProjection;
+				XMFLOAT4 ambientColor;
 			};
 		}
 
@@ -115,5 +118,14 @@ namespace UT
 		inline double				GDeltaTime = 0.0f;
 
 		inline constexpr uint16_t	GBackbufferCount = 3;
+
+		enum class InputAction
+		{
+			FORWARD,
+			BACK,
+			LEFT,
+			RIGHT,
+			MOUSE_MOVE
+		};
 	}
 }

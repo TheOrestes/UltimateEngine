@@ -268,6 +268,7 @@ namespace UT
 
 				ID3D12CommandAllocator* pCmdAllocator;
 				Hr = pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&pCmdAllocator));
+				UT_NAME_D3D_OBJECT(pCmdAllocator, "CreateTexture2D Command Allocator");
 				UT_ASSERT_HRESULT(Hr, "CreateCommandAllocator", magic_enum::enum_name(D3D12_COMMAND_LIST_TYPE_DIRECT));
 
 				ID3D12GraphicsCommandList* pCmdList;
