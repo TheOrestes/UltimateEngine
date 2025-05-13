@@ -11,18 +11,84 @@
 #define LOG_DEBUG(...)		Logger::getInstance().GetLogger()->debug(__VA_ARGS__);
 
 //---------------------------------------------------------------------------------------------------------------------
-#define UT_ASSERT_NULL(x,...){if((!x)){LOG_ERROR("Assertion Failed:{0}",__VA_ARGS__);__debugbreak();}}
+template <typename T> void UT_NAME_D3D_OBJECT(T type, std::string name)
+{
+	std::wstring wStr(name.begin(), name.end());
+	type->SetName(wStr.c_str());
+	LOG_INFO("D3D Object Created => {0}", name);
+}
+
 //---------------------------------------------------------------------------------------------------------------------
-#define UT_ASSERT_BOOL(x,...){if((!x)){LOG_ERROR("Assertion Failed:{0}",__VA_ARGS__);__debugbreak();}}
+template <typename T> void UT_NAME_D3D_OBJECT_INDEXED(T type, int n, std::string name)
+{
+	name += std::to_string(n);
+	std::wstring wStr(name.begin(), name.end());
+	type->SetName(wStr.c_str());
+	LOG_INFO("D3D Object Created => {0}", name);
+}
+
 //---------------------------------------------------------------------------------------------------------------------
-#define UT_ASSERT_VK(x,...)																\
-{																						\
-	if (x != vk::Result::eSuccess)														\
-	{																					\
-		LOG_CRITICAL("Assertion Failed:{0}", __VA_ARGS__);								\
-		__debugbreak();																	\
-	}																					\
-}	
+template<typename T, typename... Types> bool UT_CHECK_NULL(T a, Types... args)
+{
+	if (a == nullptr)
+	{
+		LOG_ERROR("NULL_PTR:{0}", args...);
+		return false;
+	}
+
+	return true;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+template<typename T, typename... Types> bool UT_CHECK_BOOL(T a, Types... args)
+{
+	if (!a)
+	{
+		LOG_ERROR("BOOL_FALSE:{0}", args...);
+		return false;
+	}
+
+	return true;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+template<typename T, typename... Types> bool UT_CHECK_HRESULT(T a, Types... args)
+{
+	bool status = false;
+
+	if (FAILED(a))
+	{
+		LOG_ERROR("FAILED => {0} | {1}", args...);
+		status = false;
+	}
+	else
+	{
+		//LOG_DEBUG("SUCCESS => {0} | {1}", args...);
+		status = true;
+	}
+
+	return status;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+template<typename T, typename... Types> void UT_ASSERT_NULL(T a, Types... args)
+{
+	if (a == nullptr)
+	{
+		LOG_CRITICAL("!! ASSERT !! => {0}", args...);
+		__debugbreak();
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+template<typename T, typename... Types> void UT_ASSERT_HRESULT(T a, Types... args)
+{
+	if (FAILED(a))
+	{
+		LOG_CRITICAL("!! ASSERT !! => {0} | {1}", args...);
+		__debugbreak();
+	}
+}
 
 //---------------------------------------------------------------------------------------------------------------------
 template<typename T> void SAFE_DELETE(T*& a)
@@ -32,35 +98,19 @@ template<typename T> void SAFE_DELETE(T*& a)
 		delete a;
 		a = nullptr;
 
-		LOG_DEBUG("{0} instance deleted!", typeid(T).name());
+		LOG_INFO("{0} object deleted!", typeid(T).name());
 	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-#define CHECK(x)																		\
-{																						\
-	if (!(x))																			\
-	{																					\
-		return false;																	\
-	}																					\
-}																						\
+template<typename T> void SAFE_RELEASE(T*& a)
+{
+	if (a)
+	{
+		(a)->Release();
+		(a) = nullptr;
 
-//---------------------------------------------------------------------------------------------------------------------
-#define CHECK_LOG(x,...)																\
-{																						\
-	if (!(x))																			\
-	{																					\
-		LOG_ERROR("Returned FALSE:{0}", __VA_ARGS__);									\
-		return false;																	\
-	}																					\
-}																						\
+		LOG_WARNING("{0} object released!", typeid(T).name());
+	}
+}
 
-//---------------------------------------------------------------------------------------------------------------------
-#define CHECK_VK_RESULT(x)																		\
-{																						\
-	if ((x) != vk::Result::eSuccess)													\
-	{																					\
-		LOG_ERROR("Detected Vulkan Error at {0}:{1}", __FILE__, __LINE__);				\
-		return false;																	\
-	}																					\
-}								

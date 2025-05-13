@@ -1,5 +1,6 @@
 #include "UltimateEnginePCH.h"
 #include "DirectXApplication.h"
+#include "D3DGlobals.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 DirectXApplication::DirectXApplication()
@@ -17,7 +18,7 @@ DirectXApplication::~DirectXApplication()
 //---------------------------------------------------------------------------------------------------------------------
 void DirectXApplication::Cleanup()
 {
-	
+	UT::D3D12::CORE::Cleanup();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -31,6 +32,8 @@ bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 	// Store windows width & height for future usage!
 	m_uiAppWidth = static_cast<uint16_t>(width);
 	m_uiAppHeight = static_cast<uint16_t>(height);
+
+	UT::D3D12::CORE::Initialize();
 
 	return true;
 }
