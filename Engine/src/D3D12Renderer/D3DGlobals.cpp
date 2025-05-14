@@ -10,6 +10,7 @@ namespace UT
 		{
 			IDXGIFactory6* g_pFactory = nullptr;
 			ID3D12Device* g_pDevice = nullptr;
+			ID3D12Debug1* g_pD3D12Debug = nullptr;
 
 			constexpr IDXGIFactory6* const GetFactory() { return g_pFactory; }
 			constexpr ID3D12Device* const GetDevice() { return g_pDevice; }
@@ -21,6 +22,22 @@ namespace UT
 
 #if defined _DEBUG
 				dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+
+				ID3D12Debug* pDebugController;
+				if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&pDebugController))))
+				{
+					pDebugController->EnableDebugLayer();
+				}
+
+				if (SUCCEEDED(pDebugController->QueryInterface(IID_PPV_ARGS(&g_pD3D12Debug))))
+				{
+					g_pD3D12Debug->EnableDebugLayer();
+					g_pD3D12Debug->SetEnableGPUBasedValidation(true);
+				}
+
+				dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+
+				SAFE_RELEASE(pDebugController);
 #endif
 
 				const HRESULT Hr = CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&g_pFactory));
@@ -46,7 +63,6 @@ namespace UT
 				}
 
 				SAFE_RELEASE(pD3DAdapter);
-
 				UT_NAME_D3D_OBJECT(g_pDevice, "Main D3D Device");
 
 				return true;
@@ -54,6 +70,7 @@ namespace UT
 
 			void Cleanup()
 			{
+				SAFE_RELEASE(g_pD3D12Debug);
 				SAFE_RELEASE(g_pDevice);
 				SAFE_RELEASE(g_pFactory);
 			}
