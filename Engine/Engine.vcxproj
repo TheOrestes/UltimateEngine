@@ -100,6 +100,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\D3D12Renderer\D3DRenderer.h" />
     <ClInclude Include="src\D3D12Renderer\D3DGlobals.h" />
     <ClInclude Include="src\D3D12Renderer\DirectXApplication.h" />
     <ClInclude Include="src\Core\EngineApplication.h" />
@@ -109,6 +110,7 @@
     <ClInclude Include="src\UltimateEnginePCH.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\D3D12Renderer\D3DRenderer.cpp" />
     <ClCompile Include="src\D3D12Renderer\D3DGlobals.cpp" />
     <ClCompile Include="src\D3D12Renderer\DirectXApplication.cpp" />
     <ClCompile Include="src\Core\EngineApplication.cpp" />

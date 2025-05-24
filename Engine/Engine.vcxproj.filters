@@ -36,6 +36,9 @@
     <ClInclude Include="src\D3D12Renderer\D3DGlobals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\D3D12Renderer\D3DRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\EngineApplication.cpp">
@@ -51,6 +54,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\D3D12Renderer\D3DGlobals.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\D3D12Renderer\D3DRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

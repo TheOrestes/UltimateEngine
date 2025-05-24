@@ -5,8 +5,10 @@
 #include <wrl.h>
 #include <DirectXMath.h>
 #include <GLFW/glfw3.h>
+#include "GLFW/glfw3native.h"
 #include <d3d12.h>
 #include <d3dcompiler.h>
+#include <dxgi1_4.h>
 #include <dxgi1_6.h>
 
 #include "EngineHeader.h"
@@ -20,19 +22,26 @@ namespace UT
 	{
 		namespace CORE
 		{
-			extern constexpr ID3D12Device* const GetDevice();
-			extern constexpr IDXGIFactory6* const GetFactory();
+			extern constexpr ID3D12Device*				const		GetDevice();
+			extern constexpr IDXGIFactory6*				const		GetFactory();
+			extern constexpr ID3D12CommandQueue*		const		GetCommandQueue();
+			extern constexpr IDXGISwapChain4*			const		GetSwapchain();
+			extern constexpr ID3D12GraphicsCommandList* const		GetCommandList(uint16_t index);
 
-			bool Initialize();
-			void Cleanup();
+			bool			Initialize();
+			void			BeginFrame();
+			void			EndFrame();
+			void			Cleanup();
 		}
+	}
 
-		namespace Globals
-		{
-			inline uint16_t GWindowWidth = 960;
-			inline uint16_t GWindowHeight = 540;
+	namespace GLOBALS
+	{
+		inline uint16_t GWindowWidth = 960;
+		inline uint16_t GWindowHeight = 540;
+		inline uint16_t GCurrentFrameId = 0;
+		inline HWND		GWindowHandle = nullptr;
 
-			inline constexpr uint16_t GBackbufferCount = 3;
-		}
+		inline constexpr uint16_t GFramesInFlight = 3;
 	}
 }

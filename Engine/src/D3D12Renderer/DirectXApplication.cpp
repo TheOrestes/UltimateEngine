@@ -1,5 +1,6 @@
 #include "UltimateEnginePCH.h"
 #include "DirectXApplication.h"
+#include "D3DRenderer.h"
 #include "D3DGlobals.h"
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -7,6 +8,8 @@ DirectXApplication::DirectXApplication()
 {
 	m_uiAppWidth = 0;
 	m_uiAppHeight = 0;
+
+	m_pD3DRenderer = nullptr;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -18,6 +21,8 @@ DirectXApplication::~DirectXApplication()
 //---------------------------------------------------------------------------------------------------------------------
 void DirectXApplication::Cleanup()
 {
+	SAFE_DELETE(m_pD3DRenderer);
+
 	UT::D3D12::CORE::Cleanup();
 }
 
@@ -29,11 +34,16 @@ bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 	int width, height = 0;
 	glfwGetWindowSize(const_cast<GLFWwindow*>(pWindow), &width, &height);
 
-	// Store windows width & height for future usage!
-	m_uiAppWidth = static_cast<uint16_t>(width);
-	m_uiAppHeight = static_cast<uint16_t>(height);
+	// Store into globals for future usage!
+	UT::GLOBALS::GWindowWidth  = static_cast<uint16_t>(width);
+	UT::GLOBALS::GWindowHeight = static_cast<uint16_t>(height);
+	UT::GLOBALS::GWindowHandle = glfwGetWin32Window(const_cast<GLFWwindow*>(pWindow));
 
 	UT::D3D12::CORE::Initialize();
+
+	m_pD3DRenderer = new D3DRenderer();
+
+	UT_CHECK_BOOL(m_pD3DRenderer->Initialize());
 
 	return true;
 }
@@ -46,6 +56,11 @@ void DirectXApplication::Update(double dt)
 //---------------------------------------------------------------------------------------------------------------------
 void DirectXApplication::Render()
 {
+	UT_ASSERT_NULL(m_pD3DRenderer);
+
+	UT::D3D12::CORE::BeginFrame();
+	m_pD3DRenderer->RecordCommands();
+	UT::D3D12::CORE::EndFrame();
 }
 
 //---------------------------------------------------------------------------------------------------------------------

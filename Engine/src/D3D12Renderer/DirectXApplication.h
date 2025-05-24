@@ -3,6 +3,7 @@
 #include "../Core/Core.h"
 #include "../EngineHeader.h"
 
+class D3DRenderer;
 class EngineApplication;
 enum class CameraAction;
 
@@ -29,5 +30,7 @@ private:
 
 	uint16_t			m_uiAppWidth;
 	uint16_t			m_uiAppHeight;
+
+	D3DRenderer*		m_pD3DRenderer;
 };
 
