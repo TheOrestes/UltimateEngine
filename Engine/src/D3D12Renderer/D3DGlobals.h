@@ -26,6 +26,7 @@ namespace UT
 			extern constexpr IDXGIFactory6*				const		GetFactory();
 			extern constexpr ID3D12CommandQueue*		const		GetCommandQueue();
 			extern constexpr IDXGISwapChain4*			const		GetSwapchain();
+			extern constexpr ID3D12CommandAllocator*	const		GetCommandAllocator(uint16_t index);
 			extern constexpr ID3D12GraphicsCommandList* const		GetCommandList(uint16_t index);
 
 			bool			Initialize();

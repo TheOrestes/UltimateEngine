@@ -14,18 +14,19 @@ namespace UT
 			ID3D12CommandQueue* g_pD3DCommandQueue	= nullptr;
 			IDXGISwapChain4*	g_pD3DSwapChain		= nullptr;
 
-			std::array<ID3D12CommandAllocator*, GLOBALS::GFramesInFlight>		m_ListCommandAllocators;
-			std::array<ID3D12GraphicsCommandList*, GLOBALS::GFramesInFlight>	m_ListCommandListsGraphics;
-			std::array<ID3D12Fence*, GLOBALS::GFramesInFlight>					m_ListFences;
-			std::array<HANDLE, GLOBALS::GFramesInFlight>						m_ListFenceEvents;
-			std::array<UINT64, GLOBALS::GFramesInFlight>						m_ListFenceValues;
+			std::array<ID3D12CommandAllocator*, GLOBALS::GFramesInFlight>						m_ListCommandAllocators;
+			std::array<ID3D12GraphicsCommandList*, GLOBALS::GFramesInFlight>					m_ListCommandListsGraphics;
+			std::array<ID3D12Fence*, GLOBALS::GFramesInFlight>									m_ListFences;
+			std::array<HANDLE, GLOBALS::GFramesInFlight>										m_ListFenceEvents;
+			std::array<UINT64, GLOBALS::GFramesInFlight>										m_ListFenceValues;
 
-			constexpr IDXGIFactory6*				const GetFactory()						{ return g_pFactory; }
-			constexpr ID3D12Device*					const GetDevice()						{ return g_pDevice; }
-			constexpr ID3D12CommandQueue*			const GetCommandQueue()					{ return g_pD3DCommandQueue; }
-			constexpr IDXGISwapChain4*				const GetSwapchain()					{ return g_pD3DSwapChain; }
+			constexpr IDXGIFactory6*				const GetFactory()							{ return g_pFactory; }
+			constexpr ID3D12Device*					const GetDevice()							{ return g_pDevice; }
+			constexpr ID3D12CommandQueue*			const GetCommandQueue()						{ return g_pD3DCommandQueue; }
+			constexpr IDXGISwapChain4*				const GetSwapchain()						{ return g_pD3DSwapChain; }
 
-			constexpr ID3D12GraphicsCommandList*	const GetCommandList(uint16_t index)	{ return m_ListCommandListsGraphics[index]; }
+			constexpr ID3D12CommandAllocator*		const GetCommandAllocator(uint16_t index)	{ return m_ListCommandAllocators[index]; }
+			constexpr ID3D12GraphicsCommandList*	const GetCommandList(uint16_t index)		{ return m_ListCommandListsGraphics[index]; }
 
 			//-------------------------------------------------------------------------------------------------------------------
 			bool Initialize()
