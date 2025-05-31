@@ -110,7 +110,7 @@ void D3DRenderer::MODIFY_PIXELS_CPU()
 		{
 			const UINT pixelIndex = (y * UT::GLOBALS::GWindowWidth + x) * 4;
 
-			const Vector3 color = m_pRTScene->Render(x, y, 25);
+			const Vector3 color = m_pRTScene->Render(x, y);
 
 			// Dynamic pixel modification each frame
 			mappedData[pixelIndex + 0] = color.x;  // Red
