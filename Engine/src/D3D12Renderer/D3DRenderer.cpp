@@ -2,6 +2,8 @@
 #include "D3DRenderer.h"
 #include "D3DGlobals.h"
 
+#include "RayTracer/RT_Scene.h"
+
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::D3DRenderer()
 {
@@ -11,6 +13,7 @@ D3DRenderer::D3DRenderer()
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::~D3DRenderer()
 {
+	SAFE_DELETE(m_pRTScene);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -18,6 +21,10 @@ bool D3DRenderer::Initialize()
 {
 	UT_CHECK_BOOL(CreateRTV());
 	UT_CHECK_BOOL(CreateUploadBuffer());
+
+	m_pRTScene = new RT_Scene();
+	m_pRTScene->Initialize();
+
 	return true;
 }
 
@@ -94,19 +101,23 @@ void D3DRenderer::MODIFY_PIXELS_CPU()
 	UINT8* mappedData;
 	m_ResourceUploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mappedData));
 
+
 	for (UINT y = 0; y < UT::GLOBALS::GWindowHeight; ++y)
 	{
 		for (UINT x = 0; x < UT::GLOBALS::GWindowWidth; ++x)
 		{
 			const UINT pixelIndex = (y * UT::GLOBALS::GWindowWidth + x) * 4;
 
+			const Vector3 color = m_pRTScene->Render(x, y, 25);
+
 			// Dynamic pixel modification each frame
-			mappedData[pixelIndex + 0] = (x + frameIndex) % 256;  // Red
-			mappedData[pixelIndex + 1] = (y + frameIndex) % 256;  // Green
-			mappedData[pixelIndex + 2] = (x + y + frameIndex) % 256; // Blue
+			mappedData[pixelIndex + 0] = color.x;  // Red
+			mappedData[pixelIndex + 1] = color.y;  // Green
+			mappedData[pixelIndex + 2] = color.z; // Blue
 			mappedData[pixelIndex + 3] = 255; // Alpha
 		}
 	}
+
 	m_ResourceUploadBuffer->Unmap(0, nullptr);
 }
 

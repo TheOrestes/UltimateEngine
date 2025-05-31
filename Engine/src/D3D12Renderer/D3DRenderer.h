@@ -2,6 +2,8 @@
 #include <d3d12.h>
 #include "D3DGlobals.h"
 
+class RT_Scene;
+
 class D3DRenderer
 {
 public:
@@ -25,5 +27,7 @@ private:
 	std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>				m_ResourceRT;
 
 	ID3D12Resource*															m_ResourceUploadBuffer;
+
+	RT_Scene*																m_pRTScene;
 };
 
