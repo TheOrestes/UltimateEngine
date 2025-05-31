@@ -23,7 +23,9 @@ bool D3DRenderer::Initialize()
 	UT_CHECK_BOOL(CreateUploadBuffer());
 
 	m_pRTScene = new RT_Scene();
-	m_pRTScene->Initialize();
+	m_pRTScene->Initialize(1);
+
+	m_RTColor = Vector3(0, 0, 0);
 
 	return true;
 }

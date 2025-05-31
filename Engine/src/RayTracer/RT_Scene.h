@@ -17,24 +17,34 @@
 class RT_Scene
 {
 public:
-	RT_Scene() = default; 
-	~RT_Scene() = default; 
+	RT_Scene() : m_uiSamples(0), m_uiCurrentSampleIndex(0), m_pCamera(nullptr), m_pWorld(nullptr) {} 
+	~RT_Scene() {
+		SAFE_DELETE(m_pCamera);
+		SAFE_DELETE(m_pWorld);
+	}
 
-	void		Initialize();
-	Vector3		Render(uint16_t xPixel, uint16_t yPixel, uint16_t nSamples);
+	void			Initialize(uint16_t nSamples);
+	Vector3			Render(uint16_t xPixel, uint16_t yPixel);
+	void			IncrementSampleIndex() { ++m_uiCurrentSampleIndex; }
+
+	uint16_t		GetCurrentSampleIndex() const { return m_uiCurrentSampleIndex;}
+	uint16_t		GetSampleCount()		const { return m_uiSamples; }
 
 private:
-	Hitable*	RandomScene();
-	Hitable*	BasicScene();
-	Vector3		Trace(const Ray& r, Hitable* world, int depth);
+	Hitable*		RandomScene();
+	Hitable*		BasicScene();
+	Vector3			Trace(const Ray& r, Hitable* world, int depth);
 
-	Camera*		m_pCamera;
-	Hitable*	m_pWorld;
+	uint16_t		m_uiSamples;
+	uint16_t		m_uiCurrentSampleIndex;
+	Camera*			m_pCamera;
+	Hitable*		m_pWorld;
 };
 
 //-------------------------------------------------------------------------------------------------------------------
-inline void RT_Scene::Initialize()
+inline void RT_Scene::Initialize(uint16_t nSamples)
 {
+	m_uiSamples = nSamples;
 	m_pWorld = BasicScene();
 
 	const Vector3 lookFrom(0, 1.5, 6);
@@ -46,37 +56,22 @@ inline void RT_Scene::Initialize()
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-inline Vector3 RT_Scene::Render(uint16_t xPixel, uint16_t yPixel, uint16_t nSamples)
+inline Vector3 RT_Scene::Render(uint16_t xPixel, uint16_t yPixel)
 {
 	Vector3 color(0, 0, 0);
 
-	for (int s = 0; s < nSamples; s++)
-	{
-		float u = float(xPixel + Helper::GetRandom01()) / UT::GLOBALS::GWindowWidth;
-		float v = float(yPixel + Helper::GetRandom01()) / UT::GLOBALS::GWindowHeight;
+	float u = float(xPixel + Helper::GetRandom01()) / UT::GLOBALS::GWindowWidth;
+	float v = float(yPixel + Helper::GetRandom01()) / UT::GLOBALS::GWindowHeight;
 
-		Ray r = m_pCamera->get_ray(u, v);
+	Ray r = m_pCamera->get_ray(u, v);
 
-		color = color + Trace(r, m_pWorld, 0);
-	}
-
-	color = color / float(nSamples);
-	color = Vector3(sqrt(color.x), sqrt(color.y), sqrt(color.z));
+	color = color + Trace(r, m_pWorld, 0);
 
 	float ir = (255.99 * color.x);
 	float ig = (255.99 * color.y);
 	float ib = (255.99 * color.z);
 
 	return Vector3(ir, ig, ib);
-
-	//float ir = 255.99f;
-	//float ig = 128.99f;
-	//float ib = 255.99f;
-
-	//fprintf(filePtr, "\n%d %d %d", ir, ig, ib);
-	//SetPixel(hdc, gBackbufferWidth - i, gBackbufferHeight - j, RGB(ir, ig, ib));
-	//Sleep(0.5);
-	//++counter;
 }
 
 //-------------------------------------------------------------------------------------------------------------------

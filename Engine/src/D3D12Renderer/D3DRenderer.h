@@ -1,6 +1,7 @@
 #pragma once
 #include <d3d12.h>
 #include "D3DGlobals.h"
+#include "RayTracer/Vector3.h"
 
 class RT_Scene;
 
@@ -29,5 +30,6 @@ private:
 	ID3D12Resource*															m_ResourceUploadBuffer;
 
 	RT_Scene*																m_pRTScene;
+	Vector3																	m_RTColor;
 };
 
