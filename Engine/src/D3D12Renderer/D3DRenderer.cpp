@@ -35,7 +35,7 @@ bool D3DRenderer::Initialize()
 	UT_CHECK_BOOL(CreateUploadBuffer());
 
 	m_pRTScene = new RT_Scene();
-	m_pRTScene->Initialize(50);
+	m_pRTScene->Initialize(5);
 
 	m_bAppRunning = true;
 	m_bAccumulationDone = false;
@@ -146,33 +146,37 @@ void D3DRenderer::AccumulatePixels()
 	{
 		for (UINT x = 0; x < UT::GLOBALS::GWindowWidth; ++x)
 		{
-			const UINT pixelIndex = (y * UT::GLOBALS::GWindowWidth + x) * 4;
-
-			// Multiple samples per pixel
-			const UINT numSamples = m_pRTScene->GetSampleCount();  // Adjust the number of samples per pixel
-			XMVECTOR accumulatedColor = XMVectorZero();
-
-			for (UINT s = 0; s < numSamples; ++s)
-			{
-				XMFLOAT3 renderColor = m_pRTScene->Render(x, y);
-				accumulatedColor = XMVectorAdd(accumulatedColor, XMLoadFloat3(&renderColor));
-			}
-
-			accumulatedColor = XMVectorScale(accumulatedColor, 1.0f / static_cast<float>(numSamples));
-
-			// Store final computed color back to XMFLOAT3
-			XMFLOAT3 finalColor;
-			XMStoreFloat3(&finalColor, accumulatedColor);
-
-			// Write to mapped GPU buffer
-			m_PersistentData[pixelIndex + 0] = static_cast<UINT8>(finalColor.x);
-			m_PersistentData[pixelIndex + 1] = static_cast<UINT8>(finalColor.y);
-			m_PersistentData[pixelIndex + 2] = static_cast<UINT8>(finalColor.z);
-			m_PersistentData[pixelIndex + 3] = 255;  // Alpha remains fixed
+			RenderPixel(x, y);
 		}
 	}
 
 	m_bAccumulationDone = true;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+void D3DRenderer::RenderPixel(UINT x, UINT y)
+{
+	const UINT numSamples = m_pRTScene->GetSampleCount();  // Adjust the number of samples per pixel
+	XMVECTOR accumulatedColor = XMVectorZero();
+
+	for (UINT s = 0; s < numSamples; ++s)
+	{
+		XMFLOAT3 renderColor = m_pRTScene->Render(x, y);
+		accumulatedColor = XMVectorAdd(accumulatedColor, XMLoadFloat3(&renderColor));
+	}
+
+	accumulatedColor = XMVectorScale(accumulatedColor, 1.0f / static_cast<float>(numSamples));
+
+	// Store final computed color back to XMFLOAT3
+	XMFLOAT3 finalColor;
+	XMStoreFloat3(&finalColor, accumulatedColor);
+
+	// Write to mapped GPU buffer
+	const UINT pixelIndex = (y * UT::GLOBALS::GWindowWidth + x) * 4;
+	m_PersistentData[pixelIndex + 0] = static_cast<UINT8>(finalColor.x);
+	m_PersistentData[pixelIndex + 1] = static_cast<UINT8>(finalColor.y);
+	m_PersistentData[pixelIndex + 2] = static_cast<UINT8>(finalColor.z);
+	m_PersistentData[pixelIndex + 3] = 255;  // Alpha remains fixed
 }
 
 //-------------------------------------------------------------------------------------------------------------------

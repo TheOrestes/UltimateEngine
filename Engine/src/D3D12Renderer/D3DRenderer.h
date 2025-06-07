@@ -21,6 +21,7 @@ private:
 	bool	CreateRTV();
 	bool	CreateUploadBuffer();
 	void	AccumulatePixels();
+	void	RenderPixel(UINT x, UINT y);
 
 private:
 	ID3D12DescriptorHeap*													m_pHeapRTV;
