@@ -58,6 +58,8 @@ void DirectXApplication::Render()
 {
 	UT_ASSERT_NULL(m_pD3DRenderer);
 
+	m_pD3DRenderer->StartRayTracerAccumulationThread();
+
 	UT::D3D12::CORE::BeginFrame();
 	m_pD3DRenderer->RecordCommands();
 	UT::D3D12::CORE::EndFrame();

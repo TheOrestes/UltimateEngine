@@ -1,22 +1,20 @@
 #pragma once
 
-#include "Vector3.h"
-
 class Ray
 {
 public:
 	Ray() {}
-	Ray(const Vector3& A, const Vector3& B) 
+	Ray(const XMVECTOR& A, const XMVECTOR& B) 
 	{ 
 		origin = A;
 		direction = B; 
 	}
 
-	Vector3 GetRayOrigin() const { return origin; }
-	Vector3 GetRayDirection() const { return direction; }
-	Vector3 GetPointAt(float t) const { return origin + t * direction; }
+	XMVECTOR GetRayOrigin()			const { return origin; }
+	XMVECTOR GetRayDirection()		const { return direction; }
+	XMVECTOR GetPointAt(float t)	const { return XMVectorAdd(origin, XMVectorScale(direction, t)); }
 
 private:
-	Vector3 origin;
-	Vector3 direction;
+	XMVECTOR origin;
+	XMVECTOR direction;
 };

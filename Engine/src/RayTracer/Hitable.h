@@ -7,8 +7,8 @@ class Material;
 struct HitRecord
 {
 	float t;
-	Vector3 P;
-	Vector3 N;
+	XMVECTOR P;
+	XMVECTOR N;
 	Material* mat_ptr;
 };
 

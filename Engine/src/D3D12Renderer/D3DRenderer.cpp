@@ -1,7 +1,5 @@
-#include "UltimateEnginePCH.h"
+﻿#include "UltimateEnginePCH.h"
 #include "D3DRenderer.h"
-#include "D3DGlobals.h"
-
 #include "RayTracer/RT_Scene.h"
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -13,6 +11,9 @@ D3DRenderer::D3DRenderer()
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::~D3DRenderer()
 {
+	m_bAppRunning = false;
+	
+
 	SAFE_DELETE(m_pRTScene);
 }
 
@@ -23,9 +24,17 @@ bool D3DRenderer::Initialize()
 	UT_CHECK_BOOL(CreateUploadBuffer());
 
 	m_pRTScene = new RT_Scene();
-	m_pRTScene->Initialize(1);
+	m_pRTScene->Initialize(5);
 
-	m_RTColor = Vector3(0, 0, 0);
+	m_bAppRunning = true;
+
+	m_RTColor = XMFLOAT3(0, 0, 0);
+
+	m_ListAccumulatedBuffer.resize(UT::GLOBALS::GWindowWidth * UT::GLOBALS::GWindowHeight * 4);
+	std::fill(m_ListAccumulatedBuffer.begin(), m_ListAccumulatedBuffer.end(), 0);
+
+	m_ListSampleCount.resize(UT::GLOBALS::GWindowWidth * UT::GLOBALS::GWindowHeight);
+	std::fill(m_ListSampleCount.begin(), m_ListSampleCount.end(), 0);
 
 	return true;
 }
@@ -37,8 +46,6 @@ void D3DRenderer::RecordCommands()
 
 	ID3D12Device* const pDevice = UT::D3D12::CORE::GetDevice();
 	ID3D12GraphicsCommandList* const pCommandList = UT::D3D12::CORE::GetCommandList(frameIndex);
-
-	MODIFY_PIXELS_CPU();
 
 	//-- Transition to COPY_DEST before copying data!
 	D3D12_RESOURCE_BARRIER copyBarrier = {};
@@ -95,14 +102,29 @@ void D3DRenderer::RecordCommands()
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-void D3DRenderer::MODIFY_PIXELS_CPU()
+void D3DRenderer::StartRayTracerAccumulationThread()
 {
-	const uint16_t frameIndex = UT::GLOBALS::GCurrentFrameId;
+
+	std::thread accumulationThread([this]()
+		{
+			while (m_bAppRunning)
+			{
+				AccumulatePixels();
+				std::this_thread::sleep_for(std::chrono::milliseconds(16));
+			}
+		});
+
+	accumulationThread.detach(); // 🔹 Allow independent execution
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+void D3DRenderer::AccumulatePixels()
+{
+	std::lock_guard<std::mutex> lock(m_mutexAccumulation); // Ensure thread safety
 
 	// Map Upload Buffer and Modify Pixels
 	UINT8* mappedData;
-	m_ResourceUploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mappedData));
-
+	UT_ASSERT_HRESULT(m_ResourceUploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mappedData)));
 
 	for (UINT y = 0; y < UT::GLOBALS::GWindowHeight; ++y)
 	{
@@ -110,13 +132,27 @@ void D3DRenderer::MODIFY_PIXELS_CPU()
 		{
 			const UINT pixelIndex = (y * UT::GLOBALS::GWindowWidth + x) * 4;
 
-			const Vector3 color = m_pRTScene->Render(x, y);
+			// Multiple samples per pixel
+			const UINT numSamples = m_pRTScene->GetSampleCount();  // Adjust the number of samples per pixel
+			XMVECTOR accumulatedColor = XMVectorZero();
 
-			// Dynamic pixel modification each frame
-			mappedData[pixelIndex + 0] = color.x;  // Red
-			mappedData[pixelIndex + 1] = color.y;  // Green
-			mappedData[pixelIndex + 2] = color.z; // Blue
-			mappedData[pixelIndex + 3] = 255; // Alpha
+			for (UINT s = 0; s < numSamples; ++s)
+			{
+				XMFLOAT3 renderColor = m_pRTScene->Render(x, y);
+				accumulatedColor = XMVectorAdd(accumulatedColor, XMLoadFloat3(&renderColor));
+			}
+
+			accumulatedColor = XMVectorScale(accumulatedColor, 1.0f / static_cast<float>(numSamples));
+
+			// Store final computed color back to XMFLOAT3
+			XMFLOAT3 finalColor;
+			XMStoreFloat3(&finalColor, accumulatedColor);
+
+			// Write to mapped GPU buffer
+			mappedData[pixelIndex + 0] = static_cast<UINT8>(finalColor.x);
+			mappedData[pixelIndex + 1] = static_cast<UINT8>(finalColor.y);
+			mappedData[pixelIndex + 2] = static_cast<UINT8>(finalColor.z);
+			mappedData[pixelIndex + 3] = 255;  // Alpha remains fixed
 		}
 	}
 
@@ -174,4 +210,6 @@ bool D3DRenderer::CreateUploadBuffer()
 
 	return true;
 }
+
+
 

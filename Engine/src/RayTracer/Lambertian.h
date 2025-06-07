@@ -8,16 +8,22 @@
 class Lambertian : public Material
 {
 public:
-	Lambertian(const Vector3& _albedo) : Albedo(_albedo) {}
+	Lambertian(const XMFLOAT3& _albedo) : Albedo(_albedo) {}
 
-	virtual bool Scatter(const Ray& r_in, const HitRecord& rec, Vector3& attenuation, Ray& scatterd) const
+	virtual bool Scatter(const Ray& r_in, const HitRecord& rec, XMFLOAT3& attenuation, Ray& scattered) const
 	{
-		Vector3 target = rec.P + rec.N + Helper::RandomInUnitSphere();
-		scatterd = Ray(rec.P, target - rec.P);
-		attenuation = Albedo;
-		return true;
+        const XMVECTOR randomDir = Helper::RandomInUnitSphere();
+
+        // Compute scattering target using SIMD-friendly operations
+        const XMVECTOR target = XMVectorAdd(XMVectorAdd(rec.P, rec.N), randomDir);
+        scattered = Ray(rec.P, XMVectorSubtract(target, rec.P));
+
+        // Store albedo as attenuation
+        attenuation = Albedo;
+
+        return true;
 	}
 
 private:
-	Vector3 Albedo;
+	XMFLOAT3 Albedo;
 };

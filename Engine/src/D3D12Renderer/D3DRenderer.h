@@ -1,7 +1,6 @@
 #pragma once
 #include <d3d12.h>
 #include "D3DGlobals.h"
-#include "RayTracer/Vector3.h"
 
 class RT_Scene;
 
@@ -14,13 +13,14 @@ public:
 	bool	Initialize();
 	void	RecordCommands();
 
-	void	MODIFY_PIXELS_CPU();
+	void	StartRayTracerAccumulationThread();
 	void	REBDER_COMPUTE();
 	void	RENDER_CUDA();
 
 private:
 	bool	CreateRTV();
 	bool	CreateUploadBuffer();
+	void	AccumulatePixels();
 
 private:
 	ID3D12DescriptorHeap*													m_pHeapRTV;
@@ -30,6 +30,11 @@ private:
 	ID3D12Resource*															m_ResourceUploadBuffer;
 
 	RT_Scene*																m_pRTScene;
-	Vector3																	m_RTColor;
+	XMFLOAT3																m_RTColor;
+	std::atomic<bool>														m_bAppRunning;
+
+	std::mutex																m_mutexAccumulation;
+	std::vector<float>														m_ListAccumulatedBuffer;		// stores float values for RGBA channel
+	std::vector<uint32_t>													m_ListSampleCount;				// tracks how many frames each pixel has accumulated.
 };
 

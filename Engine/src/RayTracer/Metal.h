@@ -8,7 +8,7 @@
 class Metal : public Material
 {
 public:
-	Metal (const Vector3& _albedo, float f) : Albedo(_albedo) 
+	Metal (const XMFLOAT3& _albedo, float f) : Albedo(_albedo) 
 	{
 		if (f < 1)
 			fuzz = f;
@@ -16,15 +16,16 @@ public:
 			fuzz = 1;
 	}
 
-	virtual bool Scatter(const Ray& r_in, const HitRecord& rec, Vector3& attenuation, Ray& scatterd) const
+	virtual bool Scatter(const Ray& r_in, const HitRecord& rec, XMFLOAT3& attenuation, Ray& scatterd) const
 	{
-		Vector3 target = Helper::Reflect(unit_vector(r_in.GetRayDirection()), rec.N);
-		scatterd = Ray(rec.P, target + fuzz * Helper::RandomInUnitSphere());
+		const XMVECTOR target = Helper::Reflect(XMVector3Normalize(r_in.GetRayDirection()), rec.N);
+		const XMVECTOR direction = XMVectorAdd(target, XMVectorScale(Helper::RandomInUnitSphere(), fuzz));
+		scatterd = Ray(rec.P, direction);
 		attenuation = Albedo;
-		return (dot(scatterd.GetRayDirection(), rec.N) > 0);
+		return (XMVectorGetX(XMVector3Dot(scatterd.GetRayDirection(), rec.N)) > 0);
 	}
 
 private:
-	Vector3 Albedo;
+	XMFLOAT3 Albedo;
 	float fuzz;
 };

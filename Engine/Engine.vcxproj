@@ -23,7 +23,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
-    <EnableASAN>true</EnableASAN>
+    <EnableASAN>false</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -119,7 +119,6 @@
     <ClInclude Include="src\RayTracer\RT_Scene.h" />
     <ClInclude Include="src\RayTracer\Sphere.h" />
     <ClInclude Include="src\RayTracer\Transparent.h" />
-    <ClInclude Include="src\RayTracer\Vector3.h" />
     <ClInclude Include="src\UltimateEnginePCH.h" />
   </ItemGroup>
   <ItemGroup>
@@ -128,7 +127,6 @@
     <ClCompile Include="src\D3D12Renderer\DirectXApplication.cpp" />
     <ClCompile Include="src\Core\EngineApplication.cpp" />
     <ClCompile Include="src\Core\Logger.cpp" />
-    <ClCompile Include="src\RayTracer\Vector3.cpp" />
     <ClCompile Include="src\UltimateEnginePCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
