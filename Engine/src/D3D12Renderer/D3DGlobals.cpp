@@ -140,7 +140,7 @@ namespace UT
 			void BeginFrame()
 			{
 				const uint16_t currFrameIndex = UT::GLOBALS::GCurrentFrameId;
-				LOG_DEBUG("BeginFrame{0}", UT::GLOBALS::GCurrentFrameId);
+				//LOG_DEBUG("BeginFrame{0}", UT::GLOBALS::GCurrentFrameId);
 
 				// Wait for the previous frame to finish!
 				if (m_ListFences[currFrameIndex]->GetCompletedValue() < m_ListFenceValues[currFrameIndex])
@@ -175,7 +175,7 @@ namespace UT
 				g_pD3DCommandQueue->Signal(m_ListFences[frameIndex], m_ListFenceValues[frameIndex]);
 
 				pSwapchain->Present(1, 0);
-				LOG_DEBUG("EndFrame{0}", UT::GLOBALS::GCurrentFrameId);
+				//LOG_DEBUG("EndFrame{0}", UT::GLOBALS::GCurrentFrameId);
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------

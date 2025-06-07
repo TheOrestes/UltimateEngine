@@ -12,6 +12,7 @@ D3DRenderer::D3DRenderer()
 D3DRenderer::~D3DRenderer()
 {
 	m_bAppRunning = false;
+	m_dTotalRenderTime = 0;
 
 	if(m_threadAccumulation.joinable())
 	{
@@ -35,7 +36,7 @@ bool D3DRenderer::Initialize()
 	UT_CHECK_BOOL(CreateUploadBuffer());
 
 	m_pRTScene = new RT_Scene();
-	m_pRTScene->Initialize(5);
+	m_pRTScene->Initialize(10);
 
 	m_bAppRunning = true;
 	m_bAccumulationDone = false;
@@ -142,6 +143,9 @@ void D3DRenderer::AccumulatePixels()
 
 	if (m_bAccumulationDone) return;	// Stop execution if accumulation is complete
 
+	const clock_t begin_time = clock();
+	double counter = 0;
+
 	for (UINT y = 0; y < UT::GLOBALS::GWindowHeight; ++y)
 	{
 		for (UINT x = 0; x < UT::GLOBALS::GWindowWidth; ++x)
@@ -149,6 +153,11 @@ void D3DRenderer::AccumulatePixels()
 			RenderPixel(x, y);
 		}
 	}
+
+	const clock_t end_time = clock();
+	m_dTotalRenderTime = (end_time - begin_time) / (double)CLOCKS_PER_SEC;
+
+	LOG_INFO("Total Ray tracing time = {0}", m_dTotalRenderTime);
 
 	m_bAccumulationDone = true;
 }

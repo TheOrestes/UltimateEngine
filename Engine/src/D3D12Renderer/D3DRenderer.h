@@ -36,6 +36,7 @@ private:
 	std::thread																m_threadAccumulation;
 	std::atomic<bool>														m_bAppRunning;
 	std::atomic<bool>														m_bAccumulationDone;
+	double																	m_dTotalRenderTime;
 
 	std::mutex																m_mutexAccumulation;
 	std::vector<float>														m_ListAccumulatedBuffer;		// stores float values for RGBA channel
