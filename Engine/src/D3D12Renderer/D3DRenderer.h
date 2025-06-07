@@ -29,8 +29,10 @@ private:
 
 	ID3D12Resource*															m_ResourceUploadBuffer;
 
+	UINT8*																	m_PersistentData;
 	RT_Scene*																m_pRTScene;
 	XMFLOAT3																m_RTColor;
+	std::thread																m_threadAccumulation;
 	std::atomic<bool>														m_bAppRunning;
 
 	std::mutex																m_mutexAccumulation;

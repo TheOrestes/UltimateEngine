@@ -5,15 +5,26 @@
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::D3DRenderer()
 {
-	
+	m_PersistentData = nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::~D3DRenderer()
 {
 	m_bAppRunning = false;
-	
 
+	if(m_threadAccumulation.joinable())
+	{
+		m_threadAccumulation.join();
+	}
+
+	if(m_PersistentData)
+	{
+		m_ResourceUploadBuffer->Unmap(0, nullptr);
+		m_PersistentData = nullptr;
+	}
+
+	SAFE_RELEASE(m_ResourceUploadBuffer);
 	SAFE_DELETE(m_pRTScene);
 }
 
@@ -104,8 +115,9 @@ void D3DRenderer::RecordCommands()
 //-------------------------------------------------------------------------------------------------------------------
 void D3DRenderer::StartRayTracerAccumulationThread()
 {
+	m_bAppRunning = true;
 
-	std::thread accumulationThread([this]()
+	m_threadAccumulation = std::thread([this]()
 		{
 			while (m_bAppRunning)
 			{
@@ -113,18 +125,12 @@ void D3DRenderer::StartRayTracerAccumulationThread()
 				std::this_thread::sleep_for(std::chrono::milliseconds(16));
 			}
 		});
-
-	accumulationThread.detach(); // 🔹 Allow independent execution
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 void D3DRenderer::AccumulatePixels()
 {
 	std::lock_guard<std::mutex> lock(m_mutexAccumulation); // Ensure thread safety
-
-	// Map Upload Buffer and Modify Pixels
-	UINT8* mappedData;
-	UT_ASSERT_HRESULT(m_ResourceUploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mappedData)));
 
 	for (UINT y = 0; y < UT::GLOBALS::GWindowHeight; ++y)
 	{
@@ -149,14 +155,12 @@ void D3DRenderer::AccumulatePixels()
 			XMStoreFloat3(&finalColor, accumulatedColor);
 
 			// Write to mapped GPU buffer
-			mappedData[pixelIndex + 0] = static_cast<UINT8>(finalColor.x);
-			mappedData[pixelIndex + 1] = static_cast<UINT8>(finalColor.y);
-			mappedData[pixelIndex + 2] = static_cast<UINT8>(finalColor.z);
-			mappedData[pixelIndex + 3] = 255;  // Alpha remains fixed
+			m_PersistentData[pixelIndex + 0] = static_cast<UINT8>(finalColor.x);
+			m_PersistentData[pixelIndex + 1] = static_cast<UINT8>(finalColor.y);
+			m_PersistentData[pixelIndex + 2] = static_cast<UINT8>(finalColor.z);
+			m_PersistentData[pixelIndex + 3] = 255;  // Alpha remains fixed
 		}
 	}
-
-	m_ResourceUploadBuffer->Unmap(0, nullptr);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -207,6 +211,11 @@ bool D3DRenderer::CreateUploadBuffer()
 
 	UT_CHECK_HRESULT(pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_ResourceUploadBuffer)));
 	UT_NAME_D3D_OBJECT(m_ResourceUploadBuffer, "Upload Buffer");
+
+	// Map Upload Buffer to store modified Pixels data...
+	UINT8* mappedData;
+	UT_ASSERT_HRESULT(m_ResourceUploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mappedData)));
+	m_PersistentData = mappedData;
 
 	return true;
 }

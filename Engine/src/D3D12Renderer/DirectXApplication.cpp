@@ -44,6 +44,7 @@ bool DirectXApplication::Initialize(const GLFWwindow* pWindow)
 	m_pD3DRenderer = new D3DRenderer();
 
 	UT_CHECK_BOOL(m_pD3DRenderer->Initialize());
+	m_pD3DRenderer->StartRayTracerAccumulationThread();
 
 	return true;
 }
@@ -57,8 +58,6 @@ void DirectXApplication::Update(double dt)
 void DirectXApplication::Render()
 {
 	UT_ASSERT_NULL(m_pD3DRenderer);
-
-	m_pD3DRenderer->StartRayTracerAccumulationThread();
 
 	UT::D3D12::CORE::BeginFrame();
 	m_pD3DRenderer->RecordCommands();

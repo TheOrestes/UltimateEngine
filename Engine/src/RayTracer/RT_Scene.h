@@ -52,8 +52,9 @@ inline void RT_Scene::Initialize(uint16_t nSamples)
 	constexpr XMVECTOR Up = { 0, 1, 0 };
 	constexpr float dist_to_focus = 1.0f;	// set this to 1.0 & apertue to 0.0f to stop DOF effect!
 	constexpr float aperture = 0.0f;
+	const float aspect = static_cast<float>(UT::GLOBALS::GWindowWidth) / UT::GLOBALS::GWindowHeight;
 
-	m_pCamera = new Camera(lookFrom, lookAt, Up, 20, UT::GLOBALS::GWindowWidth / UT::GLOBALS::GWindowHeight, aperture, dist_to_focus);
+	m_pCamera = new Camera(lookFrom, lookAt, Up, 25.0f, aspect, aperture, dist_to_focus);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -86,14 +87,14 @@ inline XMFLOAT3 RT_Scene::Render(uint16_t xPixel, uint16_t yPixel)
 //-------------------------------------------------------------------------------------------------------------------
 inline Hitable* RT_Scene::BasicScene()
 {
-	Hitable** list = new Hitable * [2];
+	Hitable** list = new Hitable * [5];
 	list[0] = new Sphere(XMVectorSet(1.05f, 0, 0, 0), 0.5, new Metal(XMFLOAT3(0.5f, 0.2f, 0.1f), 0.5));
 	list[1] = new Sphere(XMVectorSet(0, -100.5f, 0, 0), 100, new Lambertian(XMFLOAT3(0.2f, 0.2f, 0.2f)));
-	//list[2] = new Sphere(XMVectorSet(0, 0, 0.1f, 0), 0.5, new Transparent(1.5f));
-	//list[3] = new Sphere(XMVectorSet(-1.05f, 0, 0, 0), 0.5, new Metal(XMFLOAT3(1.0, 0.2f, 0.0), 0));
-	//list[4] = new Sphere(XMVectorSet(0.0f, 0, -3, 0), 0.5, new Lambertian(XMFLOAT3(1.0f, 1.0f, 0.0f)));
+	list[2] = new Sphere(XMVectorSet(0, 0, 0.1f, 0), 0.5, new Transparent(1.5f));
+	list[3] = new Sphere(XMVectorSet(-1.05f, 0, 0, 0), 0.5, new Metal(XMFLOAT3(1.0, 0.2f, 0.0), 0));
+	list[4] = new Sphere(XMVectorSet(0.0f, 0, -3, 0), 0.5, new Lambertian(XMFLOAT3(1.0f, 1.0f, 0.0f)));
 
-	return new HitableList(list, 2);
+	return new HitableList(list, 5);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
