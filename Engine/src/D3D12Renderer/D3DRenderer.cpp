@@ -35,9 +35,10 @@ bool D3DRenderer::Initialize()
 	UT_CHECK_BOOL(CreateUploadBuffer());
 
 	m_pRTScene = new RT_Scene();
-	m_pRTScene->Initialize(5);
+	m_pRTScene->Initialize(50);
 
 	m_bAppRunning = true;
+	m_bAccumulationDone = false;
 
 	m_RTColor = XMFLOAT3(0, 0, 0);
 
@@ -115,11 +116,18 @@ void D3DRenderer::RecordCommands()
 //-------------------------------------------------------------------------------------------------------------------
 void D3DRenderer::StartRayTracerAccumulationThread()
 {
+	// Ensure the previous thread has finished before starting a new one
+	if (m_threadAccumulation.joinable())
+	{
+		m_threadAccumulation.join();
+	}
+
 	m_bAppRunning = true;
+	m_bAccumulationDone = false;
 
 	m_threadAccumulation = std::thread([this]()
 		{
-			while (m_bAppRunning)
+			while (m_bAppRunning && !m_bAccumulationDone)
 			{
 				AccumulatePixels();
 				std::this_thread::sleep_for(std::chrono::milliseconds(16));
@@ -131,6 +139,8 @@ void D3DRenderer::StartRayTracerAccumulationThread()
 void D3DRenderer::AccumulatePixels()
 {
 	std::lock_guard<std::mutex> lock(m_mutexAccumulation); // Ensure thread safety
+
+	if (m_bAccumulationDone) return;	// Stop execution if accumulation is complete
 
 	for (UINT y = 0; y < UT::GLOBALS::GWindowHeight; ++y)
 	{
@@ -161,6 +171,8 @@ void D3DRenderer::AccumulatePixels()
 			m_PersistentData[pixelIndex + 3] = 255;  // Alpha remains fixed
 		}
 	}
+
+	m_bAccumulationDone = true;
 }
 
 //-------------------------------------------------------------------------------------------------------------------

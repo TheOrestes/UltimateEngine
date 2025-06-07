@@ -34,6 +34,7 @@ private:
 	XMFLOAT3																m_RTColor;
 	std::thread																m_threadAccumulation;
 	std::atomic<bool>														m_bAppRunning;
+	std::atomic<bool>														m_bAccumulationDone;
 
 	std::mutex																m_mutexAccumulation;
 	std::vector<float>														m_ListAccumulatedBuffer;		// stores float values for RGBA channel
