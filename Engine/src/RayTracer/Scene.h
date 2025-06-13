@@ -14,11 +14,19 @@
 #include "D3D12Renderer/D3DGlobals.h"
 
 //-------------------------------------------------------------------------------------------------------------------
-class RT_Scene
+enum class SIMD_LEVEL
+{
+	AVX_128,
+	AVX_256,
+	AVX_512
+};
+
+//-------------------------------------------------------------------------------------------------------------------
+class Scene
 {
 public:
-	RT_Scene() : m_uiSamples(0), m_uiCurrentSampleIndex(0), m_pCamera(nullptr), m_pWorld(nullptr) {} 
-	~RT_Scene() {
+	Scene() : m_uiSamples(0), m_uiCurrentSampleIndex(0), m_pCamera(nullptr), m_pWorld(nullptr) {} 
+	~Scene() {
 		SAFE_DELETE(m_pCamera);
 		SAFE_DELETE(m_pWorld);
 	}
@@ -31,6 +39,7 @@ public:
 	uint16_t		GetSampleCount()		const { return m_uiSamples; }
 
 private:
+	SIMD_LEVEL		DetectSIMD();
 	Hitable*		RandomScene();
 	Hitable*		BasicScene();
 	XMVECTOR		Trace(const Ray& r, Hitable* world, int depth);
@@ -42,10 +51,41 @@ private:
 };
 
 //-------------------------------------------------------------------------------------------------------------------
-inline void RT_Scene::Initialize(uint16_t nSamples)
+inline SIMD_LEVEL Scene::DetectSIMD()
+{
+	int cpuInfo[4];
+
+	// Check CPU feature flags
+	__cpuid(cpuInfo, 1);
+
+	bool hasOSXSAVE = (cpuInfo[2] & (1 << 27)) != 0;  // OS Save/Restore support (needed for AVX)
+	bool hasAVX = (cpuInfo[2] & (1 << 28)) != 0;  // AVX support
+	bool hasAVX2 = false;
+	bool hasAVX512 = false;
+
+	if (hasAVX && hasOSXSAVE)
+	{
+		// Check for AVX2 support
+		__cpuid(cpuInfo, 7);
+		hasAVX2 = (cpuInfo[1] & (1 << 5)) != 0;  // AVX2 present
+		hasAVX512 = (cpuInfo[1] & (1 << 16)) != 0; // AVX-512 present
+	}
+
+	if (hasAVX512) return SIMD_LEVEL::AVX_512;
+	if (hasAVX2) return SIMD_LEVEL::AVX_256;
+	if (hasAVX) return SIMD_LEVEL::AVX_128;
+
+	return SIMD_LEVEL::AVX_128; // Fallback
+
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+inline void Scene::Initialize(uint16_t nSamples)
 {
 	m_uiSamples = nSamples;
 	m_pWorld = BasicScene();
+
+	SIMD_LEVEL level = DetectSIMD();
 
 	constexpr XMVECTOR lookFrom = { 0.0f, 1.5f, 6.0f };
 	constexpr XMVECTOR lookAt = { 0, 0, 0 };
@@ -58,7 +98,7 @@ inline void RT_Scene::Initialize(uint16_t nSamples)
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-inline XMFLOAT3 RT_Scene::Render(uint16_t xPixel, uint16_t yPixel)
+inline XMFLOAT3 Scene::Render(uint16_t xPixel, uint16_t yPixel)
 {
 	XMFLOAT3 color(0, 0, 0);
 
@@ -85,7 +125,7 @@ inline XMFLOAT3 RT_Scene::Render(uint16_t xPixel, uint16_t yPixel)
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-inline Hitable* RT_Scene::BasicScene()
+inline Hitable* Scene::BasicScene()
 {
 	Hitable** list = new Hitable * [5];
 	list[0] = new Sphere(XMVectorSet(1.05f, 0, 0, 0), 0.5, new Metal(XMFLOAT3(0.5f, 0.2f, 0.1f), 0.5));
@@ -98,7 +138,7 @@ inline Hitable* RT_Scene::BasicScene()
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-inline Hitable* RT_Scene::RandomScene()
+inline Hitable* Scene::RandomScene()
 {
 	const int n = 500;
 	Hitable** list = new Hitable * [n + 1];
@@ -140,7 +180,7 @@ inline Hitable* RT_Scene::RandomScene()
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-inline XMVECTOR RT_Scene::Trace(const Ray& r, Hitable* world, int depth)
+inline XMVECTOR Scene::Trace(const Ray& r, Hitable* world, int depth)
 {
 	HitRecord rec;
 

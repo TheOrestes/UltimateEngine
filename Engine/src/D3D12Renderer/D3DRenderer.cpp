@@ -1,6 +1,6 @@
 ﻿#include "UltimateEnginePCH.h"
 #include "D3DRenderer.h"
-#include "RayTracer/RT_Scene.h"
+#include "RayTracer/Scene.h"
 
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::D3DRenderer()
@@ -35,7 +35,7 @@ bool D3DRenderer::Initialize()
 	UT_CHECK_BOOL(CreateRTV());
 	UT_CHECK_BOOL(CreateUploadBuffer());
 
-	m_pRTScene = new RT_Scene();
+	m_pRTScene = new Scene();
 	m_pRTScene->Initialize(10);
 
 	m_bAppRunning = true;

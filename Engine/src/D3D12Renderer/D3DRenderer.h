@@ -2,7 +2,7 @@
 #include <d3d12.h>
 #include "D3DGlobals.h"
 
-class RT_Scene;
+class Scene;
 
 class D3DRenderer
 {
@@ -31,7 +31,7 @@ private:
 	ID3D12Resource*															m_ResourceUploadBuffer;
 
 	UINT8*																	m_PersistentData;
-	RT_Scene*																m_pRTScene;
+	Scene*																	m_pRTScene;
 	XMFLOAT3																m_RTColor;
 	std::thread																m_threadAccumulation;
 	std::atomic<bool>														m_bAppRunning;

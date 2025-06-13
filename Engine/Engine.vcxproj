@@ -63,6 +63,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>UltimateEnginePCH.h</PrecompiledHeaderFile>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <EnableVectorLength>NotSet</EnableVectorLength>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -116,7 +118,7 @@
     <ClInclude Include="src\RayTracer\Material.h" />
     <ClInclude Include="src\RayTracer\Metal.h" />
     <ClInclude Include="src\RayTracer\Ray.h" />
-    <ClInclude Include="src\RayTracer\RT_Scene.h" />
+    <ClInclude Include="src\RayTracer\Scene.h" />
     <ClInclude Include="src\RayTracer\Sphere.h" />
     <ClInclude Include="src\RayTracer\Transparent.h" />
     <ClInclude Include="src\UltimateEnginePCH.h" />
