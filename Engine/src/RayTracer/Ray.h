@@ -1,20 +1,22 @@
 #pragma once
 
+#include "FastVector.h"
+
 class Ray
 {
 public:
 	Ray() {}
-	Ray(const XMVECTOR& A, const XMVECTOR& B) 
+	Ray(const FastVector& A, const FastVector& B) 
 	{ 
 		origin = A;
 		direction = B; 
 	}
 
-	XMVECTOR GetRayOrigin()			const { return origin; }
-	XMVECTOR GetRayDirection()		const { return direction; }
-	XMVECTOR GetPointAt(float t)	const { return XMVectorAdd(origin, XMVectorScale(direction, t)); }
+	inline FastVector GetRayOrigin()		const { return origin; }
+	inline FastVector GetRayDirection()		const { return direction; }
+	inline FastVector GetPointAt(float t)	const { return (origin + (direction*t)); }
 
 private:
-	XMVECTOR origin;
-	XMVECTOR direction;
+	FastVector origin;
+	FastVector direction;
 };

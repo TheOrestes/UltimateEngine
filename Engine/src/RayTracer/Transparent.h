@@ -10,30 +10,30 @@ class Transparent : public Material
 public:
 	Transparent(float ri) : refr_index(ri) {}
 
-	virtual bool Scatter(const Ray& r_in, const HitRecord& rec, XMFLOAT3& attenuation, Ray& scattered) const
+	bool Scatter(const Ray& r_in, const HitRecord& rec, FastVector& attenuation, Ray& scattered) const override
 	{
-		XMVECTOR outward_normal;
-		const XMVECTOR ray_direction = r_in.GetRayDirection();
+		FastVector outward_normal;
+		const FastVector ray_direction = r_in.GetRayDirection();
 		
-		const XMVECTOR reflected = Helper::Reflect(ray_direction, rec.N);
+		const FastVector reflected = Helper::Reflect(ray_direction, rec.N);
 		float ni_over_nt;
-		attenuation = XMFLOAT3(1, 1, 1);
+		attenuation = FastVector(1, 1, 1);
 
-		XMVECTOR refracted;
+		FastVector refracted;
 		float reflect_prob;
 		float cosine;
 
-		if (XMVectorGetX(XMVector3Dot(ray_direction, rec.N)) > 0)
+		if ((Dot(ray_direction, rec.N) > 0))
 		{
 			outward_normal = -1 * rec.N;  // because we want inverted image for refraction? 
 			ni_over_nt = refr_index;
-			cosine = refr_index * XMVectorGetX(XMVector3Dot(ray_direction, rec.N)) / XMVectorGetX(XMVector3Length(ray_direction));
+			cosine = refr_index * Dot(ray_direction, rec.N) / ray_direction.Length();
 		}
 		else
 		{
 			outward_normal = rec.N;
 			ni_over_nt = 1 / refr_index;
-			cosine = -XMVectorGetX(XMVector3Dot(ray_direction, rec.N)) / XMVectorGetX(XMVector3Length(ray_direction));
+			cosine = -Dot(ray_direction, rec.N) / ray_direction.Length();
 		}
 
 		if (Helper::Refract(ray_direction, outward_normal, ni_over_nt, refracted))

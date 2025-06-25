@@ -16,6 +16,8 @@
 using namespace Microsoft::WRL;
 using namespace DirectX;
 
+#define ENABLE_AVX128
+
 namespace UT
 {
 	namespace D3D12
@@ -38,11 +40,20 @@ namespace UT
 
 	namespace GLOBALS
 	{
+		enum class SIMDType
+		{
+			XMVECTOR,
+			AVX2,
+			AVX512
+		};
+
 		inline uint16_t GWindowWidth = 960;
 		inline uint16_t GWindowHeight = 540;
 		inline uint16_t GCurrentFrameId = 0;
 		inline HWND		GWindowHandle = nullptr;
 
 		inline constexpr uint16_t GFramesInFlight = 3;
+
+		inline SIMDType	SIMD_TYPE = SIMDType::XMVECTOR;
 	}
 }

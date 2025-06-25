@@ -25,7 +25,7 @@ bool HitableList::hit(const Ray& r, float tmin, float tmax, HitRecord& rec) cons
 {
 	HitRecord temp_rec;
 	bool hit_anything = false;
-	double closest_so_far = tmax;
+	float closest_so_far = tmax;
 
 	for (int i = 0; i < list_size; i++)
 	{

@@ -1,21 +1,49 @@
 #pragma once
 
+#include "RayTracer/FastVector.h"
+#include "D3DGlobals.h"
+
 const float PI = 3.14159265358f;
 
 namespace Helper
 {
-	XMVECTOR LerpVector(FXMVECTOR vec1, FXMVECTOR vec2, float t)
+	//-------------------------------------------------------------------------------------------------------------------
+	inline FastVector LerpVector(const FastVector& vec1, const FastVector& vec2, float t)
 	{
-		return XMVectorLerp(vec1, vec2, t);
+		FastVector result;
+
+#if defined ENABLE_AVX512
+
+
+#elif defined ENABLE_AVX256
+
+
+#elif defined ENABLE_AVX128
+		result = XMVectorLerp(vec1.data.xm, vec2.data.xm, t);
+
+#endif
+
+		return result;
 	}
 
-	float GetRandom01()
+	//-------------------------------------------------------------------------------------------------------------------
+	inline float GetRandom01()
 	{
 		return static_cast<float>(rand()) / RAND_MAX;
 	}
 
-	XMVECTOR GetRandomInUnitDisk()
+	//-------------------------------------------------------------------------------------------------------------------
+	inline FastVector GetRandomInUnitDisk()
 	{
+		FastVector result;
+
+#if defined ENABLE_AVX512
+
+
+#elif defined ENABLE_AVX256
+
+
+#elif defined ENABLE_AVX128
 		XMVECTOR p;
 		do
 		{
@@ -25,75 +53,97 @@ namespace Helper
 			p = XMVectorSubtract(XMVectorScale(randomVec, 2.0f), unitVec);
 
 		} while (XMVectorGetX(XMVector3Dot(p, p)) >= 1.0f);
-		
-		return p;
+
+		result.data.xm = p;
+
+#endif
+	
+		return result;
 	}
 
-	XMVECTOR RandomInUnitSphere()
+	//-------------------------------------------------------------------------------------------------------------------
+	inline FastVector RandomInUnitSphere()
 	{
-		XMVECTOR P;
+		FastVector result;
 
+#if defined ENABLE_AVX512
+
+
+#elif defined ENABLE_AVX256
+
+
+#elif defined ENABLE_AVX128
+		XMVECTOR p;
 		do
 		{
 			const XMVECTOR randomVec = XMVectorSet(GetRandom01(), GetRandom01(), GetRandom01(), 0.0f);
 			const XMVECTOR unitVec = XMVectorSet(1, 1, 1, 0);
 
-			P = XMVectorSubtract(XMVectorScale(randomVec, 2.0f), unitVec);
+			p = XMVectorSubtract(XMVectorScale(randomVec, 2.0f), unitVec);
 
-		} while (XMVectorGetX(XMVector3LengthSq(P)) >= 1.0f);
+		} while (XMVectorGetX(XMVector3LengthSq(p)) >= 1.0f);
 
-		return P;
+		result.data.xm = p;
+
+#endif
+
+		return result;
 	}
 
-	XMVECTOR Reflect(FXMVECTOR v, FXMVECTOR n)
+	//-------------------------------------------------------------------------------------------------------------------
+	inline FastVector Reflect(const FastVector& v, const FastVector& n)
 	{
-		return XMVector3Reflect(v, n);
+		FastVector result;
+
+#if defined ENABLE_AVX512
+
+
+#elif defined ENABLE_AVX256
+
+
+#elif defined ENABLE_AVX128
+		result.data.xm = XMVector3Reflect(v.data.xm, n.data.xm);
+
+#endif
+
+		return result;
 	}
 
-	bool Refract(FXMVECTOR v, FXMVECTOR n, float ni_over_nt, XMVECTOR& refracted)
+	//-------------------------------------------------------------------------------------------------------------------
+	inline bool Refract(const FastVector& v, const FastVector& n, float ni_over_nt, FastVector& refracted)
 	{
-		const XMVECTOR unit_v = XMVector3Normalize(v);
-		const float NdotV = XMVectorGetX(XMVector3Dot(unit_v, n));
+		bool refract = false;
+
+#if defined ENABLE_AVX512
+
+
+#elif defined ENABLE_AVX256
+
+
+#elif defined ENABLE_AVX128
+		const XMVECTOR unit_v = XMVector3Normalize(v.data.xm);
+		const float NdotV = XMVectorGetX(XMVector3Dot(unit_v, n.data.xm));
 		const float discriminant = 1.0f - ni_over_nt * ni_over_nt * (1 - NdotV * NdotV);
 
 		if (discriminant > 0)
 		{
-			const XMVECTOR scaledN = XMVectorScale(n, NdotV);
+			const XMVECTOR scaledN = XMVectorScale(n.data.xm, NdotV);
 			const XMVECTOR term1 = XMVectorScale(XMVectorSubtract(unit_v, scaledN), ni_over_nt);
-			const XMVECTOR term2 = XMVectorScale(n, -sqrtf(discriminant));
+			const XMVECTOR term2 = XMVectorScale(n.data.xm, -sqrtf(discriminant));
 
 			refracted = XMVectorAdd(term1, term2);
-			return true;
+			refract = true;
 		}
 		else
-			return false;
+			refract = false;
+
+#endif
+
+		return refract;
 	}
 
-	XMFLOAT3 AddFloat3(const XMFLOAT3& a, const XMFLOAT3& b)
-	{
-		XMVECTOR va = XMLoadFloat3(&a);
-		XMVECTOR vb = XMLoadFloat3(&b);
-
-		XMVECTOR resultVec = XMVectorAdd(va, vb);
-
-		XMFLOAT3 result;
-		XMStoreFloat3(&result, resultVec);
-
-		return result;
-	}
-
-	XMFLOAT3 DivideFloat3(const XMFLOAT3& a, float scalar)
-	{
-		XMVECTOR va = XMLoadFloat3(&a);
-		XMVECTOR resultVec = XMVectorScale(va, 1.0f / scalar); // Multiply by reciprocal
-
-		XMFLOAT3 result;
-		XMStoreFloat3(&result, resultVec);
-
-		return result;
-	}
-
-	float schlick(float cosine, float ref_idx)
+	//-------------------------------------------------------------------------------------------------------------------
+	inline float schlick(float cosine, float ref_idx)
 	{
 		float r0 = pow((1.0f - ref_idx) / (1.0f + ref_idx), 2);
 		r0 = r0 * r0;

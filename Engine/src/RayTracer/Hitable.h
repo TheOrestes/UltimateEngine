@@ -1,14 +1,15 @@
 #pragma once
 
 #include "Ray.h"
+#include "FastVector.h"
 
 class Material;
 
 struct HitRecord
 {
 	float t;
-	XMVECTOR P;
-	XMVECTOR N;
+	FastVector P;
+	FastVector N;
 	Material* mat_ptr;
 };
 

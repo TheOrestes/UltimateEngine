@@ -1,6 +1,7 @@
 ﻿#include "UltimateEnginePCH.h"
 #include "D3DRenderer.h"
 #include "RayTracer/Scene.h"
+#include "RayTracer/FastVector.h"
 
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::D3DRenderer()
@@ -36,7 +37,7 @@ bool D3DRenderer::Initialize()
 	UT_CHECK_BOOL(CreateUploadBuffer());
 
 	m_pRTScene = new Scene();
-	m_pRTScene->Initialize(10);
+	m_pRTScene->Initialize(5);
 
 	m_bAppRunning = true;
 	m_bAccumulationDone = false;
@@ -170,7 +171,8 @@ void D3DRenderer::RenderPixel(UINT x, UINT y)
 
 	for (UINT s = 0; s < numSamples; ++s)
 	{
-		XMFLOAT3 renderColor = m_pRTScene->Render(x, y);
+		FastVector color = m_pRTScene->Render(x, y);
+		XMFLOAT3 renderColor = XMFLOAT3(color.GetX(), color.GetY(), color.GetZ());
 		accumulatedColor = XMVectorAdd(accumulatedColor, XMLoadFloat3(&renderColor));
 	}
 

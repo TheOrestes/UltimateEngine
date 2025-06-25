@@ -2,22 +2,25 @@
 
 #include "Ray.h"
 #include "Helper.h"
+#include "FastVector.h"
 
 class Camera
 {
 public:
-	Camera(FXMVECTOR lookFrom, FXMVECTOR lookAt, FXMVECTOR Up, float vfov, float aspect, float aperture, float focus_dist)	// vofv is vertical fov
+	Camera(const FastVector& lookFrom, const FastVector& lookAt, const FastVector& Up, float vfov, float aspect, float aperture, float focus_dist)	// vofv is vertical fov
 	{
 		lens_radius = aperture / 2.0f;
 
-		float theta = XMConvertToRadians(vfov);
-		float half_height = tan(theta / 2);
-		float half_width = aspect * half_height;
+		constexpr float DegToRad = 0.017453292519943295f; 
+		const float theta = vfov * DegToRad;
+
+		const float half_height = tan(theta / 2);
+		const float half_width = aspect * half_height;
 
 		origin = lookFrom;
-		w = XMVector3Normalize(XMVectorSubtract(lookFrom, lookAt));
-		u = XMVector3Normalize(XMVector3Cross(Up, w));
-		v = XMVector3Cross(w, u);
+		w = (lookFrom - lookAt).UnitVector();
+		u = Cross(Up, w).UnitVector(); 
+		v = Cross(w, u); 
 
 		lower_left_corner = origin - half_width * focus_dist * u - half_height * focus_dist * v - focus_dist * w;
 		horizontal = 2 * half_width * focus_dist * u;
@@ -26,20 +29,20 @@ public:
 
 	Ray get_ray(float s, float t)
 	{
-		const XMVECTOR rd = XMVectorScale(Helper::GetRandomInUnitDisk(), lens_radius);
+		const FastVector rd = Helper::GetRandomInUnitDisk() * lens_radius;
 
-		const XMVECTOR term1 = XMVectorScale(u, XMVectorGetX(rd));
-		const XMVECTOR term2 = XMVectorScale(v, XMVectorGetY(rd));
-		const XMVECTOR offset = XMVectorAdd(term1, term2);
+		const FastVector term1 = u * rd.GetX(); 
+		const FastVector term2 = v * rd.GetY();
+		const FastVector offset = term1 + term2;
 
-		return Ray(XMVectorAdd(origin, offset), lower_left_corner + s * horizontal + (1.0f-t) * vertical - origin - offset);
+		return Ray(origin + offset, lower_left_corner + s * horizontal + (1.0f-t) * vertical - origin - offset);
 	}
 
 private:
-	XMVECTOR origin;
-	XMVECTOR lower_left_corner;
-	XMVECTOR horizontal;
-	XMVECTOR vertical;
-	XMVECTOR u, v, w;
+	FastVector origin;
+	FastVector lower_left_corner;
+	FastVector horizontal;
+	FastVector vertical;
+	FastVector u, v, w;
 	float lens_radius;
 };
