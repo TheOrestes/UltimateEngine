@@ -16,8 +16,9 @@
 using namespace Microsoft::WRL;
 using namespace DirectX;
 
-//#define ENABLE_AVX128
-#define ENABLE_AVX256
+// #define ENABLE_AVX128
+// #define ENABLE_AVX256
+#define ENABLE_AVX512
 
 namespace UT
 {

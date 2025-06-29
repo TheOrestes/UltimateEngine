@@ -12,10 +12,7 @@ namespace Helper
 	{
 		FastVector result;
 
-#if defined ENABLE_AVX512
-
-
-#elif defined ENABLE_AVX256
+#if defined ENABLE_AVX512 || defined ENABLE_AVX256
 		result = vec1 + (vec2 - vec1) * t;
 
 #elif defined ENABLE_AVX128
@@ -37,10 +34,7 @@ namespace Helper
 	{
 		FastVector result;
 
-#if defined ENABLE_AVX512
-
-
-#elif defined ENABLE_AVX256
+#if defined ENABLE_AVX512 || defined ENABLE_AVX256
 		FastVector p;
 		do
 		{
@@ -75,10 +69,7 @@ namespace Helper
 	{
 		FastVector result;
 
-#if defined ENABLE_AVX512
-
-
-#elif defined ENABLE_AVX256
+#if defined ENABLE_AVX512 || defined ENABLE_AVX256
 		FastVector p;
 		do
 		{
@@ -113,10 +104,7 @@ namespace Helper
 	{
 		FastVector result;
 
-#if defined ENABLE_AVX512
-
-
-#elif defined ENABLE_AVX256
+#if defined ENABLE_AVX512 || defined ENABLE_AVX256
 		const float dot = Dot(v, n);
 		result = v - n * (2.0f * dot);
 
@@ -133,10 +121,7 @@ namespace Helper
 	{
 		bool refract = false;
 
-#if defined ENABLE_AVX512
-
-
-#elif defined ENABLE_AVX256
+#if defined ENABLE_AVX512 || defined ENABLE_AVX256
 		const float NdotV = Dot(v.UnitVector(), n);
 		float k = 1.0f - ni_over_nt * ni_over_nt * (1.0f - NdotV * NdotV);
 
