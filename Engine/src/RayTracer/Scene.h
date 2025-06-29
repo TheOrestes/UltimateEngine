@@ -69,19 +69,28 @@ inline void Scene::DetectSIMD()
 
 #if defined ENABLE_AVX512
 	if (hasAVX512)
+	{
 		UT::GLOBALS::SIMD_TYPE = UT::GLOBALS::SIMDType::AVX512;
+		LOG_WARNING("Using AVX512 Instruction Set...!");
+	}
 	else
 		LOG_ERROR("AVX512 not supported!");
 	
 #elif defined ENABLE_AVX256
 	if (hasAVX2)
-		UT::GLOBALS::SIMD_TYPE = UT::GLOBALS::SIMDType::AVX256;
+	{
+		UT::GLOBALS::SIMD_TYPE = UT::GLOBALS::SIMDType::AVX2;
+		LOG_WARNING("Using AVX256 Instruction Set...!");
+	}
 	else
 		LOG_ERROR("AVX256 not supported!");
 
 #elif defined ENABLE_AVX128
 	if (hasAVX)
+	{
 		UT::GLOBALS::SIMD_TYPE = UT::GLOBALS::SIMDType::XMVECTOR;
+		LOG_WARNING("Using AVX128 Instruction Set...!");
+	}
 
 #endif
 }
@@ -89,6 +98,8 @@ inline void Scene::DetectSIMD()
 //-------------------------------------------------------------------------------------------------------------------
 inline void Scene::Initialize(uint16_t nSamples)
 {
+	LOG_WARNING("Using {0} samples for Ray Tracing!", nSamples);
+
 	m_uiSamples = nSamples;
 	m_pWorld = BasicScene();
 

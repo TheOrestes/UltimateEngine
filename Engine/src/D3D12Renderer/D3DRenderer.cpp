@@ -37,7 +37,7 @@ bool D3DRenderer::Initialize()
 	UT_CHECK_BOOL(CreateUploadBuffer());
 
 	m_pRTScene = new Scene();
-	m_pRTScene->Initialize(5);
+	m_pRTScene->Initialize(10);
 
 	m_bAppRunning = true;
 	m_bAccumulationDone = false;
