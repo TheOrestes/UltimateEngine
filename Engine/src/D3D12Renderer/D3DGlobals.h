@@ -29,10 +29,50 @@ namespace UT
 			extern constexpr ID3D12CommandAllocator*	const		GetCommandAllocator(uint16_t index);
 			extern constexpr ID3D12GraphicsCommandList* const		GetCommandList(uint16_t index);
 
+			extern constexpr ID3D12Fence*				const		GetFence(uint16_t index);
+			extern constexpr HANDLE						const		GetFenceEvent(uint16_t index); 
+			extern constexpr UINT64						const 		GetFenceValue(uint16_t index);
+
 			bool			Initialize();
 			void			BeginFrame();
 			void			EndFrame();
 			void			Cleanup();
+			void			FenceIncrement();
+		}
+
+		namespace HELPER
+		{
+			void CreateGPUBuffer(UINT64 byteSize, ID3D12Resource** outGPUBuffer);
+			void CreateUploadBuffer(UINT64 byteSize, ID3D12Resource** outUploadBuffer);
+			void CreateReadbackBuffer(UINT64 byteSize, ID3D12Resource** outReadbackBuffer);
+			void CopyDataFromUploadBufferToGPU(UINT64 byteSize, const void* data, ID3D12Resource* uploadBuffer, ID3D12Resource* gpuBuffer);
+
+			void CompileShader(const std::string& srcFile, const std::string& entryPoint, const std::string& target, const D3D_SHADER_MACRO* pDefines, D3D12_SHADER_BYTECODE& outByteCode);
+			void CreateRootSignatue(UINT numRootParams, const D3D12_ROOT_PARAMETER* pRootParams, UINT numStaticSamplers, const D3D12_STATIC_SAMPLER_DESC* pStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags, ID3D12RootSignature** pOutRootSignature);
+			void CreatePSO(ID3D12RootSignature* pSignature, const D3D12_SHADER_BYTECODE& vsBytecode, const D3D12_SHADER_BYTECODE& psBytecode, const D3D12_INPUT_LAYOUT_DESC& inputLayout, ID3D12PipelineState** pOutPSO);
+		}
+
+		namespace DAS
+		{
+			struct VertexPC
+			{
+				VertexPC() = default;
+
+				VertexPC(XMFLOAT3 const& iposition, XMFLOAT4 const& icolor) noexcept
+					: Position(iposition),
+					Color(icolor)
+				{
+				}
+
+				VertexPC(const VertexPC&) = default;
+				VertexPC& operator=(const VertexPC&) = default;
+
+				VertexPC(VertexPC&&) = default;
+				VertexPC& operator=(VertexPC&&) = default;
+
+				XMFLOAT3 Position;
+				XMFLOAT4 Color;
+			};
 		}
 	}
 
@@ -44,5 +84,8 @@ namespace UT
 		inline HWND		GWindowHandle = nullptr;
 
 		inline constexpr uint16_t GFramesInFlight = 3;
+
+		std::string GetExecutableFolderPath();
+		std::wstring ToWString(const std::string& utf8Str);
 	}
 }

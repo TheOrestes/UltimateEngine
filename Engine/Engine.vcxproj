@@ -67,10 +67,11 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;d3d12.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy $(SolutionDir)bin\$(Configuration)-$(Platform)\Engine\*.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\Game /e /y /i /r</Command>
+      <Command>xcopy $(SolutionDir)bin\$(Configuration)-$(Platform)\Engine\*.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\Game /e /y /i /r
+xcopy "$(SolutionDir)Game\Assets" "$(SolutionDir)bin\$(Configuration)-$(Platform)\Game\Assets" /e  /y /i /r</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
