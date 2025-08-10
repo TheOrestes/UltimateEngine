@@ -2,6 +2,8 @@
 #include <d3d12.h>
 #include "D3DGlobals.h"
 
+class D3DCube;
+
 class D3DRenderer
 {
 public:
@@ -18,6 +20,7 @@ private:
 	bool	CreateDSV();
 	bool	CreateTriangle();
 	bool	CreateCube();
+	bool	CreatePSO();
 	bool	CreateConstantBuffer();
 	void	UpdateConstantBuffer(const XMMATRIX& world, const XMMATRIX& view, const XMMATRIX& proj);
 	
@@ -47,4 +50,6 @@ private:
 	std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>				m_listConstantBuffers;
 	std::array<UINT8*, UT::GLOBALS::GFramesInFlight>						m_pCBDataBegin;
 	UT::D3D12::DAS::TransformCB*											m_pTransformData;
+
+	std::array<D3DCube*, 5>													m_listCubes;
 };

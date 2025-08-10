@@ -1,6 +1,7 @@
 #include "UltimateEnginePCH.h"
 #include "D3DRenderer.h"
 #include "D3DGlobals.h"
+#include "StaticMesh/D3DCube.h"
 
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::D3DRenderer()
@@ -18,9 +19,18 @@ bool D3DRenderer::Initialize()
 {
 	UT_CHECK_BOOL(CreateRTV());
 	UT_CHECK_BOOL(CreateDSV());
+	UT_CHECK_BOOL(CreatePSO());
 	//UT_CHECK_BOOL(CreateTriangle());
-	UT_CHECK_BOOL(CreateCube());
-	UT_CHECK_BOOL(CreateConstantBuffer());
+	//UT_CHECK_BOOL(CreateCube());
+	//UT_CHECK_BOOL(CreateConstantBuffer());
+
+	D3DCube::CreateStaticGeometry();
+
+	for(uint16_t i = 0 ; i < m_listCubes.size() ; ++i)
+	{
+		m_listCubes[i] = new D3DCube();
+		m_listCubes[i]->SetWorld(XMMatrixTranslation(-2.0f + i, 0.0f + i, 0.0f + i));
+	}
 
 	// Fill out the Viewport
 	m_Viewport.TopLeftX = 0;
@@ -111,7 +121,12 @@ void D3DRenderer::Update(double dt)
 	const XMMATRIX view = XMMatrixLookAtLH(eyePos, focusPoint, upDir);
 	const XMMATRIX proj = XMMatrixPerspectiveFovLH(fovY, aspectRatio, nearZ, farZ);
 
-	UpdateConstantBuffer(world, view, proj);
+	//UpdateConstantBuffer(world, view, proj);
+
+	for (uint16_t i = 0; i < m_listCubes.size(); ++i)
+	{
+		m_listCubes[i]->UpdateConstantBuffer(view, proj);
+	}
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -127,15 +142,19 @@ void D3DRenderer::Render()
 	pCommandList->SetPipelineState(m_pPSO);
 
 	// Bind constant buffer pointing to updated matrix
-	pCommandList->SetGraphicsRootConstantBufferView(0, m_listConstantBuffers[frameIndex]->GetGPUVirtualAddress());
+	//pCommandList->SetGraphicsRootConstantBufferView(0, m_listConstantBuffers[frameIndex]->GetGPUVirtualAddress());
 
-	pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	pCommandList->IASetVertexBuffers(0, 1, &m_VertexBufferView);
-	pCommandList->IASetIndexBuffer(&m_IndexBufferView);
+	//pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	//pCommandList->IASetVertexBuffers(0, 1, &m_VertexBufferView);
+	//pCommandList->IASetIndexBuffer(&m_IndexBufferView);
 	
 
 	// Draw
-	pCommandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
+	//pCommandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
+	for (uint16_t i = 0; i < m_listCubes.size(); ++i)
+	{
+		m_listCubes[i]->Render();
+	}
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -278,37 +297,6 @@ bool D3DRenderer::CreateTriangle()
 //-------------------------------------------------------------------------------------------------------------------
 bool D3DRenderer::CreateCube()
 {
-	// Describe a single CBV (b0) root parameter ----
-	//std::array<D3D12_ROOT_PARAMETER, 1> rootParams = {};
-
-	D3D12_ROOT_PARAMETER rootParams[1] = {};
-	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // constant buffer
-	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // visible to VS
-	rootParams[0].Descriptor.ShaderRegister = 0;  // b0 in HLSL
-	rootParams[0].Descriptor.RegisterSpace = 0;   // register space 0
-
-	// Create Root Signature
-	UT::D3D12::HELPER::CreateRootSignatue(1, rootParams, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, & m_pRootSignature);
-
-	// Compile Shaders
-	D3D12_SHADER_BYTECODE vsByteCode = {};
-	UT::D3D12::HELPER::CompileShader("Cube.hlsl", "VSMain", "vs_5_0", nullptr, vsByteCode);
-
-	D3D12_SHADER_BYTECODE psByteCode = {};
-	UT::D3D12::HELPER::CompileShader("Cube.hlsl", "PSMain", "ps_5_0", nullptr, psByteCode);
-
-	// Input layput  Description
-	D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(UT::D3D12::DAS::VertexPC, Position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(UT::D3D12::DAS::VertexPC, Color),    D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-	};
-
-	const D3D12_INPUT_LAYOUT_DESC inputLayout = { inputLayoutDesc, _countof(inputLayoutDesc) };
-
-	// Create PSO!
-	UT::D3D12::HELPER::CreatePSO(m_pRootSignature, vsByteCode, psByteCode, inputLayout, &m_pPSO);
-
 	// Define Vertices (8 unique corners of a cube)
 	const UT::D3D12::DAS::VertexPC vertices[] =
 	{
@@ -362,6 +350,43 @@ bool D3DRenderer::CreateCube()
 	m_IndexBufferView.BufferLocation = m_pIndexBuffer->GetGPUVirtualAddress();
 	m_IndexBufferView.SizeInBytes = static_cast<UINT>(ibSize);
 	m_IndexBufferView.Format = DXGI_FORMAT_R16_UINT;
+
+	return true;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+bool D3DRenderer::CreatePSO()
+{
+	// Describe a single CBV (b0) root parameter ----
+	std::array<D3D12_ROOT_PARAMETER, 1> rootParams = {};
+
+	//D3D12_ROOT_PARAMETER rootParams[1] = {};
+	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // constant buffer
+	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // visible to VS
+	rootParams[0].Descriptor.ShaderRegister = 0;  // b0 in HLSL
+	rootParams[0].Descriptor.RegisterSpace = 0;   // register space 0
+
+	// Create Root Signature
+	UT::D3D12::HELPER::CreateRootSignatue(rootParams.size(), rootParams.data(), 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, &m_pRootSignature);
+
+	// Compile Shaders
+	D3D12_SHADER_BYTECODE vsByteCode = {};
+	UT::D3D12::HELPER::CompileShader("Cube.hlsl", "VSMain", "vs_5_0", nullptr, vsByteCode);
+
+	D3D12_SHADER_BYTECODE psByteCode = {};
+	UT::D3D12::HELPER::CompileShader("Cube.hlsl", "PSMain", "ps_5_0", nullptr, psByteCode);
+
+	// Input layput  Description
+	D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(UT::D3D12::DAS::VertexPC, Position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(UT::D3D12::DAS::VertexPC, Color),    D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	};
+
+	const D3D12_INPUT_LAYOUT_DESC inputLayout = { inputLayoutDesc, _countof(inputLayoutDesc) };
+
+	// Create PSO!
+	UT::D3D12::HELPER::CreatePSO(m_pRootSignature, vsByteCode, psByteCode, inputLayout, &m_pPSO);
 
 	return true;
 }
