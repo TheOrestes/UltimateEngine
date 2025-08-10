@@ -73,6 +73,11 @@ namespace UT
 				XMFLOAT3 Position;
 				XMFLOAT4 Color;
 			};
+
+			struct TransformCB
+			{
+				XMFLOAT4X4 WVP;
+			};
 		}
 	}
 
