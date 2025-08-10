@@ -74,9 +74,10 @@ namespace UT
 				XMFLOAT4 Color;
 			};
 
-			struct TransformCB
+			struct CubesCB
 			{
 				XMFLOAT4X4 WVP;
+				XMFLOAT4   COLOR;
 			};
 		}
 	}

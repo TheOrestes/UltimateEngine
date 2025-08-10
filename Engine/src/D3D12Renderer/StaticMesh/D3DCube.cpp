@@ -98,14 +98,22 @@ void D3DCube::SetWorld(const XMMATRIX& world)
 }
 
 //-------------------------------------------------------------------------------------------------------------------
+void D3DCube::SetColor(const XMFLOAT4& color)
+{
+    m_color = color;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
 void D3DCube::UpdateConstantBuffer(const XMMATRIX& view, const DirectX::XMMATRIX& proj)
 {
     const uint16_t frameIndex = UT::GLOBALS::GCurrentFrameId;
 
     XMMATRIX wvp = XMMatrixTranspose(m_world * view * proj);
 
-    UT::D3D12::DAS::TransformCB cb;
+    UT::D3D12::DAS::CubesCB cb;
     XMStoreFloat4x4(&cb.WVP, wvp);
+    cb.COLOR = m_color;
+
     memcpy(m_listCBDataBegin[frameIndex], &cb, sizeof(cb));
 }
 
@@ -132,7 +140,7 @@ void D3DCube::Render()
 bool D3DCube::CreateConstantBuffer()
 {
     // Create per-frame constant buffers
-    constexpr UINT cbSize = (sizeof(UT::D3D12::DAS::TransformCB) + 255) & ~255;
+    constexpr UINT cbSize = (sizeof(UT::D3D12::DAS::CubesCB) + 255) & ~255;
 
     // Map Constant buffer memory once for write access
     constexpr D3D12_RANGE readRange = { 0, 0 };	// We do not intent to read this resource on the CPU!

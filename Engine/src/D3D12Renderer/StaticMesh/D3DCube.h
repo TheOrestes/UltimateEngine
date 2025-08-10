@@ -14,6 +14,8 @@ public:
 
     // Per-instance transform
     void SetWorld(const XMMATRIX& world);
+    void SetColor(const XMFLOAT4& color); 
+
     void UpdateConstantBuffer(const XMMATRIX& view, const DirectX::XMMATRIX& proj);
 
     void Update(double dt);
@@ -32,6 +34,8 @@ private:
 
     // === Per-instance data ===
     XMMATRIX m_world;
+    XMFLOAT4 m_color;
+
     std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>   m_listCB;
     std::array<UINT8*, UT::GLOBALS::GFramesInFlight>            m_listCBDataBegin;
 };

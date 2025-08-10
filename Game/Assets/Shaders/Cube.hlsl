@@ -5,6 +5,7 @@
 cbuffer TransformCB : register(b0)
 {
     matrix MVP; // Combined World-View-Projection matrix
+    float4 COLOR;
 }
 
 //--------------------------------------------------------------------------------------
@@ -30,7 +31,7 @@ VSOutput VSMain(VSInput input)
     VSOutput output;
     // Convert float3 to float4, w = 1.0
     output.Position = mul(float4(input.Position, 1.0), MVP);
-    output.Color    = input.Color;
+    output.Color    = COLOR;
     return output;
 }
 

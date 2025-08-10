@@ -49,7 +49,9 @@ private:
 
 	std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>				m_listConstantBuffers;
 	std::array<UINT8*, UT::GLOBALS::GFramesInFlight>						m_pCBDataBegin;
-	UT::D3D12::DAS::TransformCB*											m_pTransformData;
+	UT::D3D12::DAS::CubesCB*												m_pCubesData;
 
-	std::array<D3DCube*, 5>													m_listCubes;
+	D3DCube* m_pCubeRed;
+	D3DCube* m_pCubeGreen;
+	D3DCube* m_pCubeBlue;
 };

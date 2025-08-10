@@ -12,6 +12,9 @@ D3DRenderer::D3DRenderer()
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::~D3DRenderer()
 {
+	SAFE_DELETE(m_pCubeRed);
+	SAFE_DELETE(m_pCubeGreen);
+	SAFE_DELETE(m_pCubeBlue);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -26,11 +29,18 @@ bool D3DRenderer::Initialize()
 
 	D3DCube::CreateStaticGeometry();
 
-	for(uint16_t i = 0 ; i < m_listCubes.size() ; ++i)
-	{
-		m_listCubes[i] = new D3DCube();
-		m_listCubes[i]->SetWorld(XMMatrixTranslation(-2.0f + i, 0.0f + i, 0.0f + i));
-	}
+	m_pCubeRed = new D3DCube();
+	m_pCubeRed->SetWorld(XMMatrixTranslation(-2, 0, 0));
+	m_pCubeRed->SetColor(XMFLOAT4(1, 0, 0, 1));
+
+	m_pCubeGreen = new D3DCube();
+	m_pCubeGreen->SetWorld(XMMatrixTranslation(0, 0, 0));
+	m_pCubeGreen->SetColor(XMFLOAT4(0, 1, 0, 1));
+
+	m_pCubeBlue = new D3DCube();
+	m_pCubeBlue->SetWorld(XMMatrixTranslation(2, 0, 0));
+	m_pCubeBlue->SetColor(XMFLOAT4(0, 0, 1, 1));
+
 
 	// Fill out the Viewport
 	m_Viewport.TopLeftX = 0;
@@ -100,7 +110,7 @@ void D3DRenderer::Update(double dt)
 {
 	static float rotationAngle = 0.0f;
 
-	const XMVECTOR eyePos = XMVectorSet(1.0f, 1.0f, -3.0f, 0.0f);
+	const XMVECTOR eyePos = XMVectorSet(0.0f, 1.0f, -3.0f, 0.0f);
 	const XMVECTOR focusPoint = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 	const XMVECTOR upDir = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
@@ -123,10 +133,9 @@ void D3DRenderer::Update(double dt)
 
 	//UpdateConstantBuffer(world, view, proj);
 
-	for (uint16_t i = 0; i < m_listCubes.size(); ++i)
-	{
-		m_listCubes[i]->UpdateConstantBuffer(view, proj);
-	}
+	m_pCubeRed->UpdateConstantBuffer(view, proj);
+	m_pCubeGreen->UpdateConstantBuffer(view, proj);
+	m_pCubeBlue->UpdateConstantBuffer(view, proj);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -151,10 +160,9 @@ void D3DRenderer::Render()
 
 	// Draw
 	//pCommandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
-	for (uint16_t i = 0; i < m_listCubes.size(); ++i)
-	{
-		m_listCubes[i]->Render();
-	}
+	m_pCubeRed->Render();
+	m_pCubeGreen->Render();
+	m_pCubeBlue->Render();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -394,10 +402,10 @@ bool D3DRenderer::CreatePSO()
 //-------------------------------------------------------------------------------------------------------------------
 bool D3DRenderer::CreateConstantBuffer()
 {
-	m_pTransformData = new UT::D3D12::DAS::TransformCB();
+	m_pCubesData = new UT::D3D12::DAS::CubesCB();
 
 	// Each constant buffer must be 256-byte aligned
-	constexpr UINT64 cbSize = (sizeof(m_pTransformData) + 255) & ~255;
+	constexpr UINT64 cbSize = (sizeof(m_pCubesData) + 255) & ~255;
 
 	// Map Constant buffer memory once for write access
 	constexpr D3D12_RANGE readRange = { 0, 0 };	// We do not intent to read this resource on the CPU!
@@ -421,13 +429,13 @@ void D3DRenderer::UpdateConstantBuffer(const XMMATRIX& world, const XMMATRIX& vi
 {
 	const uint16_t frameIndex = UT::GLOBALS::GCurrentFrameId;
 
-	if (!m_pCBDataBegin[frameIndex] || !m_pTransformData)
+	if (!m_pCBDataBegin[frameIndex] || !m_pCubesData)
 		return;
 
 	const XMMATRIX mvp = XMMatrixTranspose(world * view * proj);
-	XMStoreFloat4x4(&m_pTransformData->WVP, mvp);
+	XMStoreFloat4x4(&m_pCubesData->WVP, mvp);
 
-	memcpy(m_pCBDataBegin[frameIndex], m_pTransformData, sizeof(UT::D3D12::DAS::TransformCB));
+	memcpy(m_pCBDataBegin[frameIndex], m_pCubesData, sizeof(UT::D3D12::DAS::CubesCB));
 }
 
 
