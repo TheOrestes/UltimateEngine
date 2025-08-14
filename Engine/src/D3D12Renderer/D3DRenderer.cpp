@@ -2,16 +2,21 @@
 #include "D3DRenderer.h"
 #include "D3DGlobals.h"
 #include "StaticMesh/D3DCube.h"
+#include "World/Camera.h"
 
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::D3DRenderer()
 {
-	
+	m_pCamera = nullptr;
+	m_pCubeRed = nullptr;
+	m_pCubeBlue = nullptr;
+	m_pCubeGreen = nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::~D3DRenderer()
 {
+	SAFE_DELETE(m_pCamera);
 	SAFE_DELETE(m_pCubeRed);
 	SAFE_DELETE(m_pCubeGreen);
 	SAFE_DELETE(m_pCubeBlue);
@@ -41,6 +46,9 @@ bool D3DRenderer::Initialize()
 	m_pCubeBlue->SetWorld(XMMatrixTranslation(2, 0, 0));
 	m_pCubeBlue->SetColor(XMFLOAT4(0, 0, 1, 1));
 
+	m_pCamera = new Camera();
+	m_pCamera->SetPosition(0.0f, 1.0f, -3.0f);
+	m_pCamera->SetRotation(0, 0, 0);
 
 	// Fill out the Viewport
 	m_Viewport.TopLeftX = 0;
@@ -119,17 +127,20 @@ void D3DRenderer::Update(double dt)
 	constexpr float nearZ = 0.1f;
 	constexpr float farZ = 100.0f;
 
-	rotationAngle += 2.0f * dt;
+	//rotationAngle += 2.0f * dt;
+	//
+	//// Keep angle within 0 to 2*PI
+	//if (rotationAngle > XM_2PI) rotationAngle -= XM_2PI;
+	//
+	//const XMMATRIX rotation = XMMatrixRotationY(rotationAngle);
+	//
+	//// Compute world, view, and projection matrices (example)
+	//const XMMATRIX world = rotation;
 
-	// Keep angle within 0 to 2*PI
-	if (rotationAngle > XM_2PI) rotationAngle -= XM_2PI;
+	m_pCamera->Update(dt);
 
-	const XMMATRIX rotation = XMMatrixRotationY(rotationAngle);
-
-	// Compute world, view, and projection matrices (example)
-	const XMMATRIX world = rotation;
-	const XMMATRIX view = XMMatrixLookAtLH(eyePos, focusPoint, upDir);
-	const XMMATRIX proj = XMMatrixPerspectiveFovLH(fovY, aspectRatio, nearZ, farZ);
+	const XMMATRIX view = m_pCamera->GetViewMatrix(); //XMMatrixLookAtLH(eyePos, focusPoint, upDir);
+	const XMMATRIX proj = m_pCamera->GetProjectionMatrix(aspectRatio, nearZ, farZ); // XMMatrixPerspectiveFovLH(fovY, aspectRatio, nearZ, farZ);
 
 	//UpdateConstantBuffer(world, view, proj);
 
@@ -163,6 +174,24 @@ void D3DRenderer::Render()
 	m_pCubeRed->Render();
 	m_pCubeGreen->Render();
 	m_pCubeBlue->Render();
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+void D3DRenderer::OnKeyPressed(UT::GLOBALS::InputAction action)
+{
+	m_pCamera->OnKeyPressed(action);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+void D3DRenderer::OnKeyReleased(UT::GLOBALS::InputAction action)
+{
+	m_pCamera->OnKeyReleased(action);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+void D3DRenderer::OnMouseMove(float x, float y, bool bMouseClicked)
+{
+	m_pCamera->OnMouseMove(x, y, bMouseClicked);
 }
 
 //-------------------------------------------------------------------------------------------------------------------

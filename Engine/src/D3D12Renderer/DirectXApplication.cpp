@@ -65,8 +65,21 @@ void DirectXApplication::Render()
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void DirectXApplication::HandleSceneInput(const GLFWwindow* pWindow, CameraAction direction, float mousePosX, float mousePosY, bool isMouseClicked) const
+void DirectXApplication::OnKeyPressed(UT::GLOBALS::InputAction action)
 {
+	m_pD3DRenderer->OnKeyPressed(action);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DirectXApplication::OnKeyReleased(UT::GLOBALS::InputAction action)
+{
+	m_pD3DRenderer->OnKeyReleased(action);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DirectXApplication::OnMouseMove(float x, float y, bool bMouseClicked)
+{
+	m_pD3DRenderer->OnMouseMove(x, y, bMouseClicked);
 }
 
 //---------------------------------------------------------------------------------------------------------------------

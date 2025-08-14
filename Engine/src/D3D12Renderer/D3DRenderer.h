@@ -3,6 +3,7 @@
 #include "D3DGlobals.h"
 
 class D3DCube;
+class Camera;
 
 class D3DRenderer
 {
@@ -14,6 +15,10 @@ public:
 	void	RecordCommands();
 	void	Update(double dt);
 	void	Render();
+
+	void	OnKeyPressed(UT::GLOBALS::InputAction action);
+	void	OnKeyReleased(UT::GLOBALS::InputAction action);
+	void	OnMouseMove(float x, float y, bool bMouseClicked);
 
 private:
 	bool	CreateRTV();
@@ -54,4 +59,6 @@ private:
 	D3DCube* m_pCubeRed;
 	D3DCube* m_pCubeGreen;
 	D3DCube* m_pCubeBlue;
+
+	Camera* m_pCamera;
 };

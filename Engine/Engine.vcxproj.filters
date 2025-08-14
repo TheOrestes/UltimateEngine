@@ -42,6 +42,9 @@
     <ClInclude Include="src\D3D12Renderer\StaticMesh\D3DCube.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\D3D12Renderer\World\Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\EngineApplication.cpp">
@@ -63,6 +66,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\D3D12Renderer\StaticMesh\D3DCube.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\D3D12Renderer\World\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -93,5 +93,15 @@ namespace UT
 
 		std::string GetExecutableFolderPath();
 		std::wstring ToWString(const std::string& utf8Str);
+
+		enum class InputAction
+		{
+			NONE,
+			FORWARD,
+			BACK,
+			LEFT,
+			RIGHT,
+			MOUSE_MOVE
+		};
 	}
 }

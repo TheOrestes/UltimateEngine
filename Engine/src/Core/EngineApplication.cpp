@@ -2,6 +2,7 @@
 #include "EngineApplication.h"
 #include "../D3D12Renderer/DirectXApplication.h"
 #include "../EngineHeader.h"
+#include "D3D12Renderer/D3DGlobals.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 EngineApplication::EngineApplication()
@@ -90,34 +91,36 @@ void EngineApplication::KeyHandlerCallback(GLFWwindow* pWindow, int key, int sca
 {
 	DirectXApplication* pApp = static_cast<DirectXApplication*>(glfwGetWindowUserPointer(pWindow));
 
-	if ((action == GLFW_REPEAT || GLFW_PRESS))
+	if ((action == GLFW_REPEAT || action == GLFW_PRESS))
 	{
+		LOG_INFO("{0} Key pressed...", key);
+	
 		switch (key)
 		{
 			case GLFW_KEY_W:
 			{
-				//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_FORWARD);
+				pApp->OnKeyPressed(UT::GLOBALS::InputAction::FORWARD);
 				break;
 			}
-
+			
 			case GLFW_KEY_S:
 			{
-				//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_BACK);
+				pApp->OnKeyPressed(UT::GLOBALS::InputAction::BACK);
 				break;
 			}
-
+			
 			case GLFW_KEY_A:
 			{
-				//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_LEFT);
+				pApp->OnKeyPressed(UT::GLOBALS::InputAction::LEFT);
 				break;
 			}
-
+			
 			case GLFW_KEY_D:
 			{
-				//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_RIGHT);
+				pApp->OnKeyPressed(UT::GLOBALS::InputAction::RIGHT);
 				break;
 			}
-
+			
 			case GLFW_KEY_ESCAPE:
 			{
 				glfwSetWindowShouldClose(pWindow, true);
@@ -125,29 +128,54 @@ void EngineApplication::KeyHandlerCallback(GLFWwindow* pWindow, int key, int sca
 			}
 		}
 	}
-
+	
 	// Stop if key is released...
 	if (action == GLFW_RELEASE)
 	{
-		//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_NONE);
-	}
+		switch (key)
+		{
+			case GLFW_KEY_W:
+			{
+				pApp->OnKeyReleased(UT::GLOBALS::InputAction::FORWARD);
+				break;
+			}
 
-	LOG_INFO("{0} Key pressed...", key);
+			case GLFW_KEY_S:
+			{
+				pApp->OnKeyReleased(UT::GLOBALS::InputAction::BACK);
+				break;
+			}
+
+			case GLFW_KEY_A:
+			{
+				pApp->OnKeyReleased(UT::GLOBALS::InputAction::LEFT);
+				break;
+			}
+
+			case GLFW_KEY_D:
+			{
+				pApp->OnKeyReleased(UT::GLOBALS::InputAction::RIGHT);
+				break;
+			}
+		}
+	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void EngineApplication::MousePositionCallback(GLFWwindow* pWindow, double xPos, double yPos)
 {
-	//VulkanApplication* pApp = static_cast<VulkanApplication*>(glfwGetWindowUserPointer(pWindow));
+	DirectXApplication* pApp = static_cast<DirectXApplication*>(glfwGetWindowUserPointer(pWindow));
 
 	// Rotate only when RIGHT CLICK is down!
 	if (glfwGetMouseButton(pWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 	{
-		//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_PAN_2D, static_cast<float>(xPos), static_cast<float>(yPos), true);
+		pApp->OnMouseMove(xPos, yPos, true);
+		//pApp->HandleSceneInput(pWindow, UT::GLOBALS::InputAction::MOUSE_MOVE, static_cast<float>(xPos), static_cast<float>(yPos), true);
 	}
 	else
 	{
-		//pApp->HandleSceneInput(pWindow, CameraAction::CAMERA_PAN_2D, static_cast<float>(xPos), static_cast<float>(yPos), false);
+		pApp->OnMouseMove(xPos, yPos, false);
+		//pApp->HandleSceneInput(pWindow, UT::GLOBALS::InputAction::MOUSE_MOVE, static_cast<float>(xPos), static_cast<float>(yPos), false);
 	}
 
 	//LOG_INFO("Mouse Position = [{0}, {1}]", xPos, yPos);

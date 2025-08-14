@@ -2,10 +2,10 @@
 
 #include "../Core/Core.h"
 #include "../EngineHeader.h"
+#include "D3D12Renderer/D3DGlobals.h"
 
 class D3DRenderer;
 class EngineApplication;
-enum class CameraAction;
 
 class UT_API DirectXApplication : public EngineApplication
 {
@@ -18,7 +18,10 @@ public:
 	virtual void		Update(double dt);
 	virtual void		Render();
 
-	void				HandleSceneInput(const GLFWwindow* pWindow, CameraAction direction, float mousePosX = 0.0f, float mousePosY = 0.0f, bool isMouseClicked = false) const;
+	void				OnKeyPressed(UT::GLOBALS::InputAction action);
+	void				OnKeyReleased(UT::GLOBALS::InputAction action);
+	void				OnMouseMove(float x, float y, bool bMouseClicked);
+
 	void				HandleWindowResizeCallback(const GLFWwindow* pWindow);
 
 private:

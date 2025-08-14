@@ -101,6 +101,7 @@ xcopy "$(SolutionDir)Game\Assets" "$(SolutionDir)bin\$(Configuration)-$(Platform
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\D3D12Renderer\World\Camera.h" />
     <ClInclude Include="src\D3D12Renderer\StaticMesh\D3DCube.h" />
     <ClInclude Include="src\D3D12Renderer\D3DRenderer.h" />
     <ClInclude Include="src\D3D12Renderer\D3DGlobals.h" />
@@ -112,6 +113,7 @@ xcopy "$(SolutionDir)Game\Assets" "$(SolutionDir)bin\$(Configuration)-$(Platform
     <ClInclude Include="src\UltimateEnginePCH.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\D3D12Renderer\World\Camera.cpp" />
     <ClCompile Include="src\D3D12Renderer\StaticMesh\D3DCube.cpp" />
     <ClCompile Include="src\D3D12Renderer\D3DRenderer.cpp" />
     <ClCompile Include="src\D3D12Renderer\D3DGlobals.cpp" />
