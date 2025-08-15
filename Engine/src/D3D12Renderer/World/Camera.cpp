@@ -83,13 +83,18 @@ void Camera::OnKeyReleased(UT::GLOBALS::InputAction action)
 void Camera::OnMouseMove(float x, float y, bool bMouseClicked)
 {
 	if (!bMouseClicked)
+	{
+		m_iPrevMouseX = UT::GLOBALS::GWindowWidth / 2.0f;
+		m_iPrevMouseY = UT::GLOBALS::GWindowHeight / 2.0f;
+
 		return;
+	}
 
 	const int dx = x - m_iPrevMouseX;
 	const int dy = y - m_iPrevMouseY;
 
-	m_fYaw += dx * 0.001f;
-	m_fPitch -= dy * 0.001f;
+	m_fYaw += dx * 0.005f;
+	m_fPitch -= dy * 0.005f;
 
 	// Clamp pitch to avoid flipping
 	if (m_fPitch > XM_PIDIV2)  m_fPitch = XM_PIDIV2;
@@ -117,9 +122,9 @@ void Camera::Update(double dt)
 	if (m_bBack)
 		pos -= forward * dt;
 	if (m_bLeft)
-		pos -= right * dt;
-	if (m_bRight)
 		pos += right * dt;
+	if (m_bRight)
+		pos -= right * dt;
 
 	XMStoreFloat3(&m_Position, pos);
 }
