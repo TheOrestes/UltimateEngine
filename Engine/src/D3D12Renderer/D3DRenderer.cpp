@@ -35,16 +35,13 @@ bool D3DRenderer::Initialize()
 	D3DCube::CreateStaticGeometry();
 
 	m_pCubeRed = new D3DCube();
-	m_pCubeRed->SetWorld(XMMatrixTranslation(-2, 0, 0));
-	m_pCubeRed->SetColor(XMFLOAT4(1, 0, 0, 1));
+	m_pCubeRed->SetWorldPosition(-2, 0, 0);
 
 	m_pCubeGreen = new D3DCube();
-	m_pCubeGreen->SetWorld(XMMatrixTranslation(0, 0, 0));
-	m_pCubeGreen->SetColor(XMFLOAT4(0, 1, 0, 1));
+	m_pCubeGreen->SetWorldPosition(0, 0, 0);
 
 	m_pCubeBlue = new D3DCube();
-	m_pCubeBlue->SetWorld(XMMatrixTranslation(2, 0, 0));
-	m_pCubeBlue->SetColor(XMFLOAT4(0, 0, 1, 1));
+	m_pCubeBlue->SetWorldPosition(2, 0, 0);
 
 	m_pCamera = new Camera();
 	m_pCamera->SetPosition(0.0f, 1.0f, -3.0f);
@@ -284,6 +281,7 @@ bool D3DRenderer::CreateDSV()
 }
 
 //-------------------------------------------------------------------------------------------------------------------
+/*
 bool D3DRenderer::CreateTriangle()
 {
 	// Create Root Signature
@@ -330,8 +328,10 @@ bool D3DRenderer::CreateTriangle()
 
 	return true;
 }
+*/
 
 //-------------------------------------------------------------------------------------------------------------------
+/*
 bool D3DRenderer::CreateCube()
 {
 	// Define Vertices (8 unique corners of a cube)
@@ -390,6 +390,7 @@ bool D3DRenderer::CreateCube()
 
 	return true;
 }
+*/
 
 //-------------------------------------------------------------------------------------------------------------------
 bool D3DRenderer::CreatePSO()
@@ -397,27 +398,29 @@ bool D3DRenderer::CreatePSO()
 	// Describe a single CBV (b0) root parameter ----
 	std::array<D3D12_ROOT_PARAMETER, 1> rootParams = {};
 
-	//D3D12_ROOT_PARAMETER rootParams[1] = {};
-	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // constant buffer
-	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // visible to VS
-	rootParams[0].Descriptor.ShaderRegister = 0;  // b0 in HLSL
-	rootParams[0].Descriptor.RegisterSpace = 0;   // register space 0
+	//--- 1. WVP Matrix as CBV
+	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;		// constant buffer
+	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;	// visible to VS
+	rootParams[0].Descriptor.ShaderRegister = 0;						// b0 in HLSL
+	rootParams[0].Descriptor.RegisterSpace = 0;							// register space 0
 
 	// Create Root Signature
 	UT::D3D12::HELPER::CreateRootSignatue(rootParams.size(), rootParams.data(), 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, &m_pRootSignature);
 
 	// Compile Shaders
 	D3D12_SHADER_BYTECODE vsByteCode = {};
-	UT::D3D12::HELPER::CompileShader("Cube.hlsl", "VSMain", "vs_5_0", nullptr, vsByteCode);
+	UT::D3D12::HELPER::CompileShader("CubeTextured.hlsl", "VSMain", "vs_5_0", nullptr, vsByteCode);
 
 	D3D12_SHADER_BYTECODE psByteCode = {};
-	UT::D3D12::HELPER::CompileShader("Cube.hlsl", "PSMain", "ps_5_0", nullptr, psByteCode);
+	UT::D3D12::HELPER::CompileShader("CubeTextured.hlsl", "PSMain", "ps_5_0", nullptr, psByteCode);
 
 	// Input layput  Description
 	D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(UT::D3D12::DAS::VertexPC, Position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(UT::D3D12::DAS::VertexPC, Color),    D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(UT::D3D12::DAS::VertexPNBT, Position),  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(UT::D3D12::DAS::VertexPNBT, Normal),    D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(UT::D3D12::DAS::VertexPNBT, BiNormal),  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(UT::D3D12::DAS::VertexPNBT, TexCoord),  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 
 	const D3D12_INPUT_LAYOUT_DESC inputLayout = { inputLayoutDesc, _countof(inputLayoutDesc) };
@@ -428,43 +431,5 @@ bool D3DRenderer::CreatePSO()
 	return true;
 }
 
-//-------------------------------------------------------------------------------------------------------------------
-bool D3DRenderer::CreateConstantBuffer()
-{
-	m_pCubesData = new UT::D3D12::DAS::CubesCB();
-
-	// Each constant buffer must be 256-byte aligned
-	constexpr UINT64 cbSize = (sizeof(m_pCubesData) + 255) & ~255;
-
-	// Map Constant buffer memory once for write access
-	constexpr D3D12_RANGE readRange = { 0, 0 };	// We do not intent to read this resource on the CPU!
-
-	for (UINT i = 0; i < UT::GLOBALS::GFramesInFlight; i++)
-	{
-		UT::D3D12::HELPER::CreateUploadBuffer(cbSize, &m_listConstantBuffers[i]);
-
-	
-		UT_CHECK_HRESULT(m_listConstantBuffers[i]->Map(0, &readRange, reinterpret_cast<void**>(&m_pCBDataBegin[i])), "Failed to Map Constant Buffer!");
-
-		// Zero initialize the mapped Constant Buffer!
-		memset(m_pCBDataBegin[i], 0, cbSize);
-	}
-
-	return true;
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-void D3DRenderer::UpdateConstantBuffer(const XMMATRIX& world, const XMMATRIX& view, const XMMATRIX& proj)
-{
-	const uint16_t frameIndex = UT::GLOBALS::GCurrentFrameId;
-
-	if (!m_pCBDataBegin[frameIndex] || !m_pCubesData)
-		return;
-
-	const XMMATRIX mvp = XMMatrixTranspose(world * view * proj);
-	XMStoreFloat4x4(&m_pCubesData->WVP, mvp);
-
-	memcpy(m_pCBDataBegin[frameIndex], m_pCubesData, sizeof(UT::D3D12::DAS::CubesCB));
-}
 
 

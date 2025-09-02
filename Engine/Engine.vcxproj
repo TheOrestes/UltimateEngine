@@ -58,7 +58,7 @@
       <PreprocessorDefinitions>UT_PLATFORM_WINDOWS;UT_BUILD_DLL;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(SolutionDir)Engine\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(SolutionDir)Engine\src;$(SolutionDir)Engine\ThirdParty\Assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>UltimateEnginePCH.h</PrecompiledHeaderFile>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
@@ -66,8 +66,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Debug;$(SolutionDir)Engine\ThirdParty\Assimp\BUILD\lib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)bin\$(Configuration)-$(Platform)\Engine\*.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\Game /e /y /i /r
@@ -101,6 +101,8 @@ xcopy "$(SolutionDir)Game\Assets" "$(SolutionDir)bin\$(Configuration)-$(Platform
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\D3D12Renderer\StaticMesh\D3DMesh.h" />
+    <ClInclude Include="src\D3D12Renderer\StaticMesh\ModelLoader.h" />
     <ClInclude Include="src\D3D12Renderer\World\Camera.h" />
     <ClInclude Include="src\D3D12Renderer\StaticMesh\D3DCube.h" />
     <ClInclude Include="src\D3D12Renderer\D3DRenderer.h" />
@@ -113,6 +115,8 @@ xcopy "$(SolutionDir)Game\Assets" "$(SolutionDir)bin\$(Configuration)-$(Platform
     <ClInclude Include="src\UltimateEnginePCH.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\D3D12Renderer\StaticMesh\D3DMesh.cpp" />
+    <ClCompile Include="src\D3D12Renderer\StaticMesh\ModelLoader.cpp" />
     <ClCompile Include="src\D3D12Renderer\World\Camera.cpp" />
     <ClCompile Include="src\D3D12Renderer\StaticMesh\D3DCube.cpp" />
     <ClCompile Include="src\D3D12Renderer\D3DRenderer.cpp" />

@@ -404,11 +404,11 @@ namespace UT
 					if (pErrorBlob)
 					{
 						const std::string msg( static_cast<const char*>(pErrorBlob->GetBufferPointer()), pErrorBlob->GetBufferSize());
-						throw std::runtime_error("Shader compilation failed: " + msg);
+						LOG_CRITICAL("Shader Compilation Failed: " + msg);
 					}
 					else
 					{
-						throw std::runtime_error("Shader compilation failed with HRESULT 0x" + std::to_string(Hr));
+						LOG_CRITICAL("Shader Compilation Failed with HRESULT {0}: ", std::to_string(Hr));
 					}
 				}
 
@@ -523,7 +523,7 @@ namespace UT
 		if (len == 0 || len == MAX_PATH)
 			return std::string();
 
-		std::wstring pathStr(widePath, len);
+		const std::wstring pathStr(widePath, len);
 		const size_t lastSlash = pathStr.find_last_of(L"\\/");
 		if (lastSlash == std::wstring::npos)
 			return std::string();

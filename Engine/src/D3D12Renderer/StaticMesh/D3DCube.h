@@ -13,8 +13,7 @@ public:
     static void CreateStaticGeometry();
 
     // Per-instance transform
-    void SetWorld(const XMMATRIX& world);
-    void SetColor(const XMFLOAT4& color); 
+    void SetWorldPosition(float x, float y, float z);
 
     void UpdateConstantBuffer(const XMMATRIX& view, const DirectX::XMMATRIX& proj);
 
@@ -33,8 +32,10 @@ private:
     static bool                                                 s_geometryCreated;
 
     // === Per-instance data ===
+    ID3D12Resource*                                             m_pTexture;
+    std::array<D3D12_GPU_DESCRIPTOR_HANDLE, UT::GLOBALS::GFramesInFlight> m_listHandleTextureGpuSrv;
+
     XMMATRIX m_world;
-    XMFLOAT4 m_color;
 
     std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>   m_listCB;
     std::array<UINT8*, UT::GLOBALS::GFramesInFlight>            m_listCBDataBegin;

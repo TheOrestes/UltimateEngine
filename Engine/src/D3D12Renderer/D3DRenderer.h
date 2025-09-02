@@ -23,12 +23,9 @@ public:
 private:
 	bool	CreateRTV();
 	bool	CreateDSV();
-	bool	CreateTriangle();
-	bool	CreateCube();
+	//bool	CreateTriangle();
+	//bool	CreateCube();
 	bool	CreatePSO();
-	bool	CreateConstantBuffer();
-	void	UpdateConstantBuffer(const XMMATRIX& world, const XMMATRIX& view, const XMMATRIX& proj);
-	
 
 private:
 	ID3D12DescriptorHeap* m_pHeapRTV;
@@ -38,6 +35,8 @@ private:
 	ID3D12DescriptorHeap* m_pHeapDSV;
 	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, UT::GLOBALS::GFramesInFlight>	m_handlesDSV;
 	std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>				m_listDSBuffers;
+
+
 
 	// Triangle
 	ID3D12RootSignature*													m_pRootSignature;
@@ -54,7 +53,7 @@ private:
 
 	std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>				m_listConstantBuffers;
 	std::array<UINT8*, UT::GLOBALS::GFramesInFlight>						m_pCBDataBegin;
-	UT::D3D12::DAS::CubesCB*												m_pCubesData;
+	UT::D3D12::DAS::GeomsCB*												m_pCubesData;
 
 	D3DCube* m_pCubeRed;
 	D3DCube* m_pCubeGreen;

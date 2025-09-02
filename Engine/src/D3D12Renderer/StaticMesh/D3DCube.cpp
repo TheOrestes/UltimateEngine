@@ -10,16 +10,18 @@ D3D12_INDEX_BUFFER_VIEW  D3DCube::m_sharedIBView = {};
 bool D3DCube::s_geometryCreated = false;
 
 //-------------------------------------------------------------------------------------------------------------------
-static const UT::D3D12::DAS::VertexPC kVertices[8] =
+static const UT::D3D12::DAS::VertexPNBT kVertices[8] =
 {
-    { { -0.5f, -0.5f, -0.5f }, { 1,0,0,1 } },
-    { {-0.5f, 0.5f,-0.5f},{0,1,0,1} },
-    { { 0.5f, 0.5f,-0.5f},{0,0,1,1} },
-    { { 0.5f,-0.5f,-0.5f},{1,1,0,1} },
-    { {-0.5f,-0.5f, 0.5f},{1,0,1,1} },
-    { {-0.5f, 0.5f, 0.5f},{0,1,1,1} },
-    { { 0.5f, 0.5f, 0.5f},{1,1,1,1} },
-    { { 0.5f,-0.5f, 0.5f},{0,0,0,1} }
+      // Position               // Normal       // BiNormal    // UV
+    { { -0.5f, -0.5f, -0.5f },  { 0, 0, -1 },   { 1, 0, 0 },   { 0.0f, 1.0f } },  // 0: Front-bottom-left
+    { { -0.5f,  0.5f, -0.5f },  { 0, 0, -1 },   { 1, 0, 0 },   { 1.0f, 1.0f } },  // 1: Front-bottom-right
+    { {  0.5f,  0.5f, -0.5f },  { 0, 0, -1 },   { 1, 0, 0 },   { 1.0f, 0.0f } },  // 2: Front-top-right
+    { {  0.5f, -0.5f, -0.5f },  { 0, 0, -1 },   { 1, 0, 0 },   { 0.0f, 0.0f } },  // 3: Front-top-left
+                                
+    { { -0.5f, -0.5f,  0.5f },  { 0, 0,  1 },   { -1, 0, 0 },  { 0.0f, 1.0f } },  // 4: Back-bottom-left
+    { { -0.5f,  0.5f,  0.5f },  { 0, 0,  1 },   { -1, 0, 0 },  { 1.0f, 1.0f } },  // 5: Back-bottom-right
+    { {  0.5f,  0.5f,  0.5f },  { 0, 0,  1 },   { -1, 0, 0 },  { 1.0f, 0.0f } },  // 6: Back-top-right
+    { {  0.5f, -0.5f,  0.5f },  { 0, 0,  1 },   { -1, 0, 0 },  { 0.0f, 0.0f } }   // 7: Back-top-left
 };
 
 static const uint16_t kIndices[36] =
@@ -72,12 +74,12 @@ void D3DCube::CreateStaticGeometry()
     m_pSharedVB->Unmap(0, nullptr);
 
     m_sharedVBView.BufferLocation = m_pSharedVB->GetGPUVirtualAddress();
-    m_sharedVBView.StrideInBytes = sizeof(UT::D3D12::DAS::VertexPC);
+    m_sharedVBView.StrideInBytes = sizeof(UT::D3D12::DAS::VertexPNBT);
     m_sharedVBView.SizeInBytes = vbSize;
 
     // --- Index buffer ---
     UINT ibSize = sizeof(kIndices);
-    UT::D3D12::HELPER::CreateUploadBuffer(vbSize, &m_pSharedIB);
+    UT::D3D12::HELPER::CreateUploadBuffer(ibSize, &m_pSharedIB);
 
     void* ibData = nullptr;
     m_pSharedIB->Map(0, &readRange, &ibData);
@@ -92,15 +94,9 @@ void D3DCube::CreateStaticGeometry()
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-void D3DCube::SetWorld(const XMMATRIX& world)
+void D3DCube::SetWorldPosition(float x, float y, float z)
 {
-    m_world = world;
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-void D3DCube::SetColor(const XMFLOAT4& color)
-{
-    m_color = color;
+    m_world = XMMatrixTranslation(x, y, z);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -108,11 +104,12 @@ void D3DCube::UpdateConstantBuffer(const XMMATRIX& view, const DirectX::XMMATRIX
 {
     const uint16_t frameIndex = UT::GLOBALS::GCurrentFrameId;
 
-    XMMATRIX wvp = XMMatrixTranspose(m_world * view * proj);
+    XMMATRIX wvp = (m_world * view * proj);
 
-    UT::D3D12::DAS::CubesCB cb;
+    UT::D3D12::DAS::GeomsCB cb;
     XMStoreFloat4x4(&cb.WVP, wvp);
-    cb.COLOR = m_color;
+    //XMStoreFloat4x4(&cb.VIEW, view);
+    //XMStoreFloat4x4(&cb.PROJ, proj);
 
     memcpy(m_listCBDataBegin[frameIndex], &cb, sizeof(cb));
 }
@@ -140,7 +137,7 @@ void D3DCube::Render()
 bool D3DCube::CreateConstantBuffer()
 {
     // Create per-frame constant buffers
-    constexpr UINT cbSize = (sizeof(UT::D3D12::DAS::CubesCB) + 255) & ~255;
+    constexpr UINT cbSize = (sizeof(UT::D3D12::DAS::GeomsCB) + 255) & ~255;
 
     // Map Constant buffer memory once for write access
     constexpr D3D12_RANGE readRange = { 0, 0 };	// We do not intent to read this resource on the CPU!

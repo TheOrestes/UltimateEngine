@@ -74,10 +74,35 @@ namespace UT
 				XMFLOAT4 Color;
 			};
 
-			struct CubesCB
+			struct VertexPNBT
+			{
+				VertexPNBT() = default;
+
+				VertexPNBT(XMFLOAT3 const& iPosition, XMFLOAT3 const& iNormal, XMFLOAT3 const& iBiNormal, XMFLOAT2 const& iTex) noexcept
+					:	Position(iPosition),
+						Normal(iNormal),
+						BiNormal(iBiNormal),
+						TexCoord(iTex)
+				{
+				}
+
+				VertexPNBT(const VertexPNBT&) = default;
+				VertexPNBT& operator=(const VertexPNBT&) = default;
+
+				VertexPNBT(VertexPNBT&&) = default;
+				VertexPNBT& operator=(VertexPNBT&&) = default;
+
+				XMFLOAT3 Position;
+				XMFLOAT3 Normal;
+				XMFLOAT3 BiNormal;
+				XMFLOAT2 TexCoord;
+			};
+
+			struct GeomsCB
 			{
 				XMFLOAT4X4 WVP;
-				XMFLOAT4   COLOR;
+				//XMFLOAT4X4 VIEW;
+				//XMFLOAT4X4 PROJ;
 			};
 		}
 	}

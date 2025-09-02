@@ -37,3 +37,5 @@ bin/
 x64/
 
 Engine/ThirdParty/DirectXTK12/
+
+*.user
