@@ -104,12 +104,10 @@ void D3DCube::UpdateConstantBuffer(const XMMATRIX& view, const DirectX::XMMATRIX
 {
     const uint16_t frameIndex = UT::GLOBALS::GCurrentFrameId;
 
-    XMMATRIX wvp = (m_world * view * proj);
-
     UT::D3D12::DAS::GeomsCB cb;
-    XMStoreFloat4x4(&cb.WVP, wvp);
-    //XMStoreFloat4x4(&cb.VIEW, view);
-    //XMStoreFloat4x4(&cb.PROJ, proj);
+    XMStoreFloat4x4(&cb.World, m_world);
+    XMStoreFloat4x4(&cb.View, view);
+    XMStoreFloat4x4(&cb.Proj, proj);
 
     memcpy(m_listCBDataBegin[frameIndex], &cb, sizeof(cb));
 }

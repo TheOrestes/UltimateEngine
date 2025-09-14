@@ -100,9 +100,9 @@ namespace UT
 
 			struct GeomsCB
 			{
-				XMFLOAT4X4 WVP;
-				//XMFLOAT4X4 VIEW;
-				//XMFLOAT4X4 PROJ;
+				XMFLOAT4X4 World;
+				XMFLOAT4X4 View;
+				XMFLOAT4X4 Proj;
 			};
 		}
 	}

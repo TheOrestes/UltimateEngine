@@ -6,9 +6,9 @@
 //------------------------------------------
 cbuffer TransformCB : register(b0)
 {
-    matrix WVP; 
-    //matrix VIEW;
-    //matrix PROJ;
+    float4x4 World; 
+    float4x4 View;
+    float4x4 Proj;
 }
 
 //--------------------------------------------------------------------------------------
@@ -37,9 +37,9 @@ VSOutput VSMain(VSInput input)
 {
     VSOutput output;
     
-    //matrix WVP = (WORLD * VIEW * PROJ);
-
-    output.Position = mul(float4(input.Position, 1.0), WVP);
+    float4x4 WVP = mul(mul(World, View), Proj);
+    
+    output.Position = mul(float4(input.Position, 1), WVP);
     output.NORMAL =  input.Normal;
     output.BINORMAL = input.BiNormal;
     output.TexCoord = input.TexCoord;
@@ -53,5 +53,6 @@ VSOutput VSMain(VSInput input)
 float4 PSMain(VSOutput input) : SV_TARGET
 {
     // Simply output the interpolated color
-    return float4(input.BINORMAL, 1);
+    // return float4(input.NORMAL, 1);
+    return input.Position;
 }
