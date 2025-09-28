@@ -36,8 +36,6 @@ private:
 	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, UT::GLOBALS::GFramesInFlight>	m_handlesDSV;
 	std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>				m_listDSBuffers;
 
-
-
 	// Triangle
 	ID3D12RootSignature*													m_pRootSignature;
 	ID3D12PipelineState*													m_pPSO;

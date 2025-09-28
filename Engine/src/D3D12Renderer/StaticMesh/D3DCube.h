@@ -13,16 +13,18 @@ public:
     static void CreateStaticGeometry();
 
     // Per-instance transform
-    void SetWorldPosition(float x, float y, float z);
+    void    SetWorldPosition(float x, float y, float z);
+    void    SetTexture(const std::string& fileName);
 
-    void UpdateConstantBuffer(const XMMATRIX& view, const DirectX::XMMATRIX& proj);
+    void    UpdateConstantBuffer(const XMMATRIX& view, const DirectX::XMMATRIX& proj);
 
-    void Update(double dt);
-    void Render();
+    void    Update(double dt);
+    void    Render();
 
 private:
-
+    void    CreateTextureSRV();
     bool    CreateConstantBuffer();
+    
 
     // === Shared static geometry ===
     static ID3D12Resource*                                      m_pSharedVB;
@@ -33,7 +35,7 @@ private:
 
     // === Per-instance data ===
     ID3D12Resource*                                             m_pTexture;
-    std::array<D3D12_GPU_DESCRIPTOR_HANDLE, UT::GLOBALS::GFramesInFlight> m_listHandleTextureGpuSrv;
+    D3D12_GPU_DESCRIPTOR_HANDLE                                 m_HandleTextureSRV;
 
     XMMATRIX m_world;
 

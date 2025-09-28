@@ -11,6 +11,9 @@ cbuffer TransformCB : register(b0)
     float4x4 Proj;
 }
 
+Texture2D baseTexture : register(t0);
+SamplerState texSampler : register(s0);
+
 //--------------------------------------------------------------------------------------
 // Vertex Input and Output Structures
 //--------------------------------------------------------------------------------------
@@ -54,5 +57,5 @@ float4 PSMain(VSOutput input) : SV_TARGET
 {
     // Simply output the interpolated color
     // return float4(input.NORMAL, 1);
-    return input.Position;
+    return baseTexture.Sample(texSampler, input.TexCoord);
 }

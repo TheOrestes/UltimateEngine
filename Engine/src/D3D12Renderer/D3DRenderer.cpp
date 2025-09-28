@@ -36,12 +36,15 @@ bool D3DRenderer::Initialize()
 
 	m_pCubeRed = new D3DCube();
 	m_pCubeRed->SetWorldPosition(-2, 0, 0);
+	m_pCubeRed->SetTexture("Assets/Textures/Red/texture_10.png");
 
 	m_pCubeGreen = new D3DCube();
 	m_pCubeGreen->SetWorldPosition(0, 0, 0);
+	m_pCubeGreen->SetTexture("Assets/Textures/Green/texture_09.png");
 
 	m_pCubeBlue = new D3DCube();
 	m_pCubeBlue->SetWorldPosition(2, 0, 0);
+	m_pCubeBlue->SetTexture("Assets/Textures/Purple/texture_05.png");
 
 	m_pCamera = new Camera();
 	m_pCamera->SetPosition(0.0f, 1.0f, -3.0f);
@@ -396,7 +399,7 @@ bool D3DRenderer::CreateCube()
 bool D3DRenderer::CreatePSO()
 {
 	// Describe a single CBV (b0) root parameter ----
-	std::array<D3D12_ROOT_PARAMETER, 1> rootParams = {};
+	std::array<D3D12_ROOT_PARAMETER, 2> rootParams = {};
 
 	//--- 1. WVP Matrix as CBV
 	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;		// constant buffer
@@ -404,8 +407,37 @@ bool D3DRenderer::CreatePSO()
 	rootParams[0].Descriptor.ShaderRegister = 0;						// b0 in HLSL
 	rootParams[0].Descriptor.RegisterSpace = 0;							// register space 0
 
+	//--- 2. Descriptor Table with SRV Range
+	D3D12_DESCRIPTOR_RANGE range = {};
+	range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	range.NumDescriptors = 1;
+	range.BaseShaderRegister = 0;										// t0
+	range.RegisterSpace = 0;
+	range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	rootParams[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParams[1].DescriptorTable.NumDescriptorRanges = 1;
+	rootParams[1].DescriptorTable.pDescriptorRanges = &range;
+	rootParams[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	// Sampler!
+	D3D12_STATIC_SAMPLER_DESC samplerdesc = {};
+	samplerdesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+	samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerdesc.MipLODBias = 0;
+	samplerdesc.MaxAnisotropy = 0;
+	samplerdesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+	samplerdesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+	samplerdesc.MinLOD = 0;
+	samplerdesc.MaxLOD = D3D12_FLOAT32_MAX;
+	samplerdesc.ShaderRegister = 0;										// s0
+	samplerdesc.RegisterSpace = 0;
+	samplerdesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
 	// Create Root Signature
-	UT::D3D12::HELPER::CreateRootSignatue(rootParams.size(), rootParams.data(), 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, &m_pRootSignature);
+	UT::D3D12::HELPER::CreateRootSignatue(rootParams.size(), rootParams.data(), 1, &samplerdesc, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, &m_pRootSignature);
 
 	// Compile Shaders
 	D3D12_SHADER_BYTECODE vsByteCode = {};

@@ -1,6 +1,9 @@
 ﻿#include "UltimateEnginePCH.h"
 #include "D3DGlobals.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 namespace UT
 {
 	namespace D3D12
@@ -8,11 +11,12 @@ namespace UT
 		//-------------------------------------------------------------------------------------------------------------------
 		namespace CORE
 		{
-			IDXGIFactory6*		g_pFactory			= nullptr;
-			ID3D12Device*		g_pDevice			= nullptr;
-			ID3D12Debug1*		g_pD3D12Debug		= nullptr;
-			ID3D12CommandQueue* g_pD3DCommandQueue	= nullptr;
-			IDXGISwapChain4*	g_pD3DSwapChain		= nullptr;
+			IDXGIFactory6*																		g_pFactory			= nullptr;
+			ID3D12Device*																		g_pDevice			= nullptr;
+			ID3D12Debug1*																		g_pD3D12Debug		= nullptr;
+			ID3D12CommandQueue*																	g_pD3DCommandQueue	= nullptr;
+			IDXGISwapChain4*																	g_pD3DSwapChain		= nullptr;
+			ID3D12DescriptorHeap*																g_pDescriptorHeap	= nullptr;
 
 			std::array<ID3D12CommandAllocator*, GLOBALS::GFramesInFlight>						m_ListCommandAllocators;
 			std::array<ID3D12GraphicsCommandList*, GLOBALS::GFramesInFlight>					m_ListCommandListsGraphics;
@@ -24,6 +28,7 @@ namespace UT
 			constexpr ID3D12Device*					const GetDevice()							{ return g_pDevice; }
 			constexpr ID3D12CommandQueue*			const GetCommandQueue()						{ return g_pD3DCommandQueue; }
 			constexpr IDXGISwapChain4*				const GetSwapchain()						{ return g_pD3DSwapChain; }
+			constexpr ID3D12DescriptorHeap*			const GetGlobalDescriptorHeap()				{ return g_pDescriptorHeap; }
 
 			constexpr ID3D12CommandAllocator*		const GetCommandAllocator(uint16_t index)	{ return m_ListCommandAllocators[index]; }
 			constexpr ID3D12GraphicsCommandList*	const GetCommandList(uint16_t index)		{ return m_ListCommandListsGraphics[index]; }
@@ -139,6 +144,17 @@ namespace UT
 					m_ListFenceValues[i] = 0;
 				}
 
+				//-- 6. Create Global Descriptor Heap
+				D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+				srvHeapDesc.NumDescriptors = 100;
+				srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+				srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+				srvHeapDesc.NodeMask = 0;	// For single-GPU setup, use 0!
+
+				Hr = g_pDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&g_pDescriptorHeap));
+				UT_CHECK_HRESULT(Hr, "Global Descriptor Heap creation failed!");
+				UT_NAME_D3D_OBJECT(g_pDescriptorHeap, "Global Descriptor Heap");
+
 				return true;
 			}
 
@@ -216,6 +232,46 @@ namespace UT
 				++m_ListFenceValues[UT::GLOBALS::GCurrentFrameId];
 				//LOG_DEBUG("Frame[{0}] | FenceValue = {1}", UT::GLOBALS::GCurrentFrameId, m_ListFenceValues[UT::GLOBALS::GCurrentFrameId]);
 			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			void ResetCommandList()
+			{
+				const uint16_t frameIndex = UT::GLOBALS::GCurrentFrameId;
+				ID3D12CommandAllocator* const pCmdAlloc = UT::D3D12::CORE::GetCommandAllocator(frameIndex);
+				ID3D12GraphicsCommandList* const pCommandList = UT::D3D12::CORE::GetCommandList(frameIndex);
+
+				pCmdAlloc->Reset();
+				pCommandList->Reset(pCmdAlloc, nullptr);
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			void CloseAndExecuteCommandList()
+			{
+				const uint16_t frameIndex = UT::GLOBALS::GCurrentFrameId;
+				ID3D12CommandQueue* const pCmdQueue = UT::D3D12::CORE::GetCommandQueue();
+				ID3D12GraphicsCommandList* const pCommandList = UT::D3D12::CORE::GetCommandList(frameIndex);
+				ID3D12Fence* const pFence = UT::D3D12::CORE::GetFence(frameIndex);
+				HANDLE const fenceEvent = UT::D3D12::CORE::GetFenceEvent(frameIndex);
+
+				pCommandList->Close();
+
+				ID3D12CommandList* lists[] = { pCommandList };
+				pCmdQueue->ExecuteCommandLists(1, lists);
+
+				// Signal Fence
+				UT::D3D12::CORE::FenceIncrement();
+				const UINT64 fenceValue = UT::D3D12::CORE::GetFenceValue(frameIndex);
+
+				HRESULT Hr = pCmdQueue->Signal(pFence, fenceValue);
+				//LOG_DEBUG("CommandList Reset");
+
+				const UINT64 completedFenceValue = pFence->GetCompletedValue();
+				if (completedFenceValue < fenceValue)
+				{
+					Hr = pFence->SetEventOnCompletion(fenceValue, fenceEvent);
+					WaitForSingleObject(fenceEvent, INFINITE);
+				}
+			}
 		}
 
 		namespace HELPER
@@ -287,7 +343,7 @@ namespace UT
 																	IID_PPV_ARGS(outUploadBuffer));
 
 				UT_ASSERT_HRESULT(Hr, "CreateResource => Upload Buffer");
-				//UT_NAME_D3D_OBJECT(outUploadBuffer, "Upload Buffer");
+				UT_NAME_D3D_OBJECT(*outUploadBuffer, "Upload Buffer");
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------
@@ -321,7 +377,7 @@ namespace UT
 															IID_PPV_ARGS(outReadbackBuffer));
 
 				UT_ASSERT_HRESULT(Hr, "CreateResource => Readback Buffer");
-				//UT_NAME_D3D_OBJECT(outReadbackBuffer, "Readback Buffer");
+				UT_NAME_D3D_OBJECT(*outReadbackBuffer, "Readback Buffer");
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------
@@ -344,8 +400,7 @@ namespace UT
 				pUploadBuffer->Unmap(0, nullptr);
 
 				// 4) Schedule copy into default heap
-				pCmdAlloc->Reset();
-				pCommandList->Reset(pCmdAlloc, nullptr);
+				UT::D3D12::CORE::ResetCommandList();
 				
 				pCommandList->CopyBufferRegion(pGpuBuffer, 0, pUploadBuffer, 0, byteSize);
 
@@ -360,24 +415,7 @@ namespace UT
 
 				pCommandList->ResourceBarrier(1, &barrier);
 
-				pCommandList->Close();
-
-				ID3D12CommandList* lists[] = { pCommandList };
-				pCmdQueue->ExecuteCommandLists(1, lists);
-
-				// Signal Fence
-				UT::D3D12::CORE::FenceIncrement();
-				const UINT64 fenceValue = UT::D3D12::CORE::GetFenceValue(frameIndex);
-
-				HRESULT Hr = pCmdQueue->Signal(pFence, fenceValue);
-				//LOG_DEBUG("CommandList Reset");
-				
-				const UINT64 completedFenceValue = pFence->GetCompletedValue();
-				if(completedFenceValue < fenceValue)
-				{
-					Hr = pFence->SetEventOnCompletion(fenceValue, fenceEvent);
-					WaitForSingleObject(fenceEvent, INFINITE);
-				}
+				UT::D3D12::CORE::CloseAndExecuteCommandList();
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------
@@ -512,7 +550,44 @@ namespace UT
 				UT_ASSERT_HRESULT(pDevice->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(pOutPSO)), "CreatePSO");
 				//UT_NAME_D3D_OBJECT(pOutPSO, "PSO");
 			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			void LoadImageData(const std::string& filePath, int* width, int* height, int* channels, void** outImagaData)
+			{
+				// Convert to the full path & widestring before passing it to the D3D function!
+				const std::string imagePath = UT::GLOBALS::GetExecutableFolderPath() + filePath;
+				//const std::wstring wideStr = UT::GLOBALS::ToWString(imagePath);
+
+				int uWidth, uHeight, uChannels = 0;
+				unsigned char* data = stbi_load(imagePath.c_str(), width, height, channels, 4);
+
+				if(data)
+				{
+					*outImagaData = reinterpret_cast<void*>(data);
+					*channels = 4;
+				}
+				else
+				{
+					LOG_ERROR("{0} Image Loading failed!", filePath.c_str());
+				}
+			}
 		}
+	}
+
+	//-------------------------------------------------------------------------------------------------------------------
+	std::string GLOBALS::GetFileNameWithoutExtension(const std::string& fileName)
+	{
+		// Find last slash or backslash
+		const size_t lastSlash = fileName.find_last_of("/\\");
+
+		// Extract filename with extension
+		const std::string filenameWithExt = (lastSlash != std::string::npos) ? fileName.substr(lastSlash + 1) : fileName;
+
+		// Find last dot for extension
+		const size_t lastDot = filenameWithExt.find_last_of('.');
+		std::string filenameWithoutExt = (lastDot != std::string::npos) ? filenameWithExt.substr(0, lastDot) : filenameWithExt;
+
+		return filenameWithoutExt;
 	}
 
 	//-------------------------------------------------------------------------------------------------------------------

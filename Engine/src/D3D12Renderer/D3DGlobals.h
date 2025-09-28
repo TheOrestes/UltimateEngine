@@ -29,15 +29,20 @@ namespace UT
 			extern constexpr ID3D12CommandAllocator*	const		GetCommandAllocator(uint16_t index);
 			extern constexpr ID3D12GraphicsCommandList* const		GetCommandList(uint16_t index);
 
+			extern constexpr ID3D12DescriptorHeap*		const		GetGlobalDescriptorHeap();
+
 			extern constexpr ID3D12Fence*				const		GetFence(uint16_t index);
 			extern constexpr HANDLE						const		GetFenceEvent(uint16_t index); 
 			extern constexpr UINT64						const 		GetFenceValue(uint16_t index);
 
+			
 			bool			Initialize();
 			void			BeginFrame();
 			void			EndFrame();
 			void			Cleanup();
 			void			FenceIncrement();
+			void			ResetCommandList();
+			void			CloseAndExecuteCommandList();
 		}
 
 		namespace HELPER
@@ -50,6 +55,8 @@ namespace UT
 			void CompileShader(const std::string& srcFile, const std::string& entryPoint, const std::string& target, const D3D_SHADER_MACRO* pDefines, D3D12_SHADER_BYTECODE& outByteCode);
 			void CreateRootSignatue(UINT numRootParams, const D3D12_ROOT_PARAMETER* pRootParams, UINT numStaticSamplers, const D3D12_STATIC_SAMPLER_DESC* pStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags, ID3D12RootSignature** pOutRootSignature);
 			void CreatePSO(ID3D12RootSignature* pSignature, const D3D12_SHADER_BYTECODE& vsBytecode, const D3D12_SHADER_BYTECODE& psBytecode, const D3D12_INPUT_LAYOUT_DESC& inputLayout, ID3D12PipelineState** pOutPSO);
+
+			void LoadImageData(const std::string& filePath, int* width, int* height, int* channels, void** outImagaData);
 		}
 
 		namespace DAS
@@ -115,7 +122,9 @@ namespace UT
 		inline HWND		GWindowHandle = nullptr;
 
 		inline constexpr uint16_t GFramesInFlight = 3;
+		inline UINT GCurrentDescriptorIndex = 0;
 
+		std::string GetFileNameWithoutExtension(const std::string& fileName);
 		std::string GetExecutableFolderPath();
 		std::wstring ToWString(const std::string& utf8Str);
 
