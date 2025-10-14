@@ -1,30 +1,27 @@
 #pragma once
 
 #include "D3D12Renderer/D3DGlobals.h"
+#include "D3D12Renderer/World/GameObject.h"
 
+class GameObject;
 
-class D3DCube
+class D3DCube : public GameObject
 {
 public:
     D3DCube();
-    ~D3DCube();
+    virtual ~D3DCube();
 
     // Static geometry must be created once before creating Cubes
     static void CreateStaticGeometry();
 
-    // Per-instance transform
-    void    SetWorldPosition(float x, float y, float z);
     void    SetTexture(const std::string& fileName);
-
-    void    UpdateConstantBuffer(const XMMATRIX& view, const DirectX::XMMATRIX& proj);
-
-    void    Update(double dt);
-    void    Render();
+    void    Render() override;
 
 private:
     void    CreateTextureSRV();
     bool    CreateConstantBuffer();
-    
+
+    void    UpdateConstantBuffer() override;
 
     // === Shared static geometry ===
     static ID3D12Resource*                                      m_pSharedVB;
@@ -36,8 +33,6 @@ private:
     // === Per-instance data ===
     ID3D12Resource*                                             m_pTexture;
     D3D12_GPU_DESCRIPTOR_HANDLE                                 m_HandleTextureSRV;
-
-    XMMATRIX m_world;
 
     std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>   m_listCB;
     std::array<UINT8*, UT::GLOBALS::GFramesInFlight>            m_listCBDataBegin;

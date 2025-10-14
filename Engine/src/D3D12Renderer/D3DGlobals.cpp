@@ -159,7 +159,7 @@ namespace UT
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------
-			void BeginFrame()
+			void WaitToFinishCurrentFrame()
 			{
 				const uint16_t currFrameIndex = UT::GLOBALS::GCurrentFrameId;
 				//LOG_INFO("=== BeginFrame[{0}] ====", currFrameIndex);
@@ -170,6 +170,15 @@ namespace UT
 					m_ListFences[currFrameIndex]->SetEventOnCompletion(m_ListFenceValues[currFrameIndex], m_ListFenceEvents[currFrameIndex]);
 					WaitForSingleObject(m_ListFenceEvents[currFrameIndex], INFINITE);
 				}
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			void BeginFrame()
+			{
+				const uint16_t currFrameIndex = UT::GLOBALS::GCurrentFrameId;
+				//LOG_INFO("=== BeginFrame[{0}] ====", currFrameIndex);
+
+				WaitToFinishCurrentFrame();
 
 				// Reset command allocator & command list
 				m_ListCommandAllocators[currFrameIndex]->Reset();
@@ -559,6 +568,7 @@ namespace UT
 				//const std::wstring wideStr = UT::GLOBALS::ToWString(imagePath);
 
 				int uWidth, uHeight, uChannels = 0;
+				stbi_set_flip_vertically_on_load(true);
 				unsigned char* data = stbi_load(imagePath.c_str(), width, height, channels, 4);
 
 				if(data)
@@ -570,6 +580,111 @@ namespace UT
 				{
 					LOG_ERROR("{0} Image Loading failed!", filePath.c_str());
 				}
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			void CreateTexture(const std::string& filePath, ID3D12Resource** outTexture)
+			{
+				ID3D12Resource* pTexture = nullptr;
+
+				ID3D12Device* const pDevice = UT::D3D12::CORE::GetDevice();
+				const uint16_t frameIndex = UT::GLOBALS::GCurrentFrameId;
+				ID3D12CommandAllocator* const pCmdAlloc = UT::D3D12::CORE::GetCommandAllocator(frameIndex);
+				ID3D12GraphicsCommandList* const pCommandList = UT::D3D12::CORE::GetCommandList(frameIndex);
+
+				int width, height, channels = 0;
+				void* imgData = nullptr;
+
+				// Load image data from the file!
+				LoadImageData(filePath, &width, &height, &channels, &imgData);
+
+				// Create Texture resource!
+				if (imgData)
+				{
+					// Describe Texture resource
+					D3D12_RESOURCE_DESC texDesc = {};
+					texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+					texDesc.Width = width;
+					texDesc.Height = height;
+					texDesc.DepthOrArraySize = 1;
+					texDesc.MipLevels = 1;
+					texDesc.Format = DXGI_FORMAT_R8G8B8A8_UINT;
+					texDesc.SampleDesc.Count = 1;
+					texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+					texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+					D3D12_HEAP_PROPERTIES heapProps = {};
+					heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+					// Create default heap resource
+					HRESULT Hr = pDevice->CreateCommittedResource(&heapProps,
+																 D3D12_HEAP_FLAG_NONE,
+																 &texDesc,
+																 D3D12_RESOURCE_STATE_COPY_DEST,
+																 nullptr,
+																 IID_PPV_ARGS(&pTexture));
+
+					UT_ASSERT_HRESULT(Hr, "CreateResource => Texture Buffer");
+					UT_NAME_D3D_OBJECT(pTexture, "TextureResource: " + UT::GLOBALS::GetFileNameWithoutExtension(filePath));
+
+					//-- Create upload buffer for the texture!
+					UINT64 uploadBufferSize = 0;
+					D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {};
+					UINT numRows = 0;
+					UINT64 rowSizeInBytes = 0; UINT64 totalBytes = 0;
+
+					pDevice->GetCopyableFootprints(&texDesc, 0, 1, 0, &footprint, &numRows, &rowSizeInBytes, &totalBytes);
+
+					ID3D12Resource* pUploadHeap = nullptr;
+					UT::D3D12::HELPER::CreateUploadBuffer(totalBytes, &pUploadHeap);
+
+					//-- Write image to the upload heap!
+					UINT8* pUploadData = nullptr;
+
+					Hr = pUploadHeap->Map(0, nullptr, reinterpret_cast<void**>(&pUploadData));
+					UT_CHECK_HRESULT(Hr, "Map Texture buffer failed!");
+
+					for (UINT row = 0; row < numRows; ++row)
+					{
+						memcpy(pUploadData + footprint.Offset + row * footprint.Footprint.RowPitch,
+							static_cast<const UINT8*>(imgData) + row * rowSizeInBytes,
+							rowSizeInBytes);
+					}
+
+					pUploadHeap->Unmap(0, nullptr);
+
+					//-- Copy to the Default Heap (GPU)!
+					D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
+					dstLocation.pResource = pTexture;
+					dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+					dstLocation.SubresourceIndex = 0;
+
+					D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+					srcLocation.pResource = pUploadHeap;
+					srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+					srcLocation.PlacedFootprint = footprint;
+
+					UT::D3D12::CORE::ResetCommandList();
+
+					pCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+
+					D3D12_RESOURCE_BARRIER barrier = {};
+					barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+					barrier.Transition.pResource = pTexture;
+					barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+					barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+					barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+					pCommandList->ResourceBarrier(1, &barrier);
+
+					UT::D3D12::CORE::CloseAndExecuteCommandList();
+
+					SAFE_RELEASE(pUploadHeap);
+				}
+
+				// pass out the created texture resource!
+				*outTexture = pTexture;
 			}
 		}
 	}

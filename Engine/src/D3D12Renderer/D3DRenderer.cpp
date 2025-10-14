@@ -2,21 +2,29 @@
 #include "D3DRenderer.h"
 #include "D3DGlobals.h"
 #include "StaticMesh/D3DCube.h"
+#include "StaticMesh/D3DMesh.h"
+#include "D3D12Renderer/World/GameObject.h"
 #include "World/Camera.h"
 
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::D3DRenderer()
 {
-	m_pCamera = nullptr;
 	m_pCubeRed = nullptr;
 	m_pCubeBlue = nullptr;
 	m_pCubeGreen = nullptr;
+	m_pMesh = nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 D3DRenderer::~D3DRenderer()
 {
-	SAFE_DELETE(m_pCamera);
+	
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+void D3DRenderer::Cleanup()
+{
+	SAFE_DELETE(m_pMesh);
 	SAFE_DELETE(m_pCubeRed);
 	SAFE_DELETE(m_pCubeGreen);
 	SAFE_DELETE(m_pCubeBlue);
@@ -35,20 +43,30 @@ bool D3DRenderer::Initialize()
 	D3DCube::CreateStaticGeometry();
 
 	m_pCubeRed = new D3DCube();
-	m_pCubeRed->SetWorldPosition(-2, 0, 0);
+	m_pCubeRed->SetName("RedCube");
+	m_pCubeRed->SetPosition(-2, 0, 0);
 	m_pCubeRed->SetTexture("Assets/Textures/Red/texture_10.png");
 
 	m_pCubeGreen = new D3DCube();
-	m_pCubeGreen->SetWorldPosition(0, 0, 0);
+	m_pCubeGreen->SetName("GreenCube");
+	m_pCubeGreen->SetPosition(0, 0, 0);
 	m_pCubeGreen->SetTexture("Assets/Textures/Green/texture_09.png");
 
 	m_pCubeBlue = new D3DCube();
-	m_pCubeBlue->SetWorldPosition(2, 0, 0);
+	m_pCubeBlue->SetName("BlueCube");
+	m_pCubeBlue->SetPosition(2, 0, 0);
 	m_pCubeBlue->SetTexture("Assets/Textures/Purple/texture_05.png");
 
-	m_pCamera = new Camera();
-	m_pCamera->SetPosition(0.0f, 1.0f, -3.0f);
-	m_pCamera->SetRotation(0, 0, 0);
+	m_pMesh = new D3DMesh();
+	m_pMesh->SetName("Barbarian");
+	m_pMesh->SetMesh("Assets/Models/Barbarian/BarbNew2.fbx");
+	m_pMesh->SetTexture("Assets/Models/Barbarian/Body_Color.jpg");
+	m_pMesh->SetPosition(0, 0.5f, 0);
+	m_pMesh->SetRotation(0, 1, 0, XM_PI);
+	m_pMesh->SetScale(0.1f, 0.1f, 0.1f);
+
+	Camera::GetInstance().SetPosition(0.0f, 1.0f, -3.0f);
+	Camera::GetInstance().SetRotation(0, 0, 0);
 
 	// Fill out the Viewport
 	m_Viewport.TopLeftX = 0;
@@ -116,17 +134,7 @@ void D3DRenderer::RecordCommands()
 //-------------------------------------------------------------------------------------------------------------------
 void D3DRenderer::Update(double dt)
 {
-	static float rotationAngle = 0.0f;
-
-	const XMVECTOR eyePos = XMVectorSet(0.0f, 1.0f, -3.0f, 0.0f);
-	const XMVECTOR focusPoint = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-	const XMVECTOR upDir = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-	constexpr float fovY = 45.0f;
-	const float aspectRatio = static_cast<float>(UT::GLOBALS::GWindowWidth) / UT::GLOBALS::GWindowHeight;
-	constexpr float nearZ = 0.1f;
-	constexpr float farZ = 100.0f;
-
+	//static float rotationAngle = 0.0f;
 	//rotationAngle += 2.0f * dt;
 	//
 	//// Keep angle within 0 to 2*PI
@@ -137,16 +145,17 @@ void D3DRenderer::Update(double dt)
 	//// Compute world, view, and projection matrices (example)
 	//const XMMATRIX world = rotation;
 
-	m_pCamera->Update(dt);
+	Camera::GetInstance().Update(dt);
 
-	const XMMATRIX view = m_pCamera->GetViewMatrix(); //XMMatrixLookAtLH(eyePos, focusPoint, upDir);
-	const XMMATRIX proj = m_pCamera->GetProjectionMatrix(aspectRatio, nearZ, farZ); // XMMatrixPerspectiveFovLH(fovY, aspectRatio, nearZ, farZ);
+	//const XMMATRIX view = m_pCamera->GetViewMatrix(); //XMMatrixLookAtLH(eyePos, focusPoint, upDir);
+	//const XMMATRIX proj = m_pCamera->GetProjectionMatrix(aspectRatio, nearZ, farZ); // XMMatrixPerspectiveFovLH(fovY, aspectRatio, nearZ, farZ);
 
 	//UpdateConstantBuffer(world, view, proj);
 
-	m_pCubeRed->UpdateConstantBuffer(view, proj);
-	m_pCubeGreen->UpdateConstantBuffer(view, proj);
-	m_pCubeBlue->UpdateConstantBuffer(view, proj);
+	m_pCubeRed->Update(dt);
+	m_pCubeGreen->Update(dt);
+	m_pCubeBlue->Update(dt);
+	m_pMesh->Update(dt);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -174,24 +183,25 @@ void D3DRenderer::Render()
 	m_pCubeRed->Render();
 	m_pCubeGreen->Render();
 	m_pCubeBlue->Render();
+	m_pMesh->Render();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 void D3DRenderer::OnKeyPressed(UT::GLOBALS::InputAction action)
 {
-	m_pCamera->OnKeyPressed(action);
+	Camera::GetInstance().OnKeyPressed(action);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 void D3DRenderer::OnKeyReleased(UT::GLOBALS::InputAction action)
 {
-	m_pCamera->OnKeyReleased(action);
+	Camera::GetInstance().OnKeyReleased(action);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 void D3DRenderer::OnMouseMove(float x, float y, bool bMouseClicked)
 {
-	m_pCamera->OnMouseMove(x, y, bMouseClicked);
+	Camera::GetInstance().OnMouseMove(x, y, bMouseClicked);
 }
 
 //-------------------------------------------------------------------------------------------------------------------

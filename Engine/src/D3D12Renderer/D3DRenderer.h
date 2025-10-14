@@ -2,8 +2,9 @@
 #include <d3d12.h>
 #include "D3DGlobals.h"
 
+class GameObject;
 class D3DCube;
-class Camera;
+class D3DMesh;
 
 class D3DRenderer
 {
@@ -15,6 +16,7 @@ public:
 	void	RecordCommands();
 	void	Update(double dt);
 	void	Render();
+	void	Cleanup();
 
 	void	OnKeyPressed(UT::GLOBALS::InputAction action);
 	void	OnKeyReleased(UT::GLOBALS::InputAction action);
@@ -53,9 +55,9 @@ private:
 	std::array<UINT8*, UT::GLOBALS::GFramesInFlight>						m_pCBDataBegin;
 	UT::D3D12::DAS::GeomsCB*												m_pCubesData;
 
-	D3DCube* m_pCubeRed;
-	D3DCube* m_pCubeGreen;
-	D3DCube* m_pCubeBlue;
+	GameObject* m_pCubeRed;
+	GameObject* m_pCubeGreen;
+	GameObject* m_pCubeBlue;
 
-	Camera* m_pCamera;
+	GameObject* m_pMesh;
 };

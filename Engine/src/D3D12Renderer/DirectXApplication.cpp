@@ -21,6 +21,7 @@ DirectXApplication::~DirectXApplication()
 //---------------------------------------------------------------------------------------------------------------------
 void DirectXApplication::Cleanup()
 {
+	m_pD3DRenderer->Cleanup();
 	SAFE_DELETE(m_pD3DRenderer);
 
 	UT::D3D12::CORE::Cleanup();

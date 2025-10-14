@@ -39,3 +39,5 @@ x64/
 Engine/ThirdParty/DirectXTK12/
 
 *.user
+
+Engine/ThirdParty/Assimp/

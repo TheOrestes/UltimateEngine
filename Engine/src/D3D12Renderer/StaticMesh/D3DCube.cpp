@@ -1,5 +1,6 @@
 #include "UltimateEnginePCH.h"
 #include "D3DCube.h"
+#include "D3D12Renderer/World/Camera.h"
 
 //-------------------------------------------------------------------------------------------------------------------
 // Static members
@@ -86,18 +87,16 @@ static const uint16_t kIndices[36] =
 //-------------------------------------------------------------------------------------------------------------------
 D3DCube::D3DCube()
 {
-	m_world = XMMatrixIdentity();
     m_pTexture = nullptr;
 
     for (UINT i = 0; i < UT::GLOBALS::GFramesInFlight; ++i)
     {
         m_listCB[i] = nullptr;
         m_listCBDataBegin[i] = nullptr;
-
-        m_HandleTextureSRV.ptr = 0;
     }
 
-   CreateConstantBuffer();
+    m_HandleTextureSRV.ptr = 0;
+	CreateConstantBuffer();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -120,9 +119,6 @@ D3DCube::~D3DCube()
 //-------------------------------------------------------------------------------------------------------------------
 void D3DCube::CreateStaticGeometry()
 {
-    const uint16_t frameIndex = UT::GLOBALS::GCurrentFrameId;
-    ID3D12Device* const pDevice = UT::D3D12::CORE::GetDevice();
-
     if (s_geometryCreated) return;
 
     // --- Vertex buffer ---
@@ -156,27 +152,17 @@ void D3DCube::CreateStaticGeometry()
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-void D3DCube::SetWorldPosition(float x, float y, float z)
-{
-    m_world = XMMatrixTranslation(x, y, z);
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-void D3DCube::UpdateConstantBuffer(const XMMATRIX& view, const DirectX::XMMATRIX& proj)
+void D3DCube::UpdateConstantBuffer()
 {
     const uint16_t frameIndex = UT::GLOBALS::GCurrentFrameId;
 
     UT::D3D12::DAS::GeomsCB cb;
-    XMStoreFloat4x4(&cb.World, m_world);
-    XMStoreFloat4x4(&cb.View, view);
-    XMStoreFloat4x4(&cb.Proj, proj);
+
+    cb.World = m_World;
+    XMStoreFloat4x4(&cb.View, Camera::GetInstance().GetViewMatrix());
+    XMStoreFloat4x4(&cb.Proj, Camera::GetInstance().GetProjectionMatrix());
 
     memcpy(m_listCBDataBegin[frameIndex], &cb, sizeof(cb));
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-void D3DCube::Update(double dt)
-{
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -251,100 +237,7 @@ bool D3DCube::CreateConstantBuffer()
 //-------------------------------------------------------------------------------------------------------------------
 void D3DCube::SetTexture(const std::string& fileName)
 {
-    ID3D12Device* const pDevice = UT::D3D12::CORE::GetDevice();
-
-    const uint16_t frameIndex = UT::GLOBALS::GCurrentFrameId;
-    ID3D12CommandAllocator* const pCmdAlloc = UT::D3D12::CORE::GetCommandAllocator(frameIndex);
-    ID3D12GraphicsCommandList* const pCommandList = UT::D3D12::CORE::GetCommandList(frameIndex);
-
-    int width, height, channels = 0;
-    void* imgData = nullptr;
-
-    // Load image data from the file!
-    UT::D3D12::HELPER::LoadImageData(fileName, &width, &height, &channels, &imgData);
-
-    // Create Texture resource!
-    if(imgData)
-    {
-        // Describe Texture resource
-        D3D12_RESOURCE_DESC texDesc = {};
-        texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        texDesc.Width = width;
-        texDesc.Height = height;
-        texDesc.DepthOrArraySize = 1;
-        texDesc.MipLevels = 1;
-        texDesc.Format = DXGI_FORMAT_R8G8B8A8_UINT;
-        texDesc.SampleDesc.Count = 1;
-        texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-        texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-        D3D12_HEAP_PROPERTIES heapProps = {};
-        heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-
-        // Create default heap resource
-        HRESULT Hr = pDevice->CreateCommittedResource(&heapProps,
-                                                            D3D12_HEAP_FLAG_NONE,
-                                                            &texDesc,
-                                                            D3D12_RESOURCE_STATE_COPY_DEST,
-                                                            nullptr,
-                                                            IID_PPV_ARGS(&m_pTexture));
-
-        UT_ASSERT_HRESULT(Hr, "CreateResource => Texture Buffer");
-        UT_NAME_D3D_OBJECT(m_pTexture, "TextureResource: " + UT::GLOBALS::GetFileNameWithoutExtension(fileName));
-
-        //-- Create upload buffer for the texture!
-        UINT64 uploadBufferSize = 0;
-        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {};
-        UINT numRows = 0; 
-        UINT64 rowSizeInBytes = 0; UINT64 totalBytes = 0;
-
-        pDevice->GetCopyableFootprints(&texDesc, 0, 1, 0, &footprint, &numRows, &rowSizeInBytes, &totalBytes);
-
-        ID3D12Resource* pUploadHeap = nullptr;
-        UT::D3D12::HELPER::CreateUploadBuffer(totalBytes, &pUploadHeap);
-
-        //-- Write image to the upload heap!
-        UINT8* pUploadData = nullptr;
-
-        Hr = pUploadHeap->Map(0, nullptr, reinterpret_cast<void**>(&pUploadData));
-        UT_CHECK_HRESULT(Hr, "Map Texture buffer failed!");
-
-        for(UINT row = 0 ; row < numRows ; ++row)
-        {
-            memcpy(pUploadData + footprint.Offset + row * footprint.Footprint.RowPitch,
-                static_cast<const UINT8*>(imgData) + row * rowSizeInBytes,
-                rowSizeInBytes);
-        }
-
-        pUploadHeap->Unmap(0, nullptr);
-
-        //-- Copy to the Default Heap (GPU)!
-        D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
-        dstLocation.pResource = m_pTexture;
-        dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        dstLocation.SubresourceIndex = 0;
-
-        D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
-        srcLocation.pResource = pUploadHeap;
-        srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-        srcLocation.PlacedFootprint = footprint;
-
-        UT::D3D12::CORE::ResetCommandList();
-
-        pCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
-
-        D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = m_pTexture;
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-
-        pCommandList->ResourceBarrier(1, &barrier);
-
-        UT::D3D12::CORE::CloseAndExecuteCommandList();
-    }
+    UT::D3D12::HELPER::CreateTexture(fileName, &m_pTexture);
 
     // Create the Shader Resource View for texture!
     CreateTextureSRV();

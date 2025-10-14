@@ -39,6 +39,7 @@ namespace UT
 			bool			Initialize();
 			void			BeginFrame();
 			void			EndFrame();
+			void			WaitToFinishCurrentFrame();
 			void			Cleanup();
 			void			FenceIncrement();
 			void			ResetCommandList();
@@ -57,6 +58,7 @@ namespace UT
 			void CreatePSO(ID3D12RootSignature* pSignature, const D3D12_SHADER_BYTECODE& vsBytecode, const D3D12_SHADER_BYTECODE& psBytecode, const D3D12_INPUT_LAYOUT_DESC& inputLayout, ID3D12PipelineState** pOutPSO);
 
 			void LoadImageData(const std::string& filePath, int* width, int* height, int* channels, void** outImagaData);
+			void CreateTexture(const std::string& filePath, ID3D12Resource** outTexture);
 		}
 
 		namespace DAS

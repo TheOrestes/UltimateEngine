@@ -58,16 +58,17 @@
       <PreprocessorDefinitions>UT_PLATFORM_WINDOWS;UT_BUILD_DLL;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(SolutionDir)Engine\src;$(SolutionDir)Engine\ThirdParty\Assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(SolutionDir)Engine\src;$(SolutionDir)Engine\ThirdParty\Assimp\include;$(SolutionDir)Engine\ThirdParty\stb_image;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>UltimateEnginePCH.h</PrecompiledHeaderFile>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Debug;$(SolutionDir)Engine\ThirdParty\Assimp\BUILD\lib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Debug;$(SolutionDir)Engine\ThirdParty\Assimp\BUILD\lib\Debug;$(SolutionDir)Engine\ThirdParty\Assimp\BUILD\contrib\zlib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)bin\$(Configuration)-$(Platform)\Engine\*.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\Game /e /y /i /r
@@ -82,7 +83,7 @@ xcopy "$(SolutionDir)Game\Assets" "$(SolutionDir)bin\$(Configuration)-$(Platform
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;$(SolutionDir)Engine\ThirdParty\stb_image;$(SolutionDir)Engine\ThirdParty\Assimp\include;$(SolutionDir)Engine\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>UltimateEnginePCH.h</PrecompiledHeaderFile>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
@@ -93,8 +94,8 @@ xcopy "$(SolutionDir)Game\Assets" "$(SolutionDir)bin\$(Configuration)-$(Platform
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;assimp-vc143-mt.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Release;$(SolutionDir)Engine\ThirdParty\Assimp\BUILD\lib\Release;$(SolutionDir)Engine\ThirdParty\Assimp\BUILD\contrib\zlib\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)bin\$(Configuration)-$(Platform)\Engine\*.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\Game /e /y /i /r</Command>
@@ -111,8 +112,10 @@ xcopy "$(SolutionDir)Game\Assets" "$(SolutionDir)bin\$(Configuration)-$(Platform
     <ClInclude Include="src\Core\EngineApplication.h" />
     <ClInclude Include="src\Core\Core.h" />
     <ClInclude Include="src\Core\Logger.h" />
+    <ClInclude Include="src\D3D12Renderer\World\GameObject.h" />
     <ClInclude Include="src\EngineHeader.h" />
     <ClInclude Include="src\UltimateEnginePCH.h" />
+    <ClInclude Include="ThirdParty\stb_image\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\D3D12Renderer\StaticMesh\D3DMesh.cpp" />
@@ -124,6 +127,7 @@ xcopy "$(SolutionDir)Game\Assets" "$(SolutionDir)bin\$(Configuration)-$(Platform
     <ClCompile Include="src\D3D12Renderer\DirectXApplication.cpp" />
     <ClCompile Include="src\Core\EngineApplication.cpp" />
     <ClCompile Include="src\Core\Logger.cpp" />
+    <ClCompile Include="src\D3D12Renderer\World\GameObject.cpp" />
     <ClCompile Include="src\UltimateEnginePCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
