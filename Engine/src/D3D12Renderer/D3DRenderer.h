@@ -2,10 +2,6 @@
 #include <d3d12.h>
 #include "D3DGlobals.h"
 
-class GameObject;
-class D3DCube;
-class D3DMesh;
-
 class D3DRenderer
 {
 public:
@@ -50,14 +46,4 @@ private:
 
 	D3D12_VIEWPORT															m_Viewport;
 	D3D12_RECT																m_ScissorRect;
-
-	std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>				m_listConstantBuffers;
-	std::array<UINT8*, UT::GLOBALS::GFramesInFlight>						m_pCBDataBegin;
-	UT::D3D12::DAS::GeomsCB*												m_pCubesData;
-
-	GameObject* m_pCubeRed;
-	GameObject* m_pCubeGreen;
-	GameObject* m_pCubeBlue;
-
-	GameObject* m_pMesh;
 };
