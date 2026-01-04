@@ -54,6 +54,9 @@ bool Scene::Initialize()
 
 	Camera::GetInstance().SetPosition(0.0f, 1.0f, -3.0f);
 	Camera::GetInstance().SetRotation(0, 0, 0);
+	Camera::GetInstance().SetMouseSensitivity(0.003f);    // Adjust 0.001-0.010 for your preference
+	Camera::GetInstance().SetMovementSpeed(10.0f);        // Units per second
+	Camera::GetInstance().SetDamping(0.90f);              // 0.8-0.95, higher = slower deceleration
 
 	return true;
 }

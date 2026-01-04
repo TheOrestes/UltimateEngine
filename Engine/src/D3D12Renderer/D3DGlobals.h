@@ -137,6 +137,8 @@ namespace UT
 			BACK,
 			LEFT,
 			RIGHT,
+			UP,
+			DOWN,
 			MOUSE_MOVE
 		};
 	}

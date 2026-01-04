@@ -126,6 +126,18 @@ void EngineApplication::KeyHandlerCallback(GLFWwindow* pWindow, int key, int sca
 				glfwSetWindowShouldClose(pWindow, true);
 				break;
 			}
+
+			case GLFW_KEY_Q: 
+			{
+				pApp->OnKeyPressed(UT::GLOBALS::InputAction::UP);
+				break;
+			}
+
+			case GLFW_KEY_E:  
+			{
+				pApp->OnKeyPressed(UT::GLOBALS::InputAction::DOWN);
+				break;
+			}
 		}
 	}
 	
@@ -155,6 +167,18 @@ void EngineApplication::KeyHandlerCallback(GLFWwindow* pWindow, int key, int sca
 			case GLFW_KEY_D:
 			{
 				pApp->OnKeyReleased(UT::GLOBALS::InputAction::RIGHT);
+				break;
+			}
+
+			case GLFW_KEY_Q:  
+			{
+				pApp->OnKeyReleased(UT::GLOBALS::InputAction::UP);
+				break;
+			}
+
+			case GLFW_KEY_E:  
+			{
+				pApp->OnKeyReleased(UT::GLOBALS::InputAction::DOWN);
 				break;
 			}
 		}
