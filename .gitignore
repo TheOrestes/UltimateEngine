@@ -41,3 +41,5 @@ Engine/ThirdParty/DirectXTK12/
 *.user
 
 Engine/ThirdParty/Assimp/
+
+*.diff

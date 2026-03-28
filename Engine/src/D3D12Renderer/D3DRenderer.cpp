@@ -20,12 +20,66 @@ D3DRenderer::~D3DRenderer()
 //-------------------------------------------------------------------------------------------------------------------
 void D3DRenderer::Cleanup()
 {
+	LOG_INFO("D3DRenderer::Cleanup() called");
+	LOG_INFO("m_pPSO        = {0}", (void*)m_pPSO);
+	LOG_INFO("m_pRootSignature = {0}", (void*)m_pRootSignature);
+	LOG_INFO("m_pHeapSampler   = {0}", (void*)m_pHeapSampler);
+
+	Scene::getInstance().Cleanup();
+
+	SAFE_RELEASE(m_pHeapSampler);
+	SAFE_RELEASE(m_pPSO);
+	SAFE_RELEASE(m_pRootSignature);
+	SAFE_RELEASE(m_pTransformBuffer);
+	SAFE_RELEASE(m_pVSBlob);
+	SAFE_RELEASE(m_pVSCode);
+	SAFE_RELEASE(m_pPSBlob);
+	SAFE_RELEASE(m_pPSCode);
+
+	// RT buffers & DS buffers — GetBuffer() AddRefs each one
+	for (uint16_t i = 0; i < UT::GLOBALS::GFramesInFlight; ++i)
+	{
+		if (m_listRTBuffers[i])
+		{
+			m_listRTBuffers[i]->AddRef();
+			ULONG ref = m_listRTBuffers[i]->Release();
+			LOG_INFO("RTBuffer[{0}] refcount = {1}", i, ref);
+		}
+
+		if (m_listDSBuffers[i])
+		{
+			m_listDSBuffers[i]->AddRef();
+			ULONG ref = m_listDSBuffers[i]->Release();
+			LOG_INFO("DSBuffer[{0}] refcount = {1}", i, ref);
+		}
+	}
+
+	// Now release
+	for (uint16_t i = 0; i < UT::GLOBALS::GFramesInFlight; ++i)
+		SAFE_RELEASE(m_listRTBuffers[i]);
+
+	for (uint16_t i = 0; i < UT::GLOBALS::GFramesInFlight; ++i)
+		SAFE_RELEASE(m_listDSBuffers[i]);
+
+	// Descriptor heaps
+	SAFE_RELEASE(m_pHeapRTV);
+	SAFE_RELEASE(m_pHeapDSV);
+
 	
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 bool D3DRenderer::Initialize()
 {
+	m_pRootSignature	= nullptr;
+	m_pPSO				= nullptr;
+	m_pHeapSampler		= nullptr;
+	m_pTransformBuffer	= nullptr;
+	m_pPSCode			= nullptr;
+	m_pVSCode			= nullptr;
+	m_pVSBlob			= nullptr;
+	m_pPSBlob			= nullptr;
+
 	UT_CHECK_BOOL(CreateRTV());
 	UT_CHECK_BOOL(CreateDSV());
 	UT_CHECK_BOOL(CreatePSO());
@@ -70,7 +124,7 @@ void D3DRenderer::RecordCommands()
 	rtBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	rtBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	rtBarrier.Transition.pResource = m_listRTBuffers[frameIndex];
-	rtBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+	rtBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	rtBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	rtBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
@@ -112,6 +166,15 @@ void D3DRenderer::Render()
 
 	ID3D12Device* const pDevice = UT::D3D12::CORE::GetDevice();
 	ID3D12GraphicsCommandList* const pCommandList = UT::D3D12::CORE::GetCommandList(frameIndex);
+
+	// Set heap ONCE here — objects never call SetDescriptorHeaps again
+	ID3D12DescriptorHeap* heaps[] = 
+	{
+		UT::D3D12::CORE::GetGlobalDescriptorHeap(),		// CBV-SRV-UAV
+		m_pHeapSampler									// Sampler
+	};
+
+	pCommandList->SetDescriptorHeaps(_countof(heaps), heaps);
 
 	// Set pipeline
 	pCommandList->SetGraphicsRootSignature(m_pRootSignature);
@@ -158,6 +221,9 @@ bool D3DRenderer::CreateRTV()
 	for (UINT i = 0; i < UT::GLOBALS::GFramesInFlight; i++) 
 	{
 		pSwapchain->GetBuffer(i, IID_PPV_ARGS(&m_listRTBuffers[i]));
+
+		pSwapchain->GetBuffer(i, IID_PPV_ARGS(&m_listRTBuffers[i]));
+		UT_NAME_D3D_OBJECT_INDEXED(m_listRTBuffers[i], i, "BackBuffer");
 
 		pDevice->CreateRenderTargetView(m_listRTBuffers[i], nullptr, rtvHandle);
 		m_handlesRTV[i] = rtvHandle;
@@ -219,6 +285,7 @@ bool D3DRenderer::CreateDSV()
 	for (UINT i = 0; i < UT::GLOBALS::GFramesInFlight; i++)
 	{
 		UT_CHECK_HRESULT(pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &depthStencilDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue, IID_PPV_ARGS(&m_listDSBuffers[i])), "Depth Buffer Resource creation failed!");
+		UT_NAME_D3D_OBJECT_INDEXED(m_listDSBuffers[i], i, "DepthBuffer");
 
 		pDevice->CreateDepthStencilView(m_listDSBuffers[i], &dsvDesc, dsvHandle);
 		m_handlesDSV[i] = dsvHandle;
@@ -268,6 +335,7 @@ bool D3DRenderer::CreateTriangle()
 	UT::D3D12::HELPER::CreateGPUBuffer(vbSize, &m_pVertexBuffer);
 	UT::D3D12::HELPER::CreateUploadBuffer(vbSize, &vbUploadBuffer);
 	UT::D3D12::HELPER::CopyDataFromUploadBufferToGPU(vbSize, vertices, vbUploadBuffer, m_pVertexBuffer);
+	SAFE_RELEASE(vbUploadBuffer);
 
 	// Setup Vertex Buffer View
 	m_VertexBufferView.BufferLocation = m_pVertexBuffer->GetGPUVirtualAddress();
@@ -320,12 +388,14 @@ bool D3DRenderer::CreateCube()
 	UT::D3D12::HELPER::CreateGPUBuffer(vbSize, &m_pVertexBuffer);
 	UT::D3D12::HELPER::CreateUploadBuffer(vbSize, &vbUploadBuffer);
 	UT::D3D12::HELPER::CopyDataFromUploadBufferToGPU(vbSize, vertices, vbUploadBuffer, m_pVertexBuffer);
+	SAFE_RELEASE(vbUploadBuffer);
 
 	// Create and upload index buffer
 	ID3D12Resource* ibUploadBuffer = nullptr;
 	UT::D3D12::HELPER::CreateGPUBuffer(ibSize, &m_pIndexBuffer);
 	UT::D3D12::HELPER::CreateUploadBuffer(ibSize, &ibUploadBuffer);
 	UT::D3D12::HELPER::CopyDataFromUploadBufferToGPU(ibSize, indices, ibUploadBuffer, m_pIndexBuffer);
+	SAFE_RELEASE(ibUploadBuffer);
 
 	// Setup Vertex & Index Buffer View
 	m_VertexBufferView.BufferLocation = m_pVertexBuffer->GetGPUVirtualAddress();
@@ -343,56 +413,58 @@ bool D3DRenderer::CreateCube()
 //-------------------------------------------------------------------------------------------------------------------
 bool D3DRenderer::CreatePSO()
 {
-	// Describe a single CBV (b0) root parameter ----
-	std::array<D3D12_ROOT_PARAMETER, 2> rootParams = {};
+	ID3D12Device* const pDevice = UT::D3D12::CORE::GetDevice();
 
-	//--- 1. WVP Matrix as CBV
-	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;		// constant buffer
-	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;	// visible to VS
-	rootParams[0].Descriptor.ShaderRegister = 0;						// b0 in HLSL
-	rootParams[0].Descriptor.RegisterSpace = 0;							// register space 0
+	// Bindless Root Signature
+	D3D12_ROOT_PARAMETER rootParam			= {};
+	rootParam.ParameterType					= D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	rootParam.Constants.ShaderRegister		= 0;
+	rootParam.Constants.RegisterSpace		= 0;
+	rootParam.Constants.Num32BitValues		= sizeof(UT::D3D12::DAS::DrawConstants) / 4;
+	rootParam.ShaderVisibility				= D3D12_SHADER_VISIBILITY_ALL;
 
-	//--- 2. Descriptor Table with SRV Range
-	D3D12_DESCRIPTOR_RANGE range = {};
-	range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range.NumDescriptors = 1;
-	range.BaseShaderRegister = 0;										// t0
-	range.RegisterSpace = 0;
-	range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	D3D12_STATIC_SAMPLER_DESC samplerDesc	= {};
+	samplerDesc.Filter						= D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.AddressU					= D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc.AddressV					= D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc.AddressW					= D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc.MipLODBias					= 0;
+	samplerDesc.MaxAnisotropy				= 0;
+	samplerDesc.ComparisonFunc				= D3D12_COMPARISON_FUNC_ALWAYS;
+	samplerDesc.BorderColor					= D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+	samplerDesc.MinLOD						= 0;
+	samplerDesc.MaxLOD						= D3D12_FLOAT32_MAX;
+	samplerDesc.ShaderRegister				= 0; // s0
+	samplerDesc.RegisterSpace				= 0;
+	samplerDesc.ShaderVisibility			= D3D12_SHADER_VISIBILITY_PIXEL;
 
-	rootParams[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParams[1].DescriptorTable.NumDescriptorRanges = 1;
-	rootParams[1].DescriptorTable.pDescriptorRanges = &range;
-	rootParams[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-	// Sampler!
-	D3D12_STATIC_SAMPLER_DESC samplerdesc = {};
-	samplerdesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
-	samplerdesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerdesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerdesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerdesc.MipLODBias = 0;
-	samplerdesc.MaxAnisotropy = 0;
-	samplerdesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-	samplerdesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-	samplerdesc.MinLOD = 0;
-	samplerdesc.MaxLOD = D3D12_FLOAT32_MAX;
-	samplerdesc.ShaderRegister = 0;										// s0
-	samplerdesc.RegisterSpace = 0;
-	samplerdesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	constexpr D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
+												D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED |
+												D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
 	// Create Root Signature
-	UT::D3D12::HELPER::CreateRootSignatue(rootParams.size(), rootParams.data(), 1, &samplerdesc, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, &m_pRootSignature);
+	UT::D3D12::HELPER::CreateRootSignatue(1, &rootParam, 1, &samplerDesc, flags, &m_pRootSignature);
+
+	// Create Sampler Heap — required by SAMPLER_HEAP_DIRECTLY_INDEXED flag
+	D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc	= {};
+	samplerHeapDesc.NumDescriptors				= 8;
+	samplerHeapDesc.Type						= D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+	samplerHeapDesc.Flags						= D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	samplerHeapDesc.NodeMask					= 0;
+
+	UT_ASSERT_HRESULT(pDevice->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_pHeapSampler)));
+	UT_NAME_D3D_OBJECT(m_pHeapSampler, "Descriptor Heap Sampler");
 
 	// Compile Shaders
 	D3D12_SHADER_BYTECODE vsByteCode = {};
-	UT::D3D12::HELPER::CompileShader("CubeTextured.hlsl", "VSMain", "vs_5_0", nullptr, vsByteCode);
+	UT::D3D12::HELPER::CompileShader("CubeTextured.hlsl", "VSMain", "vs_6_6", nullptr, vsByteCode, &m_pVSCode, &m_pVSBlob);
 
 	D3D12_SHADER_BYTECODE psByteCode = {};
-	UT::D3D12::HELPER::CompileShader("CubeTextured.hlsl", "PSMain", "ps_5_0", nullptr, psByteCode);
+	UT::D3D12::HELPER::CompileShader("CubeTextured.hlsl", "PSMain", "ps_6_6", nullptr, psByteCode, &m_pPSCode, &m_pPSBlob);
 
 	// Input layput  Description
 	D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
+
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(UT::D3D12::DAS::VertexPNBT, Position),  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(UT::D3D12::DAS::VertexPNBT, Normal),    D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -404,6 +476,11 @@ bool D3DRenderer::CreatePSO()
 
 	// Create PSO!
 	UT::D3D12::HELPER::CreatePSO(m_pRootSignature, vsByteCode, psByteCode, inputLayout, &m_pPSO);
+
+	// Create Global Transform buffer!
+	UT::D3D12::DAS::TransformData* pTransformData = nullptr;
+	UT::D3D12::HELPER::CreateTransformBuffer(256, &m_pTransformBuffer, &pTransformData);
+	UT::D3D12::DAS::SetGlobalTransformDataPtr(pTransformData);
 
 	return true;
 }

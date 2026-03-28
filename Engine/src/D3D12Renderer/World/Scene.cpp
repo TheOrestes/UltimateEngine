@@ -18,10 +18,6 @@ Scene::Scene()
 //-------------------------------------------------------------------------------------------------------------------
 Scene::~Scene()
 {
-	SAFE_DELETE(m_pMesh);
-	SAFE_DELETE(m_pCubeRed);
-	SAFE_DELETE(m_pCubeGreen);
-	SAFE_DELETE(m_pCubeBlue);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -33,16 +29,19 @@ bool Scene::Initialize()
 	m_pCubeRed->SetName("RedCube");
 	m_pCubeRed->SetPosition(-2, 0, 0);
 	m_pCubeRed->SetTexture("Assets/Textures/Red/texture_10.png");
+	m_pCubeRed->SetTransformID(m_uiNextTransformID++);
 
 	m_pCubeGreen = new D3DCube();
 	m_pCubeGreen->SetName("GreenCube");
 	m_pCubeGreen->SetPosition(0, 0, 0);
 	m_pCubeGreen->SetTexture("Assets/Textures/Green/texture_09.png");
+	m_pCubeGreen->SetTransformID(m_uiNextTransformID++);
 
 	m_pCubeBlue = new D3DCube();
 	m_pCubeBlue->SetName("BlueCube");
 	m_pCubeBlue->SetPosition(2, 0, 0);
 	m_pCubeBlue->SetTexture("Assets/Textures/Purple/texture_05.png");
+	m_pCubeBlue->SetTransformID(m_uiNextTransformID++);
 
 	m_pMesh = new D3DMesh();
 	m_pMesh->SetName("Barbarian");
@@ -51,6 +50,7 @@ bool Scene::Initialize()
 	m_pMesh->SetPosition(0, 0.5f, 0);
 	m_pMesh->SetRotation(0, 1, 0, XM_PI);
 	m_pMesh->SetScale(0.1f, 0.1f, 0.1f);
+	m_pMesh->SetTransformID(m_uiNextTransformID++);
 
 	Camera::GetInstance().SetPosition(0.0f, 1.0f, -3.0f);
 	Camera::GetInstance().SetRotation(0, 0, 0);
@@ -84,4 +84,12 @@ void Scene::Render()
 //-------------------------------------------------------------------------------------------------------------------
 void Scene::Cleanup()
 {
+	// Cleanup GPU resources for each object — GPU already flushed by top level!
+	if (m_pCubeRed)		{ m_pCubeRed->Cleanup();	SAFE_DELETE(m_pCubeRed);	}
+	if (m_pCubeGreen)	{ m_pCubeGreen->Cleanup();	SAFE_DELETE(m_pCubeGreen);	}
+	if (m_pCubeBlue)	{ m_pCubeBlue->Cleanup();	SAFE_DELETE(m_pCubeBlue);	}
+	if (m_pMesh)		{ m_pMesh->Cleanup();		SAFE_DELETE(m_pMesh);		}
+
+	// Cleanup shared static geometry (shared VB/IB for all cubes)
+	D3DCube::DestroyStaticGeometry();
 }

@@ -85,7 +85,8 @@ template<typename T, typename... Types> void UT_ASSERT_HRESULT(T a, Types... arg
 {
 	if (FAILED(a))
 	{
-		LOG_CRITICAL("!! ASSERT !! => {0} | {1}", args...);
+		// Cast HRESULT to UINT32 for safe formatting
+		LOG_CRITICAL("!! ASSERT !! HRESULT={0:x} | {1}", static_cast<UINT32>(a), std::forward<Types>(args)...);
 		__debugbreak();
 	}
 }

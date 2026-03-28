@@ -34,9 +34,11 @@ private:
 	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, UT::GLOBALS::GFramesInFlight>	m_handlesDSV;
 	std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>				m_listDSBuffers;
 
-	// Triangle
+	
 	ID3D12RootSignature*													m_pRootSignature;
 	ID3D12PipelineState*													m_pPSO;
+
+	ID3D12DescriptorHeap*													m_pHeapSampler;
 
 	ID3D12Resource*															m_pVertexBuffer;
 	D3D12_VERTEX_BUFFER_VIEW												m_VertexBufferView;
@@ -46,4 +48,11 @@ private:
 
 	D3D12_VIEWPORT															m_Viewport;
 	D3D12_RECT																m_ScissorRect;
+
+	ID3D12Resource*															m_pTransformBuffer;
+
+	IDxcBlob*																m_pVSBlob;  // pSignedBlob for VS
+	IDxcBlob*																m_pVSCode;  // pCode for VS
+	IDxcBlob*																m_pPSBlob;  // pSignedBlob for PS
+	IDxcBlob*																m_pPSCode;  // pCode for PS
 };

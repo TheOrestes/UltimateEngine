@@ -115,12 +115,11 @@ namespace UT
 				UT_CHECK_HRESULT(Hr, "Swapchain creation failed!");
 
 				Hr = pTempSwapchain->QueryInterface(__uuidof(IDXGISwapChain4), (void**)&g_pD3DSwapChain);
+				SAFE_RELEASE(pTempSwapchain);	 // release temp regardless of QueryInterface result
 
 				if (SUCCEEDED(Hr))
 				{
-					g_pD3DSwapChain = static_cast<IDXGISwapChain4*>(pTempSwapchain);
 					UT::GLOBALS::GCurrentFrameId = g_pD3DSwapChain->GetCurrentBackBufferIndex();
-
 					LOG_INFO("D3D Swapchain Created...");
 				}
 
@@ -146,7 +145,7 @@ namespace UT
 
 				//-- 6. Create Global Descriptor Heap
 				D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-				srvHeapDesc.NumDescriptors = 100;
+				srvHeapDesc.NumDescriptors = UT::GLOBALS::GBindlessHeapSize;
 				srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 				srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 				srvHeapDesc.NodeMask = 0;	// For single-GPU setup, use 0!
@@ -220,16 +219,45 @@ namespace UT
 			//-------------------------------------------------------------------------------------------------------------------
 			void Cleanup()
 			{
+				// Flush GPU ONCE here — before ANY subsystem cleanup!
+				for (uint16_t i = 0; i < UT::GLOBALS::GFramesInFlight; ++i)
+				{
+					UT::GLOBALS::GCurrentFrameId = i;
+					UT::D3D12::CORE::WaitToFinishCurrentFrame();
+
+					LOG_INFO("Frame {0} flushed", i);
+				}
+
 				for (uint16_t i = 0; i < GLOBALS::GFramesInFlight; ++i)
 				{
 					SAFE_RELEASE(m_ListFences[i]);
+					CloseHandle(m_ListFenceEvents[i]);
 					SAFE_RELEASE(m_ListCommandListsGraphics[i]);
 					SAFE_RELEASE(m_ListCommandAllocators[i]);
 				}
 
+				SAFE_RELEASE(g_pDescriptorHeap);
+
+				if (g_pD3DSwapChain)
+				{
+					g_pD3DSwapChain->AddRef();
+					ULONG refCount = g_pD3DSwapChain->Release();
+					LOG_INFO("SwapChain RefCount before release: {0}", refCount);
+				}
 				SAFE_RELEASE(g_pD3DSwapChain);
+
 				SAFE_RELEASE(g_pD3DCommandQueue);
 				SAFE_RELEASE(g_pD3D12Debug);
+
+#if defined(_DEBUG)
+				ID3D12DebugDevice* pDebugDevice = nullptr;
+				if (SUCCEEDED(g_pDevice->QueryInterface(IID_PPV_ARGS(&pDebugDevice))))
+				{
+					pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+					SAFE_RELEASE(pDebugDevice);
+				}
+#endif
+
 				SAFE_RELEASE(g_pDevice);
 				SAFE_RELEASE(g_pFactory);
 			}
@@ -281,6 +309,14 @@ namespace UT
 					WaitForSingleObject(fenceEvent, INFINITE);
 				}
 			}
+		}
+
+		namespace DAS
+		{
+			TransformData* g_pTransformData = nullptr;
+
+			constexpr TransformData* const	GetGlobalTransformDataPtr()								{ return g_pTransformData;}
+			void							SetGlobalTransformDataPtr(TransformData* transformData) { g_pTransformData = transformData; }
 		}
 
 		namespace HELPER
@@ -428,42 +464,221 @@ namespace UT
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------
-			void CompileShader(const std::string& srcFile, const std::string& entryPoint, const std::string& target, const D3D_SHADER_MACRO* pDefines, D3D12_SHADER_BYTECODE& outByteCode)
+			void CreateTransformBuffer(uint32_t maxObjects,  ID3D12Resource** outBuffer, UT::D3D12::DAS::TransformData** outMappedPtr)
 			{
-				ID3DBlob* pCodeBlob;
-				ID3DBlob* pErrorBlob;
+				ID3D12Device* const pDevice = UT::D3D12::CORE::GetDevice();
+				ID3D12DescriptorHeap* pHeap = UT::D3D12::CORE::GetGlobalDescriptorHeap();
 
-				UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+				const UINT64 bufferSize = sizeof(UT::D3D12::DAS::TransformData) * maxObjects;
 
-				// Convert to the full path & widestring before passing it to the D3D function!
+				// Persistently mapped upload buffer (updated every frame per object)
+				CreateUploadBuffer(bufferSize, outBuffer);
+
+				constexpr D3D12_RANGE readRange = { 0, 0 };
+				(*outBuffer)->Map(0, &readRange, reinterpret_cast<void**>(outMappedPtr));
+
+				// Register as SRV (StructuredBuffer) at slot 0
+				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+				srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+				srvDesc.Buffer.NumElements = maxObjects;
+				srvDesc.Buffer.StructureByteStride = sizeof(UT::D3D12::DAS::TransformData);
+				srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+				D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = pHeap->GetCPUDescriptorHandleForHeapStart();
+
+				// Slot 0 is reserved — do NOT increment GNextDescriptorSlot here
+				pDevice->CreateShaderResourceView(*outBuffer, &srvDesc, cpuHandle);
+
+				UT::GLOBALS::GNextDescriptorSlot = 1; // slot 0 taken, start textures from 1
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			// Returns the bindless index. Replaces CreateTextureSRV() in D3DCube/D3DMesh.
+			uint32_t RegisterTextureSRV(ID3D12Resource* pTexture)
+			{
+				ID3D12Device* const pDevice = UT::D3D12::CORE::GetDevice();
+				ID3D12DescriptorHeap* pHeap = UT::D3D12::CORE::GetGlobalDescriptorHeap();
+
+				const UINT descriptorSize = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+				const UINT slotIndex = UT::GLOBALS::GNextDescriptorSlot++;
+
+				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+				srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+				srvDesc.Texture2D.MipLevels = 1;
+
+				D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = pHeap->GetCPUDescriptorHandleForHeapStart();
+				cpuHandle.ptr += slotIndex * descriptorSize;
+				pDevice->CreateShaderResourceView(pTexture, &srvDesc, cpuHandle);
+
+				return slotIndex; // this is the bindless index the object stores
+			}
+
+			//-------------------------------------------------------------------------------------------------------------------
+			void CompileShader(const std::string& srcFile,
+				const std::string& entryPoint,
+				const std::string& target,
+				const D3D_SHADER_MACRO* pDefines,
+				D3D12_SHADER_BYTECODE& outByteCode,
+				IDxcBlob** ppCodeOut,
+				IDxcBlob** ppSignedBlobOut)
+			{
+				IDxcUtils*				pUtils		= nullptr;
+				IDxcCompiler3*			pCompiler	= nullptr;
+				IDxcIncludeHandler*		pInclude	= nullptr;
+				IDxcResult*				pResult		= nullptr;
+				IDxcBlob*				pCode		= nullptr;
+				IDxcValidator*			pValidator	= nullptr;
+				IDxcOperationResult*	pValResult	= nullptr;
+				IDxcBlob*				pSignedBlob = nullptr;
+				std::vector<LPCWSTR>	args;
+
+				// Build full shader path
 				const std::string shaderPath = UT::GLOBALS::GetExecutableFolderPath() + "Assets/Shaders/" + srcFile;
-				const std::wstring wideStr = UT::GLOBALS::ToWString(shaderPath);
+				const std::wstring wShaderPath = UT::GLOBALS::ToWString(shaderPath);
+				const std::wstring wEntryPoint(entryPoint.begin(), entryPoint.end());
+				const std::wstring wTarget(target.begin(), target.end());
 
-#if defined(_DEBUG)
-				compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#endif
+				// 1. Create DXC utilities
+				HRESULT Hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils));
+				UT_ASSERT_HRESULT(Hr, "DxcCreateInstance => Utils");
 
-				HRESULT Hr = D3DCompileFromFile(wideStr.c_str(), pDefines, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint.c_str(), target.c_str(), compileFlags, 0, &pCodeBlob, &pErrorBlob);
+				Hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler));
+				UT_ASSERT_HRESULT(Hr, "DxcCreateInstance => Compiler");
 
+				Hr = pUtils->CreateDefaultIncludeHandler(&pInclude);
+				UT_ASSERT_HRESULT(Hr, "CreateDefaultIncludeHandler");
+
+				// 2. Load source file
+				IDxcBlobEncoding* pSource = nullptr;
+				Hr = pUtils->LoadFile(wShaderPath.c_str(), nullptr, &pSource);
 				if (FAILED(Hr))
 				{
-					// Retrieve and throw compiler error messages if available
-					if (pErrorBlob)
+					LOG_CRITICAL("CompileShader => Failed to load shader file: {0}", shaderPath);
+					goto cleanup;
+				}
+
+				// 3. Build compile arguments
+				args.push_back(wShaderPath.c_str());
+				args.push_back(L"-E"); args.push_back(wEntryPoint.c_str());
+				args.push_back(L"-T"); args.push_back(wTarget.c_str());
+				args.push_back(L"-HV"); args.push_back(L"2021");
+#if defined(_DEBUG)
+				args.push_back(L"-Zi");
+				args.push_back(L"-Od");
+				args.push_back(L"-Qembed_debug");
+#else
+				args.push_back(L"-O3");
+#endif
+
+				// 4. Compile
+				{
+					DxcBuffer srcBuffer{};
+					srcBuffer.Ptr = pSource->GetBufferPointer();
+					srcBuffer.Size = pSource->GetBufferSize();
+					srcBuffer.Encoding = DXC_CP_ACP;
+
+					Hr = pCompiler->Compile(&srcBuffer, args.data(), (UINT32)args.size(), pInclude, IID_PPV_ARGS(&pResult));
+					SAFE_RELEASE(pSource);
+
+					if (FAILED(Hr))
 					{
-						const std::string msg( static_cast<const char*>(pErrorBlob->GetBufferPointer()), pErrorBlob->GetBufferSize());
-						LOG_CRITICAL("Shader Compilation Failed: " + msg);
+						LOG_CRITICAL("CompileShader => Compile call failed for: {0}", srcFile);
+						goto cleanup;
 					}
-					else
+
+					// Check for compile errors
+					IDxcBlobUtf8* pErrors = nullptr;
+					pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
+					if (pErrors && pErrors->GetStringLength() > 0)
+						LOG_ERROR("Shader Compile Warning/Error [{0}]:\n{1}", srcFile, pErrors->GetStringPointer());
+					SAFE_RELEASE(pErrors);
+
+					HRESULT hrStatus = S_OK;
+					pResult->GetStatus(&hrStatus);
+					if (FAILED(hrStatus))
 					{
-						LOG_CRITICAL("Shader Compilation Failed with HRESULT {0}: ", std::to_string(Hr));
+						LOG_CRITICAL("CompileShader => Shader compilation failed: {0}", srcFile);
+						goto cleanup;
+					}
+
+					// Get compiled DXIL
+					Hr = pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pCode), nullptr);
+					if (FAILED(Hr) || !pCode)
+					{
+						LOG_CRITICAL("CompileShader => Failed to get compiled DXIL: {0}", srcFile);
+						goto cleanup;
 					}
 				}
 
-				// Fill the D3D12_SHADER_BYTECODE
-				outByteCode.pShaderBytecode = pCodeBlob->GetBufferPointer();
-				outByteCode.BytecodeLength = pCodeBlob->GetBufferSize();
+				// 5. Validate & Sign
+				{
+					Hr = DxcCreateInstance(CLSID_DxcValidator, IID_PPV_ARGS(&pValidator));
+					UT_ASSERT_HRESULT(Hr, "DxcCreateInstance => Validator");
 
-				LOG_INFO("{0} => {1} Shader compiled successfully!", srcFile.c_str(), entryPoint.c_str());
+					DxcBuffer dxilBuffer{};
+					dxilBuffer.Ptr = pCode->GetBufferPointer();
+					dxilBuffer.Size = pCode->GetBufferSize();
+					dxilBuffer.Encoding = 0;
+
+					Hr = pValidator->Validate(pCode, DxcValidatorFlags_InPlaceEdit, &pValResult);
+					if (FAILED(Hr))
+					{
+						LOG_CRITICAL("CompileShader => Validation call failed: {0}", srcFile);
+						goto cleanup;
+					}
+
+					HRESULT hrValidate = S_OK;
+					pValResult->GetStatus(&hrValidate);
+					if (FAILED(hrValidate))
+					{
+						IDxcBlobEncoding* pValErrors = nullptr;
+						pValResult->GetErrorBuffer(&pValErrors);
+						if (pValErrors)
+						{
+							LOG_CRITICAL("CompileShader => DXIL Validation failed [{0}]: {1}",
+								srcFile,
+								static_cast<const char*>(pValErrors->GetBufferPointer()));
+							SAFE_RELEASE(pValErrors);
+						}
+						goto cleanup;
+					}
+
+					// Get the signed blob
+					pValResult->GetResult(&pSignedBlob);
+					if (!pSignedBlob)
+					{
+						LOG_CRITICAL("CompileShader => Failed to get signed blob: {0}", srcFile);
+						goto cleanup;
+					}
+				}
+
+				// 6. Fill bytecode — point into signed blob's memory
+				outByteCode.pShaderBytecode = pSignedBlob->GetBufferPointer();
+				outByteCode.BytecodeLength = pSignedBlob->GetBufferSize();
+
+				// 7. Hand ownership to caller — BOTH must stay alive until after CreateGraphicsPipelineState!
+				if (ppCodeOut)       *ppCodeOut = pCode;       // caller owns, do NOT release
+				else                 SAFE_RELEASE(pCode);
+
+				if (ppSignedBlobOut) *ppSignedBlobOut = pSignedBlob; // caller owns, do NOT release
+				else                 SAFE_RELEASE(pSignedBlob);
+
+				LOG_INFO("{0} => {1} compiled + signed OK! [{2} bytes]",
+					srcFile.c_str(), entryPoint.c_str(), outByteCode.BytecodeLength);
+
+			cleanup:
+				SAFE_RELEASE(pValResult);
+				SAFE_RELEASE(pValidator);
+				SAFE_RELEASE(pResult);
+				SAFE_RELEASE(pInclude);
+				SAFE_RELEASE(pCompiler);
+				SAFE_RELEASE(pUtils);
+				// NOTE: pCode and pSignedBlob are intentionally NOT released here
+				//       — they are either owned by caller or released above via ppXxxOut == nullptr path
 			}
 
 
@@ -483,14 +698,17 @@ namespace UT
 				rsDesc.Flags = flags;
 
 				// 2) Serialize the root signature
-				ID3DBlob* blob;
-				ID3DBlob* error;
+				ID3DBlob* blob	= nullptr;
+				ID3DBlob* error	= nullptr;
 
 				HRESULT Hr = D3D12SerializeRootSignature(&rsDesc, D3D_ROOT_SIGNATURE_VERSION_1, &blob, &error);
 				UT_ASSERT_HRESULT(Hr, "SerializeRootSignature");
 
 				Hr = pDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(pOutRootSignature));
 				UT_ASSERT_HRESULT(Hr, "CreateRootSignature");
+
+				SAFE_RELEASE(blob);
+				SAFE_RELEASE(error);
 			}
 
 			//-------------------------------------------------------------------------------------------------------------------

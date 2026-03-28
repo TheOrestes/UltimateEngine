@@ -34,5 +34,7 @@ private:
 	GameObject* m_pCubeBlue;
 
 	GameObject* m_pMesh;
+
+	uint32_t	m_uiNextTransformID = 0;
 };
 

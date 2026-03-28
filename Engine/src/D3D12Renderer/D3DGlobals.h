@@ -10,6 +10,7 @@
 #include <d3dcompiler.h>
 #include <dxgi1_4.h>
 #include <dxgi1_6.h>
+#include <dxcapi.h>
 
 #include "EngineHeader.h"
 
@@ -44,21 +45,6 @@ namespace UT
 			void			FenceIncrement();
 			void			ResetCommandList();
 			void			CloseAndExecuteCommandList();
-		}
-
-		namespace HELPER
-		{
-			void CreateGPUBuffer(UINT64 byteSize, ID3D12Resource** outGPUBuffer);
-			void CreateUploadBuffer(UINT64 byteSize, ID3D12Resource** outUploadBuffer);
-			void CreateReadbackBuffer(UINT64 byteSize, ID3D12Resource** outReadbackBuffer);
-			void CopyDataFromUploadBufferToGPU(UINT64 byteSize, const void* data, ID3D12Resource* uploadBuffer, ID3D12Resource* gpuBuffer);
-
-			void CompileShader(const std::string& srcFile, const std::string& entryPoint, const std::string& target, const D3D_SHADER_MACRO* pDefines, D3D12_SHADER_BYTECODE& outByteCode);
-			void CreateRootSignatue(UINT numRootParams, const D3D12_ROOT_PARAMETER* pRootParams, UINT numStaticSamplers, const D3D12_STATIC_SAMPLER_DESC* pStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags, ID3D12RootSignature** pOutRootSignature);
-			void CreatePSO(ID3D12RootSignature* pSignature, const D3D12_SHADER_BYTECODE& vsBytecode, const D3D12_SHADER_BYTECODE& psBytecode, const D3D12_INPUT_LAYOUT_DESC& inputLayout, ID3D12PipelineState** pOutPSO);
-
-			void LoadImageData(const std::string& filePath, int* width, int* height, int* channels, void** outImagaData);
-			void CreateTexture(const std::string& filePath, ID3D12Resource** outTexture);
 		}
 
 		namespace DAS
@@ -107,24 +93,57 @@ namespace UT
 				XMFLOAT2 TexCoord;
 			};
 
-			struct GeomsCB
+			struct DrawConstants
+			{
+				uint32_t albedoID;
+				uint32_t transformID;
+				uint32_t pad0;
+				uint32_t pad1;
+			};
+
+			struct TransformData
 			{
 				XMFLOAT4X4 World;
 				XMFLOAT4X4 View;
 				XMFLOAT4X4 Proj;
 			};
+
+			extern constexpr  TransformData*			const		GetGlobalTransformDataPtr();
+			void													SetGlobalTransformDataPtr(TransformData* transformData);
+		}
+
+		namespace HELPER
+		{
+			void		CreateGPUBuffer(UINT64 byteSize, ID3D12Resource** outGPUBuffer);
+			void		CreateUploadBuffer(UINT64 byteSize, ID3D12Resource** outUploadBuffer);
+			void		CreateReadbackBuffer(UINT64 byteSize, ID3D12Resource** outReadbackBuffer);
+			void		CopyDataFromUploadBufferToGPU(UINT64 byteSize, const void* data, ID3D12Resource* uploadBuffer, ID3D12Resource* gpuBuffer);
+
+			void		CreateTransformBuffer(uint32_t maxObjects, ID3D12Resource** outBuffer, UT::D3D12::DAS::TransformData** outMappedPtr);
+			uint32_t	RegisterTextureSRV(ID3D12Resource* pTexture);
+
+			void CompileShader(const std::string& srcFile, const std::string& entryPoint, const std::string& target, const D3D_SHADER_MACRO* pDefines, D3D12_SHADER_BYTECODE& outByteCode, IDxcBlob** ppCodeOut = nullptr, IDxcBlob** ppSignedBlobOut = nullptr);
+			void		CreateRootSignatue(UINT numRootParams, const D3D12_ROOT_PARAMETER* pRootParams, UINT numStaticSamplers, const D3D12_STATIC_SAMPLER_DESC* pStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags, ID3D12RootSignature** pOutRootSignature);
+			void		CreatePSO(ID3D12RootSignature* pSignature, const D3D12_SHADER_BYTECODE& vsBytecode, const D3D12_SHADER_BYTECODE& psBytecode, const D3D12_INPUT_LAYOUT_DESC& inputLayout, ID3D12PipelineState** pOutPSO);
+
+			void		LoadImageData(const std::string& filePath, int* width, int* height, int* channels, void** outImagaData);
+			void		CreateTexture(const std::string& filePath, ID3D12Resource** outTexture);
 		}
 	}
 
+
+
 	namespace GLOBALS
 	{
-		inline uint16_t GWindowWidth = 960;
-		inline uint16_t GWindowHeight = 540;
-		inline uint16_t GCurrentFrameId = 0;
-		inline HWND		GWindowHandle = nullptr;
+		inline uint16_t				GWindowWidth = 960;
+		inline uint16_t				GWindowHeight = 540;
+		inline uint16_t				GCurrentFrameId = 0;
+		inline HWND					GWindowHandle = nullptr;
 
-		inline constexpr uint16_t GFramesInFlight = 3;
-		inline UINT GCurrentDescriptorIndex = 0;
+		inline constexpr uint16_t	GFramesInFlight = 3;
+		inline constexpr UINT		GBindlessHeapSize = 4096;
+		inline UINT					GNextDescriptorSlot = 0;
+		inline UINT					GTransformBufferSRVSlot = 0;
 
 		std::string GetFileNameWithoutExtension(const std::string& fileName);
 		std::string GetExecutableFolderPath();

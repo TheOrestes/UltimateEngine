@@ -18,6 +18,13 @@ public:
 	virtual void	SetTexture(const std::string& filePath);
 	virtual void	Update(double dt);
 	virtual void	Render();
+	virtual void	Cleanup();
+
+	void			SetTransformID(uint32_t id) { m_uiTransformID = id; }
+
+protected:
+	uint32_t		m_uiAlbedoID = UINT32_MAX;
+	uint32_t		m_uiTransformID = UINT32_MAX;
 
 private:
 	virtual void	UpdateConstantBuffer();

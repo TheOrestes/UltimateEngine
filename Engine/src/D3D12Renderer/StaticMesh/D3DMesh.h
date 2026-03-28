@@ -14,14 +14,12 @@ public:
 
     void    SetMesh(const std::string& filePath) override;
     void    SetTexture(const std::string& fileName);
-   
 
     void    Render() override;
+    void    Cleanup() override;
 
 private:
     void    CreateMesh(const std::vector<UT::D3D12::DAS::VertexPNBT>& vertices, const std::vector<uint16_t>& indices);
-    void    CreateTextureSRV();
-    bool    CreateConstantBuffer();
     void    UpdateConstantBuffer() override;
 
     // D3D resources for vertices & indices
@@ -34,11 +32,6 @@ private:
 
     // === Per-instance data ===
     ID3D12Resource*                                             m_pBaseTexture;
-    D3D12_GPU_DESCRIPTOR_HANDLE                                 m_HandleBaseTextureSRV;
-
-    std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>   m_listCB;
-    std::array<UINT8*, UT::GLOBALS::GFramesInFlight>            m_listCBDataBegin;
-
     ModelLoader*                                                m_pModelLoader;
 };
 

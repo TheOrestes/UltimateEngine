@@ -13,15 +13,15 @@ public:
 
     // Static geometry must be created once before creating Cubes
     static void CreateStaticGeometry();
+    static void DestroyStaticGeometry();
 
     void    SetTexture(const std::string& fileName);
     void    Render() override;
+    void    Cleanup() override;
+
+    void UpdateConstantBuffer() override;
 
 private:
-    void    CreateTextureSRV();
-    bool    CreateConstantBuffer();
-
-    void    UpdateConstantBuffer() override;
 
     // === Shared static geometry ===
     static ID3D12Resource*                                      m_pSharedVB;
@@ -32,9 +32,5 @@ private:
 
     // === Per-instance data ===
     ID3D12Resource*                                             m_pTexture;
-    D3D12_GPU_DESCRIPTOR_HANDLE                                 m_HandleTextureSRV;
-
-    std::array<ID3D12Resource*, UT::GLOBALS::GFramesInFlight>   m_listCB;
-    std::array<UINT8*, UT::GLOBALS::GFramesInFlight>            m_listCBDataBegin;
 };
 

@@ -68,7 +68,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Engine\ThirdParty\GLFW\Build\src\Debug;$(SolutionDir)Engine\ThirdParty\Assimp\BUILD\lib\Debug;$(SolutionDir)Engine\ThirdParty\Assimp\BUILD\contrib\zlib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;d3d12.lib;dxcompiler.lib;dxguid.lib;dxgi.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)bin\$(Configuration)-$(Platform)\Engine\*.dll $(SolutionDir)bin\$(Configuration)-$(Platform)\Game /e /y /i /r

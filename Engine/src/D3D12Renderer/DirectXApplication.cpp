@@ -21,6 +21,22 @@ DirectXApplication::~DirectXApplication()
 //---------------------------------------------------------------------------------------------------------------------
 void DirectXApplication::Cleanup()
 {
+	if (UT::D3D12::CORE::GetSwapchain())
+		UT::D3D12::CORE::GetSwapchain()->Present(0, 0);
+
+	LOG_INFO("Flushing GPU...");
+
+	// Flush GPU ONCE here — before ANY subsystem cleanup!
+	for (uint16_t i = 0; i < UT::GLOBALS::GFramesInFlight; ++i)
+	{
+		UT::GLOBALS::GCurrentFrameId = i;
+		UT::D3D12::CORE::WaitToFinishCurrentFrame();
+
+		LOG_INFO("Frame {0} flushed", i);
+	}
+
+	LOG_INFO("GPU flush complete");
+
 	m_pD3DRenderer->Cleanup();
 	SAFE_DELETE(m_pD3DRenderer);
 
