@@ -219,15 +219,6 @@ namespace UT
 			//-------------------------------------------------------------------------------------------------------------------
 			void Cleanup()
 			{
-				// Flush GPU ONCE here — before ANY subsystem cleanup!
-				for (uint16_t i = 0; i < UT::GLOBALS::GFramesInFlight; ++i)
-				{
-					UT::GLOBALS::GCurrentFrameId = i;
-					UT::D3D12::CORE::WaitToFinishCurrentFrame();
-
-					LOG_INFO("Frame {0} flushed", i);
-				}
-
 				for (uint16_t i = 0; i < GLOBALS::GFramesInFlight; ++i)
 				{
 					SAFE_RELEASE(m_ListFences[i]);
@@ -244,7 +235,6 @@ namespace UT
 					ULONG refCount = g_pD3DSwapChain->Release();
 					LOG_INFO("SwapChain RefCount before release: {0}", refCount);
 				}
-				SAFE_RELEASE(g_pD3DSwapChain);
 
 				SAFE_RELEASE(g_pD3DCommandQueue);
 				SAFE_RELEASE(g_pD3D12Debug);

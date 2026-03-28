@@ -221,8 +221,6 @@ bool D3DRenderer::CreateRTV()
 	for (UINT i = 0; i < UT::GLOBALS::GFramesInFlight; i++) 
 	{
 		pSwapchain->GetBuffer(i, IID_PPV_ARGS(&m_listRTBuffers[i]));
-
-		pSwapchain->GetBuffer(i, IID_PPV_ARGS(&m_listRTBuffers[i]));
 		UT_NAME_D3D_OBJECT_INDEXED(m_listRTBuffers[i], i, "BackBuffer");
 
 		pDevice->CreateRenderTargetView(m_listRTBuffers[i], nullptr, rtvHandle);
